@@ -1,0 +1,61 @@
+<?php
+
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TripController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+Route::middleware('auth')->group(function () {
+    // Redirigir dashboard a trips
+    Route::get('/dashboard', function () {
+        return redirect()->route('trips.index');
+    })->name('dashboard');
+
+    // Profile routes
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Trip routes
+    Route::resource('trips', TripController::class);
+    Route::patch('trips/{trip}/close', [TripController::class, 'close'])->name('trips.close');
+    Route::patch('trips/{trip}/reopen', [TripController::class, 'reopen'])->name('trips.reopen');
+
+    // Company routes
+    Route::resource('companies', CompanyController::class);
+    Route::get('/companies/{company}/switch', [CompanyController::class, 'switch'])->name('companies.switch');
+    Route::get('/company/switch/{companyId?}', [CompanyController::class, 'switch'])->name('company.switch');
+    Route::post('/companies/{company}/assign-trips', [CompanyController::class, 'assignTrips'])->name('companies.assign-trips');
+
+    // Analytics route
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Category routes
+    Route::resource('categories', ExpenseCategoryController::class)->except(['show']);
+
+    // Export routes
+    Route::get('trips/{trip}/export/pdf', [ExportController::class, 'exportPdf'])->name('trips.export.pdf');
+    Route::get('trips/{trip}/export/excel', [ExportController::class, 'exportExcel'])->name('trips.export.excel');
+
+    // Nested routes for expenses and products
+    Route::post('trips/{trip}/expenses', [ExpenseController::class, 'store'])->name('trips.expenses.store');
+    Route::put('trips/{trip}/expenses/{expense}', [ExpenseController::class, 'update'])->name('trips.expenses.update');
+    Route::delete('trips/{trip}/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('trips.expenses.destroy');
+
+    Route::post('trips/{trip}/products', [ProductController::class, 'store'])->name('trips.products.store');
+    Route::put('trips/{trip}/products/{product}', [ProductController::class, 'update'])->name('trips.products.update');
+    Route::patch('trips/{trip}/products/{product}/precio-venta', [ProductController::class, 'updatePrecioVenta'])->name('trips.products.update-precio-venta');
+    Route::delete('trips/{trip}/products/{product}', [ProductController::class, 'destroy'])->name('trips.products.destroy');
+});
+
+require __DIR__.'/auth.php';
