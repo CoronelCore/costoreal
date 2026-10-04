@@ -123,3 +123,5 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - QA real: escenario con tasa 950.12345678 y variación 20.25 muestra 530.012 → 531.404; a 320 px, innerWidth=scrollWidth=320. Precio objetivo 20.25 % y comisión 1.25 % muestra precios 172.906 / 78.230 sin aplicarlos. CSV inválido conserva =100 y bloquea importar; historial recupera la diferencia de nombre de revisión 10 bajo demanda.
 - Base personal: cero importaciones/productos/gastos/documentos/escenarios. QA: revisiones 10/4, costos 530.012/400.000, cuatro productos, un gasto, un escenario; sin escrituras nuevas durante este recorrido.
 - El plan completo permanece activo. Siguiente frente: limitar la lectura del resultado de costeo y llevar el desglose de gastos/residuos bajo demanda, con trazabilidad histórica y presupuesto de consultas (CR-019/021/026/032/040).
+
+- Checkpoint `01b6adb`: instalación desde archivo Git limpia, setup/build con typecheck, 127 pruebas PHP (1.896 aserciones), nueve frontend y Pint pasan. Logs clean-advanced-contracts-* en work/. La instalación limpia usa su propia base vacía y no altera los servicios personal/QA.
