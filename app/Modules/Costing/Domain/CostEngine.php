@@ -15,9 +15,11 @@ final class CostEngine
         usort($expenses, fn ($a, $b) => strnatcmp((string) $a['id'], (string) $b['id']));
         $purchase = BigDecimal::zero();
         $expenseTotal = BigDecimal::zero();
-        $assigned = BigDecimal::zero();
+        $assigned = new DecimalSum;
+        $lineAssigned = [];
+        $basisCache = [];
         $computed = [];
-        $allocations = [];
+        $allocations = new AllocationBuffer;
         $expenseIds = [];
         foreach ($lines as $line) {
             if (isset($computed[$line['id']]) || ! is_int($line['quantity']) || $line['quantity'] < 1) {
@@ -31,6 +33,7 @@ final class CostEngine
             $subtotal = $unit->multipliedBy($line['quantity'])->multipliedBy($rate)->toScale(0, RoundingMode::HALF_UP);
             $computed[$line['id']] = ['id' => $line['id'], 'quantity' => $line['quantity'], 'purchase' => (string) $subtotal, 'assigned' => '0'];
             $purchase = $purchase->plus($subtotal);
+            $lineAssigned[$line['id']] = new DecimalSum;
         }
         foreach ($expenses as $expense) {
             if (isset($expenseIds[$expense['id']])) {
@@ -43,66 +46,80 @@ final class CostEngine
             }
             $expenseTotal = $expenseTotal->plus($amount);
             $method = $expense['method'] ?? 'value';
-            $weights = [];
-            foreach ($lines as $line) {
-                $value = match ($method) {
-                    'value' => $computed[$line['id']]['purchase'], 'units' => $line['quantity'],
-                    'weight','volume' => $line[$method] ?? null,
-                    'direct' => (string) $line['id'] === (string) ($expense['target_id'] ?? '') ? 1 : 0,
-                    default => throw new DomainException('Regla de distribución desconocida.'),
-                };
-                if ($value === null || BigDecimal::of($value)->isNegative()) {
-                    throw new DomainException('Completa el peso o volumen de todos los productos para usar esta regla.');
+            $basisKey = json_encode([$method, $method === 'direct' ? (string) ($expense['target_id'] ?? '') : null], JSON_THROW_ON_ERROR);
+            if (! isset($basisCache[$basisKey])) {
+                $weights = [];
+                foreach ($lines as $line) {
+                    $value = match ($method) {
+                        'value' => $computed[$line['id']]['purchase'], 'units' => $line['quantity'],
+                        'weight','volume' => $line[$method] ?? null,
+                        'direct' => (string) $line['id'] === (string) ($expense['target_id'] ?? '') ? 1 : 0,
+                        default => throw new DomainException('Regla de distribución desconocida.'),
+                    };
+                    if ($value === null || BigDecimal::of($value)->isNegative()) {
+                        throw new DomainException('Completa el peso o volumen de todos los productos para usar esta regla.');
+                    }
+                    $weights[$line['id']] = BigDecimal::of($value);
                 }
-                $weights[$line['id']] = BigDecimal::of($value);
+                if (count($basisCache) === 4) {
+                    array_shift($basisCache);
+                }
+                $basisCache[$basisKey] = new AllocationBasis($weights);
             }
-            foreach ($this->allocate($amount, $weights) as $id => $allocation) {
+            foreach ($this->allocate($amount, $basisCache[$basisKey]) as $id => $allocation) {
                 $value = $allocation['amount'];
-                $computed[$id]['assigned'] = (string) BigDecimal::of($computed[$id]['assigned'])->plus($value);
-                $assigned = $assigned->plus($value);
-                $allocations[] = ['expense_id' => $expense['id'], 'product_id' => $id, 'amount' => (string) $value, 'method' => $method,
-                    'trace' => $allocation['trace']];
+                $lineAssigned[$id]->add((string) $value);
+                $assigned->add((string) $value);
+                $allocations->add(['expense_id' => $expense['id'], 'product_id' => $id, 'amount' => (string) $value, 'method' => $method,
+                    'trace' => $allocation['trace']]);
             }
         }
+        $assigned = $assigned->value();
         foreach ($computed as &$line) {
+            $line['assigned'] = (string) $lineAssigned[$line['id']]->value();
             $total = BigDecimal::of($line['purchase'])->plus($line['assigned']);
             $line['total'] = (string) $total;
             $line['unit_cost'] = (string) $total->dividedBy($line['quantity'], 8, RoundingMode::HALF_UP);
         }
 
-        return new CostResult(array_values($computed), $allocations, (string) $purchase, (string) $expenseTotal,
+        return new CostResult(array_values($computed), $allocations->finish(), (string) $purchase, (string) $expenseTotal,
             (string) $assigned, (string) $expenseTotal->minus($assigned), (string) $purchase->plus($expenseTotal));
     }
 
-    private function allocate(BigDecimal $amount, array $weights): array
+    private function allocate(BigDecimal $amount, AllocationBasis $basis): iterable
     {
-        $sum = array_reduce($weights, fn (BigDecimal $s, BigDecimal $v) => $s->plus($v), BigDecimal::zero());
+        $sum = $basis->total;
         if ($sum->isZero()) {
-            return [];
+            return;
         } // Explicitly unassigned: closing must reject this state.
-        $assigned = BigDecimal::zero();
+        $nativeAmount = AllocationBasis::native((string) $amount);
+        $native = $nativeAmount !== null && $basis->nativeWeights !== null && $basis->nativeTotal !== null
+            && ($nativeAmount === 0 || $basis->maximumWeight <= intdiv(PHP_INT_MAX, $nativeAmount));
+        $assigned = $native ? 0 : new DecimalSum;
         $shares = [];
         $remainders = [];
-        foreach ($weights as $id => $weight) {
-            $numerator = $amount->multipliedBy($weight);
-            $shares[$id] = $numerator->dividedBy($sum, 0, RoundingMode::DOWN);
-            $assigned = $assigned->plus($shares[$id]);
-            // Exact remainder numerator; all rows share the denominator.
-            $remainders[$id] = $numerator->minus($shares[$id]->multipliedBy($sum));
+        foreach ($basis->weights as $id => $weight) {
+            if ($native) {
+                $numerator = $nativeAmount * $basis->nativeWeights[$id];
+                $shares[$id] = intdiv($numerator, $basis->nativeTotal);
+                $remainders[$id] = $numerator % $basis->nativeTotal;
+                $assigned += $shares[$id];
+            } else {
+                [$shares[$id], $remainders[$id]] = $amount->multipliedBy($weight)->quotientAndRemainder($sum);
+                $assigned->add((string) $shares[$id]);
+            }
         }
-        $ids = array_keys($weights);
-        usort($ids, fn ($a, $b) => $remainders[$b]->compareTo($remainders[$a]) ?: strnatcmp((string) $a, (string) $b));
-        $residual = $amount->minus($assigned)->toInt();
+        $ids = array_keys($basis->weights);
+        usort($ids, fn ($a, $b) => ($native ? $remainders[$b] <=> $remainders[$a] : $remainders[$b]->compareTo($remainders[$a]))
+            ?: strnatcmp((string) $a, (string) $b));
+        $residual = $native ? $nativeAmount - $assigned : $amount->minus($assigned->value())->toInt();
         $rank = array_flip($ids);
-        $result = [];
         foreach ($shares as $id => $floor) {
             $award = $rank[$id] < $residual ? 1 : 0;
-            $result[$id] = ['amount' => $floor->plus($award), 'trace' => [
-                'version' => 1, 'expense_amount' => (string) $amount, 'basis' => (string) $weights[$id], 'basis_total' => (string) $sum,
-                'floor' => (string) $floor, 'remainder_numerator' => (string) $remainders[$id], 'remainder_denominator' => (string) $sum,
+            yield $id => ['amount' => $native ? (string) ($floor + $award) : (string) $floor->plus($award), 'trace' => [
+                'version' => 1, 'expense_amount' => (string) $amount, 'basis' => (string) $basis->weights[$id], 'basis_total' => (string) $sum,
+                'floor' => (string) $floor, 'remainder_numerator' => $native ? $basis->remainderText($remainders[$id]) : (string) $remainders[$id], 'remainder_denominator' => (string) $sum,
                 'priority' => $rank[$id] + 1, 'residual_pool' => $residual, 'residual_award' => $award]];
         }
-
-        return $result;
     }
 }

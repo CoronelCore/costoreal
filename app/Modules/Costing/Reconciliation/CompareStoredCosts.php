@@ -60,7 +60,7 @@ final class CompareStoredCosts
                 'allocated_total' => $summary($snapshot['products'], 'costo_final_total_clp')];
             $result = $this->costing->preview($trip);
             $comparison['algorithm'] = $result->algorithm;
-            $comparison['after'] = array_intersect_key($result->toArray(), array_flip(['purchase', 'expenses', 'assigned', 'unassigned', 'total', 'allocated_total']));
+            $comparison['after'] = array_intersect_key($result->summary(), array_flip(['purchase', 'expenses', 'assigned', 'unassigned', 'total', 'allocated_total']));
             $byId = collect($result->lines)->keyBy('id');
             foreach ($snapshot['products'] as $p) {
                 $line = $byId[$p['id']];

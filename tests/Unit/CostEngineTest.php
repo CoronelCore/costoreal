@@ -92,7 +92,7 @@ final class CostEngineTest extends TestCase
             $this->assertSame($r->total, (string) $sum);
             $this->assertSame($r->expenses, $r->assigned);
             foreach ($expenses as $e) {
-                $sum = array_reduce(array_filter($r->allocations, fn ($a) => $a['expense_id'] === $e['id']), fn ($s, $a) => $s->plus($a['amount']), BigDecimal::zero());
+                $sum = array_reduce(array_filter($r->toArray()['allocations'], fn ($a) => $a['expense_id'] === $e['id']), fn ($s, $a) => $s->plus($a['amount']), BigDecimal::zero());
                 $this->assertSame($e['amount_clp'], (string) $sum);
             }
             $this->assertSame($r->toArray(), (new CostEngine)->calculate(array_reverse($lines), array_reverse($expenses))->toArray());
@@ -108,8 +108,8 @@ final class CostEngineTest extends TestCase
     public function test_trace_explains_exact_fractions_stable_ties_and_the_residual_award(): void
     {
         $r = (new CostEngine)->calculate([$this->line(10), $this->line(2), $this->line(1)], [['id' => 7, 'amount_clp' => '2']]);
-        $this->assertSame([1, 2, 3], array_column(array_column($r->allocations, 'trace'), 'priority'));
-        $this->assertSame([1, 1, 0], array_column(array_column($r->allocations, 'trace'), 'residual_award'));
+        $this->assertSame([1, 2, 3], array_column(array_column($r->toArray()['allocations'], 'trace'), 'priority'));
+        $this->assertSame([1, 1, 0], array_column(array_column($r->toArray()['allocations'], 'trace'), 'residual_award'));
         foreach ($r->allocations as $allocation) {
             $trace = $allocation['trace'];
             $this->assertSame('0', $trace['floor']);

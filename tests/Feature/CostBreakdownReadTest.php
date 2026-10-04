@@ -35,7 +35,7 @@ class CostBreakdownReadTest extends TestCase
         $trip = $trip->fresh();
         $result = app(ProrrateoService::class)->calcularProrrateo($trip);
         if ($legacy) {
-            $result = new CostResult($result->lines, array_map(fn ($row) => array_diff_key($row, ['trace' => true]), $result->allocations),
+            $result = new CostResult($result->lines, array_map(fn ($row) => array_diff_key($row, ['trace' => true]), $result->toArray()['allocations']),
                 $result->purchase, $result->expenses, $result->assigned, $result->unassigned, $result->total);
         }
         $run = app(RecordCostRun::class)->execute($trip, $result, 'test_fixture');

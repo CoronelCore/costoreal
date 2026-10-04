@@ -10,6 +10,7 @@ use App\Modules\Costing\Domain\CostResult;
 use App\Modules\Costing\Domain\Currency;
 use App\Modules\Costing\Domain\Rate;
 use App\Modules\Reporting\FinancialSummaryData;
+use App\Modules\Shared\InsertBatchSize;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /** Compatibility boundary for the original controllers. */
 class ProrrateoService
 {
-    public function __construct(private CostEngine $engine) {}
+    public function __construct(private CostEngine $engine, private InsertBatchSize $batches) {}
 
     public function calcularProrrateo(Trip $trip): CostResult
     {
@@ -37,10 +38,10 @@ class ProrrateoService
                     'costo_final_total_clp' => $line['total'], 'costo_final_unitario_clp' => $line['unit_cost'],
                 ]);
             }
-            foreach (array_chunk($expenses->map->getAttributes()->all(), 30) as $chunk) {
+            foreach (array_chunk($expenses->map->getAttributes()->all(), $expenses->isEmpty() ? 1 : $this->batches->forColumns(count($expenses->first()->getAttributes()), 100)) as $chunk) {
                 Expense::upsert($chunk, ['id'], ['monto_clp']);
             }
-            foreach (array_chunk($products->map->getAttributes()->all(), 30) as $chunk) {
+            foreach (array_chunk($products->map->getAttributes()->all(), $products->isEmpty() ? 1 : $this->batches->forColumns(count($products->first()->getAttributes()), 100)) as $chunk) {
                 Product::upsert($chunk, ['id'], ['subtotal_clp', 'gastos_prorrateados_clp', 'costo_final_total_clp', 'costo_final_unitario_clp']);
             }
             $trip->unsetRelation('products')->unsetRelation('expenses');

@@ -69,7 +69,7 @@ final class PrepareProductImport
             }
             $candidate->setRelation('products', $trip->products->concat($new));
             try {
-                $cost = $this->costing->preview($candidate)->toArray();
+                $cost = $this->costing->preview($candidate)->summary();
             } catch (ValidationException $e) {
                 $costErrors = $e->errors();
             }
