@@ -20,7 +20,7 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: php vendor/bin/pint --test
-      - run: php artisan test
       - run: npm ci
       - run: npm run test:frontend
       - run: npm run build
+      - run: php artisan test

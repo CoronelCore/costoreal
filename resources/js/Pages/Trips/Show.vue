@@ -1,5 +1,5 @@
-<script setup>
-import { computed, inject, ref } from 'vue';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import FinancialLayout from '@/Layouts/FinancialLayout.vue';
 import ImportSummary from '@/Components/Importations/ImportSummary.vue';
@@ -11,21 +11,23 @@ import DocumentPanel from '@/Components/Importations/DocumentPanel.vue';
 import HistoryPanel from '@/Components/Importations/HistoryPanel.vue';
 import ScenariosPanel from '@/Components/Importations/ScenariosPanel.vue';
 import Modal from '@/Components/UI/Modal.vue';
+import { useRoute } from '@/Composables/useRoute';
+import type { ImportShowProps } from '@/Types/financial';
 import { useTabs } from '@/Composables/useTabs';
 import { formatDateOnly } from '@/Utils/format';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, ArrowPathIcon, PencilIcon } from '@heroicons/vue/24/outline';
-const route = inject('route');
-const props = defineProps({ trip: Object, scenarios: Object, estadisticas: Object, projection: Object, categories: Array, history: Object, costRuns: Array, costBreakdown: Object, lastPricingBatch: Object, trashedDocuments: Array });
+const route = useRoute();
+const props = defineProps<ImportShowProps>();
 const { activeTab, setTab } = useTabs(`trip-${props.trip.id}-tab`, 'resumen', ['resumen','productos','gastos','precio-venta','revision','historial','documentos','escenarios','config']);
 const tabs = computed(() => [{id:'resumen',label:'Resumen'}, {id:'productos',label:'Hoja de productos',count:props.trip.products.length}, {id:'gastos',label:'Gastos',count:props.trip.expenses.length}, {id:'precio-venta',label:'Precios'}, {id:'documentos',label:'Documentos',count:props.trip.documents?.length || 0}, {id:'escenarios',label:'Escenarios'}, {id:'revision',label:'Revisión'}, {id:'historial',label:'Historial'}]);
-const confirmation = ref(null);
+const confirmation = ref<{ title: string; message: string; action: () => void } | null>(null);
 const busy = ref(false);
 const askClose = () => { confirmation.value = { title:'Cerrar importación', message:'Se conservará esta revisión con sus tasas y costos, y se bloqueará su edición. Puedes reabrirla después; el cierre original seguirá disponible.', action: () => router.patch(route('trips.close',props.trip.id), {expected_revision:props.trip.revision}, {preserveScroll:true,onFinish:finish}) }; };
 const askReopen = () => { confirmation.value = { title:'Reabrir importación', message:'Podrás editar una nueva revisión. Los reportes del cierre anterior seguirán disponibles en el historial.', action: () => router.patch(route('trips.reopen',props.trip.id), {expected_revision:props.trip.revision}, {preserveScroll:true,onFinish:finish}) }; };
 const askTrash = () => { confirmation.value = { title:'Mover importación a la papelera', message:`«${props.trip.nombre}» saldrá del Control y la Analítica. Sus costos, documentos y revisiones se conservarán y podrás restaurarla desde la papelera.`, action: () => router.delete(route('trips.destroy',props.trip.id), {data:{expected_revision:props.trip.revision},onFinish:finish}) }; };
-const askDelete = (type, item) => { confirmation.value = { title:type === 'products' ? 'Eliminar producto' : 'Eliminar gasto', message:`Se quitará «${item.nombre || item.concepto}» de esta revisión y se recalculará el reparto. Sus datos anteriores permanecen en el historial.`, action: () => router.delete(route(`trips.${type}.destroy`,[props.trip.id,item.id]), {data:{expected_revision:props.trip.revision},preserveScroll:true,onFinish:finish}) }; };
+const askDelete = (type: 'products' | 'expenses', item: { id: number; nombre?: string; concepto?: string }) => { confirmation.value = { title:type === 'products' ? 'Eliminar producto' : 'Eliminar gasto', message:`Se quitará «${item.nombre || item.concepto}» de esta revisión y se recalculará el reparto. Sus datos anteriores permanecen en el historial.`, action: () => router.delete(route(`trips.${type}.destroy`,[props.trip.id,item.id]), {data:{expected_revision:props.trip.revision},preserveScroll:true,onFinish:finish}) }; };
 const finish = () => { busy.value = false; confirmation.value = null; };
-const confirm = () => { busy.value = true; confirmation.value.action(); };
+const confirm = () => { busy.value = true; confirmation.value?.action(); };
 </script>
 <template>
     <Head :title="trip.nombre" />

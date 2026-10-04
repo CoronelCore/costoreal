@@ -8,8 +8,8 @@ use App\Models\Trip;
 use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Importations\Actions\RecoverTrip;
-use App\Modules\Pricing\Domain\Projection;
-use App\Services\ProrrateoService;
+use App\Modules\Importations\Data\ImportationData;
+use App\Modules\Reporting\FinancialSummaryData;
 use Brick\Math\BigDecimal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,7 @@ use Inertia\Inertia;
 
 class TripController extends Controller
 {
-    public function __construct(private ProrrateoService $prorrateoService, private MutateTrip $mutation) {}
+    public function __construct(private MutateTrip $mutation) {}
 
     public function index(Request $request)
     {
@@ -48,7 +48,7 @@ class TripController extends Controller
         match ($sort) {
             'cost' => $financial->orderByDesc('costo_calculado'),'name' => $financial->orderBy('nombre'),default => $financial->latest()
         };
-        $trips = $financial->orderBy('id', 'desc')->with('company')->paginate(20)->withQueryString();
+        $trips = $financial->orderBy('id', 'desc')->with('company')->paginate(20)->withQueryString()->through(fn ($trip) => ImportationData::listing($trip));
 
         return Inertia::render('Trips/Index', ['trips' => $trips, 'filters' => (object) array_diff_key($filters, ['page' => true]),
             'metrics' => ['count' => (int) $aggregate->count, 'active' => (int) $aggregate->active, 'purchase' => (string) $aggregate->purchase,
@@ -79,26 +79,26 @@ class TripController extends Controller
         $this->authorize('view', $trip);
         $trip->load(['expenses.category', 'products', 'company', 'documents']);
 
-        $stats = $this->prorrateoService->obtenerEstadisticas($trip);
+        $summary = FinancialSummaryData::fromTrip($trip);
 
         $batch = DB::table('pricing_batches')->where('trip_id', $trip->id)->latest('id')->first();
         $lastBatch = $batch ? ['revision' => (int) $batch->revision, 'policy' => json_decode($batch->policy, true, flags: JSON_THROW_ON_ERROR),
             'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
 
-        return Inertia::render('Trips/Show', ['trip' => $trip, 'lastPricingBatch' => $lastBatch, 'projection' => app(Projection::class)->summarize($trip->products, $stats['gastos_sin_asignar_clp']), 'estadisticas' => $stats,
+        return Inertia::render('Trips/Show', ['trip' => ImportationData::detail($trip, $summary), 'lastPricingBatch' => $lastBatch, 'projection' => $summary->projection, 'estadisticas' => $summary->statistics,
             'scenarios' => fn () => app(ScenarioController::class)->listing($trip, 'scenario_page'),
-            'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get(),
+            'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get()->map(fn ($d) => ImportationData::document($d)),
             'history' => fn () => app(AuditController::class)->listing($trip, 'history_page'),
             'costRuns' => $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->limit(50)->get(),
             'costBreakdown' => $trip->costRuns()->select('result')->latest('id')->first()?->result,
-            'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get()]);
+            'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get(['id', 'nombre'])]);
     }
 
     public function edit(Request $request, Trip $trip)
     {
         $this->authorize('update', $trip);
 
-        return Inertia::render('Trips/Edit', ['trip' => $trip, 'companies' => AccessContext::forRequest($request)->companies()]);
+        return Inertia::render('Trips/Edit', ['trip' => ImportationData::configuration($trip), 'companies' => AccessContext::forRequest($request)->companies()]);
     }
 
     public function update(TripRequest $request, Trip $trip)

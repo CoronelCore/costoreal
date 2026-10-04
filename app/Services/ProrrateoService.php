@@ -9,6 +9,7 @@ use App\Modules\Costing\Domain\CostEngine;
 use App\Modules\Costing\Domain\CostResult;
 use App\Modules\Costing\Domain\Currency;
 use App\Modules\Costing\Domain\Rate;
+use App\Modules\Reporting\FinancialSummaryData;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Illuminate\Database\Eloquent\Model;
@@ -100,16 +101,7 @@ class ProrrateoService
 
     public function obtenerEstadisticas(Trip $trip): array
     {
-        $trip->loadMissing(['products', 'expenses']);
-        $sum = fn ($rows, $field) => (string) $rows->reduce(fn (BigDecimal $s, $row) => $s->plus($row->{$field}), BigDecimal::zero());
-        $expenses = $sum($trip->expenses, 'monto_clp');
-        $purchase = $sum($trip->products, 'subtotal_clp');
-        $assigned = $sum($trip->products, 'gastos_prorrateados_clp');
-
-        return ['total_gastos_clp' => $expenses, 'total_productos_clp' => $purchase, 'total_gastos_prorrateados_clp' => $assigned,
-            'gastos_sin_asignar_clp' => (string) BigDecimal::of($expenses)->minus($assigned),
-            'costo_total_final_clp' => $sum($trip->products, 'costo_final_total_clp'),
-            'costo_total' => (string) BigDecimal::of($expenses)->plus($purchase)];
+        return FinancialSummaryData::fromTrip($trip)->statistics;
     }
 
     public function obtenerGastosPorCategoria(Trip $trip): array

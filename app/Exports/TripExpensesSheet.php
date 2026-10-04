@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Trip;
-use App\Services\ProrrateoService;
+use App\Modules\Reporting\FinancialSummaryData;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
@@ -15,8 +15,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class TripExpensesSheet extends SafeValueBinder implements FromArray, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithStrictNullComparison, WithStyles, WithTitle
 {
-    public function __construct(private Trip $trip)
+    private FinancialSummaryData $summary;
+
+    public function __construct(private Trip $trip, ?FinancialSummaryData $summary = null)
     {
+        $this->summary = $summary ?? FinancialSummaryData::fromTrip($trip);
         $trip->loadMissing('expenses.category');
     }
 
@@ -27,7 +30,7 @@ class TripExpensesSheet extends SafeValueBinder implements FromArray, WithColumn
             $rows[] = [$e->category?->nombre ?? 'Sin categoría', $e->concepto, $e->moneda, (float) $e->monto, (float) $e->monto_clp];
         }
         $rows[] = [];
-        $rows[] = [null, null, null, 'TOTAL CLP', (float) app(ProrrateoService::class)->obtenerEstadisticas($this->trip)['total_gastos_clp']];
+        $rows[] = [null, null, null, 'TOTAL CLP', (float) $this->summary->statistics['total_gastos_clp']];
 
         return $rows;
     }

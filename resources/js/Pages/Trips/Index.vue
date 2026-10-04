@@ -1,17 +1,19 @@
-<script setup>
-import { inject, reactive } from 'vue';
+<script setup lang="ts">
+import { reactive } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import FinancialLayout from '@/Layouts/FinancialLayout.vue';
+import { useRoute } from '@/Composables/useRoute';
+import type { Pagination, ImportListItem, ControlMetrics, ControlFilters } from '@/Types/financial';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
 import { PlusIcon, ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
-const route = inject('route');
-const props = defineProps({ trips: Object, metrics: Object, filters: Object });
+const route = useRoute();
+const props = defineProps<{ trips: Pagination<ImportListItem>; metrics: ControlMetrics; filters: ControlFilters }>();
 const filters = reactive({ q: props.filters?.q || '', state: props.filters?.state || '', sort: props.filters?.sort || 'latest', from: props.filters?.from || '', to: props.filters?.to || '' });
 const applyFilters = () => router.get(route('trips.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), { preserveState: true, preserveScroll: true, replace: true });
 const clearFilters = () => { Object.assign(filters, { q: '', state: '', sort: 'latest', from: '', to: '' }); applyFilters(); };
-const status = trip => ({ activo: 'En curso', finalizado: 'Cerrada', archivado: 'Archivada' })[trip.estado];
-const pending = trip => trip.products_count === 0 ? 'Agregar productos' : trip.priced_count < trip.products_count ? `${trip.products_count - trip.priced_count} precios pendientes` : 'Precios completos';
-const pendingTab = trip => trip.products_count === 0 ? 'productos' : 'precio-venta';
+const status = (trip: ImportListItem) => ({ activo: 'En curso', finalizado: 'Cerrada', archivado: 'Archivada' })[trip.estado];
+const pending = (trip: ImportListItem) => trip.products_count === 0 ? 'Agregar productos' : trip.priced_count < trip.products_count ? `${trip.products_count - trip.priced_count} precios pendientes` : 'Precios completos';
+const pendingTab = (trip: ImportListItem) => trip.products_count === 0 ? 'productos' : 'precio-venta';
 </script>
 <template>
     <Head title="Control de importaciones" />

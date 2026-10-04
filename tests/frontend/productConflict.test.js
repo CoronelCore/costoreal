@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareProductDraft, mergeProductDraft, productDraft, sameProductValue } from '../../resources/js/Utils/productConflict.js';
+import { compareProductDraft, mergeProductDraft, productDraft, sameProductValue } from '../../resources/js/Utils/productConflict.ts';
 const base = productDraft({nombre:'Equipo',moneda:'USD',cantidad:1,costo_unitario:'100.00',rate_mode:'estimated',weight:null});
 test('disjoint draft and server edits merge without losing either change',()=>{
     const draft = {...base,cantidad:2};

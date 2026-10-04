@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Trip;
+use App\Modules\Reporting\FinancialSummaryData;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class TripExport implements WithMultipleSheets
@@ -16,10 +17,12 @@ class TripExport implements WithMultipleSheets
 
     public function sheets(): array
     {
+        $summary = FinancialSummaryData::fromTrip($this->trip);
+
         return [
-            new TripSummarySheet($this->trip),
-            new TripExpensesSheet($this->trip),
-            new TripProductsSheet($this->trip),
+            new TripSummarySheet($this->trip, $summary),
+            new TripExpensesSheet($this->trip, $summary),
+            new TripProductsSheet($this->trip, $summary),
         ];
     }
 }

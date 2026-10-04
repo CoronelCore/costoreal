@@ -1,22 +1,24 @@
-<script setup>
-import { computed, inject, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+<script setup lang="ts">
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { useRoute } from '@/Composables/useRoute';
+import { inputValue } from '@/Utils/input';
 import { useDarkMode } from '@/Composables/useDarkMode';
 import { Squares2X2Icon, ChartBarIcon, BuildingOffice2Icon, TagIcon, SunIcon, MoonIcon, ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline';
-const route = inject('route');
+const route = useRoute();
 const page = usePage();
 const { isDark, toggleTheme } = useDarkMode();
 const menuOpen = ref(false);
-const navRef = ref(null);
-const menuButton = ref(null);
-let mobileQuery;
-const closeOnDesktop = event => { if (!event.matches) menuOpen.value = false; };
+const navRef = ref<HTMLElement | null>(null);
+const menuButton = ref<HTMLButtonElement | null>(null);
+let mobileQuery: MediaQueryList | undefined;
+const closeOnDesktop = (event: MediaQueryListEvent) => { if (!event.matches) menuOpen.value = false; };
 onMounted(() => { mobileQuery = window.matchMedia('(max-width: 760px)'); mobileQuery.addEventListener('change', closeOnDesktop); });
 onUnmounted(() => mobileQuery?.removeEventListener('change', closeOnDesktop));
 watch(menuOpen, async open => { await nextTick(); if (open) navRef.value?.querySelector('a')?.focus(); else menuButton.value?.focus(); });
-const trapNavFocus = event => {
-    if (!menuOpen.value || event.key !== 'Tab') return;
-    const nodes = Array.from(navRef.value.querySelectorAll('a,button')).filter(node => node.getClientRects().length);
+const trapNavFocus = (event: KeyboardEvent) => {
+    if (!menuOpen.value || !navRef.value || event.key !== 'Tab') return;
+    const nodes = Array.from(navRef.value.querySelectorAll<HTMLElement>('a,button')).filter(node => node.getClientRects().length);
     const first = nodes[0], last = nodes[nodes.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
@@ -31,7 +33,7 @@ const nav = [
     { label: 'Categorías', route: 'categories.index', pattern: 'categories.*', icon: TagIcon },
 ];
 const company = computed(() => page.props.company);
-const switchCompany = event => router.post(route('company.switch', event.target.value || 'all'), {}, { preserveState: false });
+const switchCompany = (event: Event) => router.post(route('company.switch', inputValue(event) || 'all'), {}, { preserveState: false });
 const errors = computed(() => Object.values(page.props.errors || {}));
 const flash = computed(() => page.props.flash || {});
 </script>

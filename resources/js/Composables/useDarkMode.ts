@@ -5,7 +5,6 @@ import { useThemeStore } from '@/Stores/theme';
  * Composable for managing dark mode
  * Provides easy access to theme state and toggle functionality
  *
- * @returns {Object} - isDark (computed), toggleTheme (function), setTheme (function)
  */
 export function useDarkMode() {
     const themeStore = useThemeStore();
@@ -19,7 +18,7 @@ export function useDarkMode() {
     };
 
     // Set theme explicitly (true for dark, false for light)
-    const setTheme = (dark) => {
+    const setTheme = (dark: boolean) => {
         themeStore.setTheme(dark);
     };
 

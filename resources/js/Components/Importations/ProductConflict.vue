@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
-const props = defineProps({ comparison:Array, choices:Object, revision:Number, editable:Boolean, busy:Boolean });
-const emit = defineEmits(['resolve','refresh']);
+import type { ProductComparison, ConflictChoices } from '@/Utils/productConflict';
+const props = defineProps<{ comparison: ProductComparison[]; choices: ConflictChoices; revision: number; editable: boolean; busy: boolean }>();
+const emit = defineEmits<{ resolve: []; refresh: [] }>();
 const labels = {nombre:'Nombre',moneda:'Moneda',cantidad:'Cantidad',costo_unitario:'Costo unitario original',weight:'Peso total · kg',volume:'Volumen total · m³',rate_mode:'Conversión',applied_rate:'Tasa histórica',rate_source:'Fuente de la tasa',rate_date:'Fecha de pago'};
-const unresolved = computed(()=>props.comparison.some(row=>row.conflict && !['draft','current'].includes(props.choices[row.field])));
-const value = data => data === '' || data === null || data === undefined ? 'Sin dato' : ({estimated:'Estimado',paid:'Pagado'})[data] || String(data);
+const unresolved = computed(()=>props.comparison.some(row=>row.conflict && props.choices[row.field] !== 'draft' && props.choices[row.field] !== 'current'));
+const value = (data: string | number | null) => data === '' || data === null || data === undefined ? 'Sin dato' : ({estimated:'Estimado',paid:'Pagado'} as Record<string,string>)[String(data)] || String(data);
 </script>
 <template>
     <section class="f-draft product-conflict" aria-label="Comparación para resolver conflicto"><h3>Tu borrador sigue disponible</h3><p class="f-hint" style="margin:8px 0">La importación está en revisión {{ revision }}. Compara los valores de origen, tu borrador y la versión actual. Los campos que no editaste tomarán su valor actual.</p>

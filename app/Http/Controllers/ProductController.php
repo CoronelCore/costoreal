@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Trip;
 use App\Modules\Documents\StoreDocument;
 use App\Modules\Importations\Actions\MutateTrip;
+use App\Modules\Importations\Data\ProductData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,8 +24,7 @@ class ProductController extends Controller
             $record = $current->products()->findOrFail($product->id);
 
             return response()->json(['revision' => $current->revision, 'editable' => $current->estado === 'activo',
-                'product' => $record->only(['id', 'nombre', 'moneda', 'cantidad', 'costo_unitario', 'weight', 'volume',
-                    'rate_mode', 'applied_rate', 'rate_source', 'rate_date'])]);
+                'product' => ProductData::editable($record)]);
         });
     }
 

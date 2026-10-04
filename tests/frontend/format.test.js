@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatMoney, formatDateOnly } from '../../resources/js/Utils/format.js';
+import { formatMoney, formatDateOnly } from '../../resources/js/Utils/format.ts';
 test('decimal presentation preserves large amounts, signs and half-up cents', () => {
     assert.equal(formatMoney('9000000000000000.015', 2), '9.000.000.000.000.000,02');
     assert.equal(formatMoney('-1234.565',2), '-1.234,57');

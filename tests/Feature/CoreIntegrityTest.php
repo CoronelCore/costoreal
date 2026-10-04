@@ -120,7 +120,7 @@ class CoreIntegrityTest extends TestCase
         $trip = $this->tripFor($owner);
         $this->productFor($trip);
         $this->actingAs($owner)->get('/trips')
-            ->assertInertia(fn (Assert $page) => $page->component('Trips/Index')->where('trips.data.0.total_gastos_clp', null)->where('trips.data.0.costo_total', '90000')->etc());
+            ->assertInertia(fn (Assert $page) => $page->component('Trips/Index')->where('trips.data.0.total_gastos_clp', '0')->where('trips.data.0.costo_total', '90000')->etc());
     }
 
     public function test_excel_products_use_numeric_canonical_fields(): void

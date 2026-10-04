@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Models\Trip;
-use App\Services\ProrrateoService;
+use App\Modules\Reporting\FinancialSummaryData;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
@@ -15,8 +17,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithStrictNullComparison, WithStyles, WithTitle
 {
-    public function __construct(private Trip $trip)
+    private FinancialSummaryData $summary;
+
+    public function __construct(private Trip $trip, ?FinancialSummaryData $summary = null)
     {
+        $this->summary = $summary ?? FinancialSummaryData::fromTrip($trip);
         $trip->loadMissing('products');
     }
 
@@ -28,10 +33,11 @@ class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumn
                 $p->nombre, (int) $p->cantidad, $p->moneda, (float) $p->costo_unitario, (float) $p->subtotal_clp,
                 (float) $p->gastos_prorrateados_clp, (float) $p->costo_final_total_clp, (float) $p->costo_final_unitario_clp,
                 $p->precio_venta === null ? null : (float) $p->precio_venta,
-                $p->precio_venta > 0 ? ((float) $p->precio_venta - (float) $p->costo_final_unitario_clp) / (float) $p->precio_venta : null,
+                $p->precio_venta !== null && BigDecimal::of($p->precio_venta)->isPositive()
+                    ? (float) (string) BigDecimal::of($p->precio_venta)->minus($p->costo_final_unitario_clp)->dividedBy($p->precio_venta, 12, RoundingMode::HALF_UP) : null,
             ];
         }
-        $s = app(ProrrateoService::class)->obtenerEstadisticas($this->trip);
+        $s = $this->summary->statistics;
         $rows[] = [];
         $rows[] = ['TOTAL', null, null, null, (float) $s['total_productos_clp'], (float) $s['total_gastos_prorrateados_clp'], (float) $s['costo_total_final_clp']];
 

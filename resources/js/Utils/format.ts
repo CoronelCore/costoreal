@@ -1,4 +1,4 @@
-export function formatDateOnly(value, options = {}) {
+export function formatDateOnly(value: string | null | undefined, options: Intl.DateTimeFormatOptions = {}) {
     if (!value) return 'Sin fecha';
     const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
     if (!match) return 'Fecha no válida';
@@ -6,7 +6,7 @@ export function formatDateOnly(value, options = {}) {
     const date = new Date(Number(year), Number(month) - 1, Number(day), 12);
     return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', ...options });
 }
-export function formatMoney(value, decimals = 0) {
+export function formatMoney(value: string | number | null | undefined, decimals = 0) {
     if (value === null || value === undefined || value === '') return 'Sin dato';
     const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(value));
     if (!match || !Number.isInteger(decimals) || decimals < 0 || decimals > 8) return 'Sin dato';

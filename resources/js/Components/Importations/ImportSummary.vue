@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
+import type { ImportDetail, FinancialStatistics, SalesProjection } from '@/Types/financial';
 import { formatMoney } from '@/Utils/format';
-defineProps({ trip: Object, stats: Object, projection: Object });
-const emit = defineEmits(['tab']);
+defineProps<{ trip: ImportDetail; stats: FinancialStatistics; projection: SalesProjection }>();
+const emit = defineEmits<{ tab: [id: string] }>();
 </script>
 <template>
     <div class="f-metrics">
