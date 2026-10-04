@@ -35,6 +35,11 @@ class Trip extends Model
         'revision' => 'integer',
     ];
 
+    public function scenarios(): HasMany
+    {
+        return $this->hasMany(CostScenario::class);
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);

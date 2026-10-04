@@ -47,8 +47,8 @@ const submit = () => {
 
 const deleteTrip = () => {
     showConfirm({
-        title: 'Eliminar Importación',
-        message: `¿Estás seguro de que deseas eliminar la importación "${props.trip.nombre}"? La importación pasará a la papelera y conservará sus productos, gastos e historial.`,
+        title: 'Mover a la papelera',
+        message: `¿Deseas mover a la papelera la importación "${props.trip.nombre}"? La importación pasará a la papelera y conservará sus productos, gastos e historial.`,
         onConfirm: () => {
             router.delete(route('trips.destroy', props.trip.id), { data: { expected_revision: props.trip.revision } });
         }
@@ -304,7 +304,7 @@ const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products
                     @click="deleteTrip"
                 >
                     <TrashIcon class="h-4 w-4" />
-                    Eliminar Importación
+                    Mover a la papelera
                 </Button>
 
                 <div class="flex items-center gap-4">

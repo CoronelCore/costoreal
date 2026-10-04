@@ -7,6 +7,7 @@ use App\Models\ExpenseCategory;
 use App\Models\Trip;
 use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\MutateTrip;
+use App\Modules\Importations\Actions\RecoverTrip;
 use App\Modules\Pricing\Domain\Projection;
 use App\Services\ProrrateoService;
 use Brick\Math\BigDecimal;
@@ -85,10 +86,11 @@ class TripController extends Controller
             'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
 
         return Inertia::render('Trips/Show', ['trip' => $trip, 'lastPricingBatch' => $lastBatch, 'projection' => app(Projection::class)->summarize($trip->products, $stats['gastos_sin_asignar_clp']), 'estadisticas' => $stats,
+            'scenarios' => fn () => app(ScenarioController::class)->listing($trip, 'scenario_page'),
             'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get(),
-            'history' => $trip->auditEvents()->with('actor:id,name')->latest('id')->limit(50)->get(),
+            'history' => fn () => app(AuditController::class)->listing($trip, 'history_page'),
             'costRuns' => $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->limit(50)->get(),
-            'costBreakdown' => $trip->costRuns()->latest('id')->first()?->result,
+            'costBreakdown' => $trip->costRuns()->select('result')->latest('id')->first()?->result,
             'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get()]);
     }
 
@@ -134,11 +136,12 @@ class TripController extends Controller
         return to_route('trips.show', $trip)->with('success', 'Importación reabierta; el cierre anterior permanece en el historial');
     }
 
-    public function destroy(Trip $trip)
+    public function destroy(Request $request, Trip $trip, RecoverTrip $recovery)
     {
         $this->authorize('delete', $trip);
-        $trip->delete();
+        $data = $request->validate(['expected_revision' => 'required|integer|min:1']);
+        $recovery->execute($trip, (int) $data['expected_revision'], false);
 
-        return to_route('trips.index')->with('success', 'Importación eliminada');
+        return to_route('trips.index')->with('success', 'Importación movida a la papelera; puedes restaurarla');
     }
 }

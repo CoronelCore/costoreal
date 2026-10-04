@@ -24,9 +24,9 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-016 · Motor de reparto por valor · Backend | Verificado | CostEngineTest: 100 casos deterministas, fracciones, valores grandes, residuales, cero y reglas avanzadas. |
 | CR-017 · Atomicidad y conflictos · Backend | En curso | Rollback de datos/versiones/archivos y dos procesos SQLite reales probados, con CAS y reintento acotado. Versión aún opcional en rutas heredadas; falta obligatoriedad y comparación por fila. |
 | CR-018 · Ejecuciones y snapshots · Backend | Verificado | VersionedCostingTest: cierre/reapertura mantienen snapshot inmutable y reportes históricos. |
-| CR-019 · Auditoría y comparación · Backend/QA | En curso | Actor, antes/después e historial implementados. Falta comparador y backfill reentrante. |
+| CR-019 · Auditoría y comparación · Backend/QA | En curso | Comparación de auditoría paginada bajo demanda, actor/resúmenes e inicial sin snapshots completos. Backfill de resúmenes reentrante probado. Falta comparación y backfill de costeo heredado. |
 | CR-020 · DTOs y TypeScript · Full stack | Pendiente | — |
-| CR-021 · Lecturas y consultas · Backend | En curso | Control mantiene cuatro consultas en 1/200 registros y analítica ocho en 1/20. Falta perfil de rutas restantes. |
+| CR-021 · Lecturas y consultas · Backend | En curso | Control mantiene cuatro consultas en 1/200 registros y analítica ocho en 1/20. Historial inicial paginado (20 resúmenes) sin columnas before/after; diferencias bajo demanda. Falta perfil de otras rutas. |
 | CR-022 · Layout financiero · Frontend | En curso | Layout financiero, empresa/tema/densidad y menú móvil. Foco móvil pendiente de verificación tras último ajuste. |
 | CR-023 · Control de importaciones · Full stack | En curso | Control paginado, filtros/métricas del conjunto completo y enlaces a pendientes probados. QA visual de vacíos/errores pendiente. |
 | CR-024 · Detalle y resumen · Frontend | En curso | Show separado, resumen/cobertura/pérdidas y tabs persistidas. Falta verificar eventos tras última compilación. |
@@ -39,9 +39,9 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-031 · Pegado y CSV · Full stack | Verificado | Mapeo, vista previa por fila, política todo/nada, 100 filas conciliadas, reintento sin duplicados; 1.000 filas con 98 consultas. Flujo de pegado guardado en UI QA. |
 | CR-032 · Reglas avanzadas de reparto · Full stack | En curso | Motor de unidades/peso/volumen/directo probado y formulario de gastos disponible. Falta metadata de productos existentes y trazabilidad completa. |
 | CR-033 · Precio por objetivo · Full stack | Verificado | Margen 20 % → 37.500 y recargo 5 % → 31.500; comisión/redondeo, preview puro, aplicación atómica por revisión. Flujo real QA a 320/1024 px. |
-| CR-034 · Escenarios y revaluación · Full stack | Pendiente | — |
+| CR-034 · Escenarios y revaluación · Full stack | Verificado | Preview puro, conservación separada e idempotente; promoción atómica por revisión, pagos preservados y precios/reglas alternativos. Diez pruebas y flujo UI real: 450.000 → 520.000, revisión 5 → 6; comparación original conservada. |
 | CR-035 · Analítica renovada · Full stack | Pendiente | — |
-| CR-036 · Historial y recuperación · Full stack | En curso | Historial y recuperación de documentos implementados. Falta papelera/restauración de importaciones. |
+| CR-036 · Historial y recuperación · Full stack | En curso | Papelera/restauración de importaciones con CAS, auditoría, costos/pagos/cierres/snapshots/documentos conservados; recorrido QA móvil real. Retención automática desactivada. Falta completar la política global y archivos heredados junto con CR-028. |
 | CR-037 · Runtime y Laravel 13 · Desarrollo | En curso | PHP 8.3/Node 24 certificados en setup limpio. Laravel 13 pendiente. |
 | CR-038 · Inertia y tooling · Desarrollo | Pendiente | — |
 | CR-039 · Tailwind y limpieza · Frontend | Pendiente | — |
@@ -56,8 +56,8 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 
 ## Evidencia del checkpoint
 
-- 93 pruebas PHP / 1.294 aserciones; formato Pint pasa.
-- Tests frontend de dinero/date-only y build reproducible con Node 24 en el checkpoint previo; se repetirán con los cambios actuales.
+- 111 pruebas PHP / 1.621 aserciones; formato Pint pasa.
+- Dos tests frontend de dinero/date-only y build pasan con Node 24 en este checkpoint.
 - Capturas reales de Control desktop y Resumen a 390 px en outputs/.
 - La base personal no recibió fixtures; pruebas y demostración usan bases aisladas.
 - Composer sin advisories después de parches compatibles; cinco advisories altos npm pendientes de Tailwind 4.
@@ -69,4 +69,13 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Navegación a 320 px: foco contenido, Escape devuelve al botón, anchura del documento 320 px. Precio por objetivo a 1024 px: documento 1024 px. No sustituye la matriz visual completa pendiente.
 - La capa del diálogo y los tokens de overlays se corrigieron después de detectarlos en la revisión visual.
 - Asignación de empresa por lote ahora conserva revisiones, snapshots y auditoría; una revisión obsoleta revierte el lote completo.
-- Pendientes principales: contratos de versiones obligatorias/DTO/TypeScript; escenarios; alta guiada; analítica; recuperación/retención; auditoría/backfill; majors de framework/Inertia/Tailwind; rendimiento y ensayo de release; aceptación final.
+- Pendientes principales: contratos de versiones obligatorias/DTO/TypeScript; alta guiada; analítica; recuperación/retención; auditoría/backfill; majors de framework/Inertia/Tailwind; rendimiento y ensayo de release; aceptación final.
+
+## Escenarios, recuperación y auditoría
+
+- Escenarios: entradas alternativas de tasa, productos/gastos/reparto y objetivo de precio; simulación conservada antes/después, hash de base, revisión requerida y rollback completo. Una operación pagada conserva monto, cantidad y tasa original.
+- Recuperar una importación incrementa su revisión para invalidar ediciones antiguas, pero no reejecuta costeo. Una importación cerrada vuelve cerrada y conserva los mismos cost_runs y reportes.
+- Auditoría: listado de 20 resúmenes sin cargar JSON antes/después; comparación autorizada paginada de 20 registros, whitelist de campos sin rutas de almacenamiento.
+- Tras migrar, ejecutar `php artisan costoreal:audit-backfill`. Completa únicamente resúmenes ausentes; puede repetirse y no altera snapshots, entradas ni resultados de costeo.
+- QA: escenario aplicado a importación 1 (revisión 6/costo 520.000); importación 2 restaurada (revisión 4/costo 400.000). La base personal sigue sin importaciones y sin fixtures.
+- Evidencia visual: escenarios a 1024 px y papelera/restauración/historial a 320 px, sin overflow global. La matriz completa de accesibilidad sigue en CR-030.

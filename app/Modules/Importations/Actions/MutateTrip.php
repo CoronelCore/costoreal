@@ -5,15 +5,14 @@ namespace App\Modules\Importations\Actions;
 use App\Models\AuditEvent;
 use App\Models\Trip;
 use App\Modules\Costing\Actions\RecordCostRun;
+use App\Modules\Shared\TransactionRunner;
 use App\Services\ProrrateoService;
-use Illuminate\Database\ConcurrencyErrorDetector;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class MutateTrip
 {
-    public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder) {}
+    public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder, private TransactionRunner $transaction) {}
 
     public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null): mixed
     {
@@ -50,19 +49,6 @@ final class MutateTrip
             return $result;
         };
 
-        $outermost = DB::transactionLevel() === 0;
-        for ($attempt = 0; ; $attempt++) {
-            try {
-                return DB::transaction($operation);
-            } catch (\Throwable $e) {
-                if (! $outermost || ! (new ConcurrencyErrorDetector)->causedByConcurrencyError($e)) {
-                    throw $e;
-                }
-                if ($attempt >= 4) {
-                    throw ValidationException::withMessages(['conflict' => 'Otra operación está guardando esta importación. Espera un momento y recarga la revisión; no se guardaron tus cambios.']);
-                }
-                usleep(25000 * (2 ** $attempt));
-            }
-        }
+        return $this->transaction->execute($operation);
     }
 }

@@ -24,7 +24,7 @@ const pendingTab = trip => trip.products_count === 0 ? 'productos' : 'precio-ven
             <article class="f-metric"><span class="f-metric-label">Importaciones en curso</span><strong class="f-metric-value">{{ metrics.active }} <span style="font-size:13px;font-weight:400;color:var(--f-muted)">de {{ metrics.count }}</span></strong><small>{{ metrics.priced }} / {{ metrics.products }} líneas con precio de venta</small></article>
         </div>
         <section class="f-panel" aria-labelledby="imports-heading">
-            <div class="f-panel-heading"><h2 id="imports-heading">Tus importaciones <span class="f-muted">· {{ trips.total }}</span></h2><span class="f-hint">{{ metrics.active }} en curso · moneda base CLP</span></div>
+            <div class="f-panel-heading"><h2 id="imports-heading">Tus importaciones <span class="f-muted">· {{ trips.total }}</span></h2><div class="f-actions"><span class="f-hint">{{ metrics.active }} en curso · moneda base CLP</span><Link :href="route('trips.trash')" class="f-button">Papelera</Link></div></div>
             <form class="f-panel-body f-filters" @submit.prevent="applyFilters">
                 <div class="f-field f-search-field"><label for="search">Buscar importación</label><input class="f-input" id="search" v-model="filters.q" type="search" placeholder="Nombre de la importación" /></div>
                 <div class="f-field"><label for="state">Estado</label><select class="f-input" id="state" v-model="filters.state" @change="applyFilters"><option value="">Todos los estados</option><option value="activo">En curso</option><option value="finalizado">Cerradas</option><option value="archivado">Archivadas</option></select></div>

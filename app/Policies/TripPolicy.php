@@ -36,7 +36,7 @@ class TripPolicy
      */
     public function update(User $user, Trip $trip): bool
     {
-        return $this->view($user, $trip) && $trip->estado === 'activo';
+        return $this->view($user, $trip) && ! $trip->trashed() && $trip->estado === 'activo';
     }
 
     public function close(User $user, Trip $trip): bool
@@ -46,7 +46,7 @@ class TripPolicy
 
     public function reopen(User $user, Trip $trip): bool
     {
-        return $this->view($user, $trip) && $trip->estado === 'finalizado';
+        return $this->view($user, $trip) && ! $trip->trashed() && $trip->estado === 'finalizado';
     }
 
     /**
@@ -54,7 +54,7 @@ class TripPolicy
      */
     public function delete(User $user, Trip $trip): bool
     {
-        return $user->id === $trip->user_id;
+        return $this->view($user, $trip) && ! $trip->trashed();
     }
 
     /**
@@ -62,7 +62,7 @@ class TripPolicy
      */
     public function restore(User $user, Trip $trip): bool
     {
-        return false;
+        return $this->view($user, $trip) && $trip->trashed();
     }
 
     /**
