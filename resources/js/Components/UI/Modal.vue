@@ -106,7 +106,7 @@ const maxWidthClass = computed(() => {
                                     v-if="closeable"
                                     type="button"
                                     aria-label="Cerrar diálogo"
-                                    class="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:text-gray-200 transition-colors"
+                                    class="f-modal-close rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:text-gray-200 transition-colors"
                                     @click="close"
                                 >
                                     <XMarkIcon class="h-5 w-5" />

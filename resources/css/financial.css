@@ -5,6 +5,7 @@
     --f-ink: #172b3a;
     --f-muted: #5c6c79;
     --f-line: #dce3e8;
+    --f-control-line: #788995;
     --f-brand: #17615a;
     --f-brand-soft: #e9f3f0;
     --f-danger: #b42332;
@@ -27,6 +28,7 @@
     --f-ink: #e8f0f4;
     --f-muted: #a8b9c6;
     --f-line: #344650;
+    --f-control-line: #718a99;
     --f-brand: #82d7c4;
     --f-brand-soft: #1d3c37;
     --f-danger: #ffabb4;
@@ -390,7 +392,7 @@
     color: var(--f-muted);
 }
 .f-input {
-    border: 1px solid var(--f-line);
+    border: 1px solid var(--f-control-line);
     border-radius: 6px;
     min-height: 36px;
     background: var(--f-surface);
@@ -957,7 +959,7 @@
     height: 16px;
     accent-color: var(--f-brand);
     flex-shrink: 0;
-    border-color: var(--f-line);
+    border-color: var(--f-control-line);
 }
 .f-full {
     width: 100%;
@@ -998,7 +1000,7 @@
     height: 40px;
     width: 100%;
     padding: 3px;
-    border: 1px solid var(--f-line);
+    border: 1px solid var(--f-control-line);
     border-radius: 6px;
     background: var(--f-surface);
 }
@@ -1204,3 +1206,55 @@
 .f-expense-grid > .f-field {
     align-self: start;
 }
+
+/* Identify fields independently of surrounding panel separators. */
+.f-input::placeholder {
+    color: var(--f-muted);
+    opacity: 1;
+}
+.f-design-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+.f-design-swatch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--f-line);
+}
+.f-design-swatch > span {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 1px solid var(--f-control-line);
+    border-radius: 6px;
+}
+.f-design-swatch small {
+    display: block;
+    color: var(--f-muted);
+}
+@media (max-width: 760px) {
+    .f-design-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.financial-overlay .f-modal-close {
+    color: var(--f-muted);
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+@media (max-width: 760px) {
+    .financial-overlay .f-modal-close { min-width: 44px; min-height: 44px; }
+}
+
+.f-price-product {
+    min-width: 0;
+    flex: 1 1 200px;
+    overflow-wrap: anywhere;
+}
+/* Preserve all sides of the keyboard outline inside the horizontal tab scroller. */
+.f-tabs { padding: 6px; }

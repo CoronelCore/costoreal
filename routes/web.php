@@ -20,12 +20,17 @@ use App\Http\Controllers\ScenarioController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripRecoveryController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
 Route::middleware('auth')->scopeBindings()->group(function () {
+    if (app()->environment('local', 'testing')) {
+        Route::get('design-system', fn () => Inertia::render('DesignSystem'))->name('design-system');
+    }
+
     // Redirigir dashboard a trips
     Route::get('/dashboard', function () {
         return redirect()->route('trips.index');

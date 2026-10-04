@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { reactive } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, nextTick, reactive, ref } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import FinancialLayout from '@/Layouts/FinancialLayout.vue';
 import { useRoute } from '@/Composables/useRoute';
 import type { Pagination, ImportListItem, ControlMetrics, ControlFilters } from '@/Types/financial';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
 import { PlusIcon, ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 const route = useRoute();
+const page = usePage();
+const fieldErrors = computed(() => page.props.errors);
+const filterForm = ref<HTMLFormElement | null>(null);
 const props = defineProps<{ trips: Pagination<ImportListItem>; metrics: ControlMetrics; filters: ControlFilters }>();
 const filters = reactive({ q: props.filters?.q || '', state: props.filters?.state || '', sort: props.filters?.sort || 'latest', from: props.filters?.from || '', to: props.filters?.to || '' });
-const applyFilters = () => router.get(route('trips.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), { preserveState: true, preserveScroll: true, replace: true });
+const applyFilters = () => router.get(route('trips.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), { preserveState: true, preserveScroll: true, replace: true, onError: () => { void nextTick(() => filterForm.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); } });
 const clearFilters = () => { Object.assign(filters, { q: '', state: '', sort: 'latest', from: '', to: '' }); applyFilters(); };
 const status = (trip: ImportListItem) => ({ activo: 'En curso', finalizado: 'Cerrada', archivado: 'Archivada' })[trip.estado];
 const pending = (trip: ImportListItem) => trip.products_count === 0 ? 'Agregar productos' : trip.priced_count < trip.products_count ? `${trip.products_count - trip.priced_count} precios pendientes` : 'Precios completos';
@@ -17,7 +20,7 @@ const pendingTab = (trip: ImportListItem) => trip.products_count === 0 ? 'produc
 </script>
 <template>
     <Head title="Control de importaciones" />
-    <FinancialLayout>
+    <FinancialLayout error-heading="No se aplicaron los filtros.">
         <div class="f-heading"><div><div class="f-eyebrow">TU OPERACIÓN, EN CIFRAS</div><h1>Control de importaciones</h1><p>Del precio de compra al costo final. Cada peso, en su lugar.</p></div><div class="f-actions"><Link :href="route('trips.create')" class="f-button f-button-primary"><PlusIcon /> Nueva importación</Link></div></div>
         <div class="f-metrics" aria-label="Totales de todas las importaciones del filtro">
             <article class="f-metric f-metric-accent"><span class="f-metric-label">Inversión total · CLP</span><strong class="f-metric-value">${{ formatMoney(metrics.total) }}</strong><small>Compra + gastos del filtro completo</small></article>
@@ -27,11 +30,11 @@ const pendingTab = (trip: ImportListItem) => trip.products_count === 0 ? 'produc
         </div>
         <section class="f-panel" aria-labelledby="imports-heading">
             <div class="f-panel-heading"><h2 id="imports-heading">Tus importaciones <span class="f-muted">· {{ trips.total }}</span></h2><div class="f-actions"><span class="f-hint">{{ metrics.active }} en curso · moneda base CLP</span><Link :href="route('trips.trash')" class="f-button">Papelera</Link></div></div>
-            <form class="f-panel-body f-filters" @submit.prevent="applyFilters">
-                <div class="f-field f-search-field"><label for="search">Buscar importación</label><input class="f-input" id="search" v-model="filters.q" type="search" placeholder="Nombre de la importación" /></div>
-                <div class="f-field"><label for="state">Estado</label><select class="f-input" id="state" v-model="filters.state" @change="applyFilters"><option value="">Todos los estados</option><option value="activo">En curso</option><option value="finalizado">Cerradas</option><option value="archivado">Archivadas</option></select></div>
-                <div class="f-field"><label for="sort">Ordenar por</label><select class="f-input" id="sort" v-model="filters.sort" @change="applyFilters"><option value="latest">Más recientes</option><option value="cost">Mayor inversión</option><option value="name">Nombre</option></select></div>
-                <div class="f-field"><label for="from">Desde</label><input class="f-input" id="from" v-model="filters.from" type="date" /></div><div class="f-field"><label for="to">Hasta</label><input class="f-input" id="to" v-model="filters.to" type="date" /></div>
+            <form ref="filterForm" class="f-panel-body f-filters" @submit.prevent="applyFilters">
+                <div class="f-field f-search-field"><label for="search">Buscar importación</label><input class="f-input" id="search" maxlength="150" v-model="filters.q" :aria-invalid="!!fieldErrors.q" :aria-describedby="fieldErrors.q ? 'filter-q-error' : undefined" type="search" placeholder="Nombre de la importación" /><p v-if="fieldErrors.q" id="filter-q-error" class="f-field-error" role="alert">{{ fieldErrors.q }}</p></div>
+                <div class="f-field"><label for="state">Estado</label><select class="f-input" id="state" v-model="filters.state" :aria-invalid="!!fieldErrors.state" :aria-describedby="fieldErrors.state ? 'filter-state-error' : undefined" @change="applyFilters"><option value="">Todos los estados</option><option value="activo">En curso</option><option value="finalizado">Cerradas</option><option value="archivado">Archivadas</option></select><p v-if="fieldErrors.state" id="filter-state-error" class="f-field-error" role="alert">{{ fieldErrors.state }}</p></div>
+                <div class="f-field"><label for="sort">Ordenar por</label><select class="f-input" id="sort" v-model="filters.sort" :aria-invalid="!!fieldErrors.sort" :aria-describedby="fieldErrors.sort ? 'filter-sort-error' : undefined" @change="applyFilters"><option value="latest">Más recientes</option><option value="cost">Mayor inversión</option><option value="name">Nombre</option></select><p v-if="fieldErrors.sort" id="filter-sort-error" class="f-field-error" role="alert">{{ fieldErrors.sort }}</p></div>
+                <div class="f-field"><label for="from">Desde</label><input class="f-input" id="from" v-model="filters.from" :aria-invalid="!!fieldErrors.from" :aria-describedby="fieldErrors.from ? 'filter-from-error' : undefined" type="date" /><p v-if="fieldErrors.from" id="filter-from-error" class="f-field-error" role="alert">{{ fieldErrors.from }}</p></div><div class="f-field"><label for="to">Hasta</label><input class="f-input" id="to" v-model="filters.to" :aria-invalid="!!fieldErrors.to" :aria-describedby="fieldErrors.to ? 'filter-to-error' : undefined" type="date" /><p v-if="fieldErrors.to" id="filter-to-error" class="f-field-error" role="alert">{{ fieldErrors.to }}</p></div>
                 <button class="f-button" type="submit"><MagnifyingGlassIcon /> Filtrar</button><button v-if="filters.q || filters.state || filters.from || filters.to" class="f-button" type="button" @click="clearFilters">Limpiar</button>
             </form>
             <template v-if="trips.data.length">
