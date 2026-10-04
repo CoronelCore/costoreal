@@ -69,7 +69,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Navegación a 320 px: foco contenido, Escape devuelve al botón, anchura del documento 320 px. Precio por objetivo a 1024 px: documento 1024 px. No sustituye la matriz visual completa pendiente.
 - La capa del diálogo y los tokens de overlays se corrigieron después de detectarlos en la revisión visual.
 - Asignación de empresa por lote ahora conserva revisiones, snapshots y auditoría; una revisión obsoleta revierte el lote completo.
-- Pendientes principales: contratos de versiones obligatorias/DTO/TypeScript; alta guiada; analítica; recuperación/retención; auditoría/backfill; majors de framework/Inertia/Tailwind; rendimiento y ensayo de release; aceptación final.
+- Pendientes principales: DTO/TypeScript; alta guiada; analítica; recuperación/retención; auditoría/backfill; majors de framework/Inertia/Tailwind; rendimiento y ensayo de release; aceptación final.
 
 ## Escenarios, recuperación y auditoría
 
@@ -93,3 +93,5 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Auditoría corregida para comparar los campos persistidos gastos_prorrateados_clp y expense_category_id; prueba verifica diferencia financiera real.
 
 - Reintento de restauración de documento: se recarga el modelo dentro de cada transacción, evitando reutilizar un estado de Eloquent que fue revertido. Prueba con fallo de bloqueo después de cost_runs verifica una sola restauración, archivo conservado y auditoría correcta.
+
+- Checkpoint `00af9ae`: instalación desde archivo Git limpia; setup/build/Pint, 118 pruebas PHP (1.737 aserciones) y cinco frontend pasan. Copias personal y QA restauradas con conteos/totales iguales, integrity ok y FK=0. Cancelar edición devuelve el foco al botón Editar del producto; verificado en la UI.
