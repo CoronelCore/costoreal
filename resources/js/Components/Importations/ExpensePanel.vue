@@ -6,7 +6,7 @@ import FinancialField from "@/Components/UI/FinancialField.vue";
 import { expenseMultipart } from "@/Utils/creationDraft";
 import { requestErrors, formFieldErrors } from "@/Utils/validation";
 import type { ExpenseEditorDraft } from "@/Types/creation";
-import { formatMoney, formatDateOnly } from "@/Utils/format";
+import { formatMoney, formatDateOnly, formatRate } from "@/Utils/format";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import { useRoute } from "@/Composables/useRoute";
 import { inputFile } from "@/Utils/input";
@@ -390,7 +390,7 @@ watch(
                         {{
                             form.rate_mode === "paid"
                                 ? "La tasa del pago se conserva al revaluar la importación."
-                                : `La referencia actual es ${trip.tipo_cambio} CLP / ${trip.moneda_trabajo}.`
+                                : `La referencia actual es ${formatRate(trip.tipo_cambio)} CLP / ${trip.moneda_trabajo}.`
                         }}
                     </p>
                     <p
@@ -659,7 +659,7 @@ watch(
                                 ><span
                                     v-if="expense.rate_mode === 'paid'"
                                     class="f-table-subtitle"
-                                    >{{ expense.applied_rate }} ·
+                                    >{{ formatRate(expense.applied_rate) }} ·
                                     {{
                                         formatDateOnly(expense.rate_date, {
                                             month: "short",
@@ -737,7 +737,7 @@ watch(
                         class="f-hint"
                         style="margin-top: 10px; overflow-wrap: anywhere"
                     >
-                        Tasa {{ expense.applied_rate }} CLP /
+                        Tasa {{ formatRate(expense.applied_rate) }} CLP /
                         {{ expense.moneda }} ·
                         {{
                             formatDateOnly(expense.rate_date, {

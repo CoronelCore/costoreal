@@ -20,5 +20,11 @@ export function formatMoney(value: string | number | null | undefined, decimals 
     return (sign && scaled !== 0n ? '-' : '') + whole + part;
 }
 
+/** Preserve fractional precision while hiding padded zeros in an exchange rate. */
+export function formatRate(value: string | number | null | undefined) {
+    const formatted = formatMoney(value, 8);
+    return formatted.includes(',') ? formatted.replace(/0+$/, '').replace(/,$/, '') : formatted;
+}
+
 /** Preserve legacy cents while keeping whole CLP compact. */
 export const analyticsMoney = (value: string) => formatMoney(value, /\.\d*[1-9]/.test(value) ? 2 : 0);

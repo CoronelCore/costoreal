@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import Modal from '@/Components/UI/Modal.vue';
-import { formatMoney } from '@/Utils/format';
+import { formatMoney, formatRate } from '@/Utils/format';
 
 import { useRoute } from '@/Composables/useRoute';
 import { inputValue } from '@/Utils/input';
@@ -173,7 +173,7 @@ const apply = () => {
     </section>
     <div v-if="messages.length" class="f-notice f-notice-error" role="alert"><p v-for="(message,index) in messages" :key="index">{{ message }}</p><button v-if="errors.conflict || applyErrors.conflict" class="f-button" @click="router.reload()">Recargar revisión</button></div>
     <section v-if="result" class="f-panel"><div class="f-panel-heading"><div><h2>{{ result.scenario?.name || 'Comparación de la simulación' }}</h2><p class="f-hint">Base: revisión {{ result.revision }} · actual: {{ trip.revision }} · cifras de la simulación conservadas</p></div><span v-if="result.scenario?.applied_at" class="f-status">Aplicado · revisión {{ result.scenario.applied_revision }}</span></div><div class="f-panel-body">
-        <div class="f-form-grid"><article class="f-metric"><span class="f-metric-label">Costo de la base · CLP</span><strong class="f-metric-value">${{ formatMoney(result.result.before.cost) }}</strong><small>Tasa {{ result.result.before.reference_rate }}</small></article><article class="f-metric f-metric-accent"><span class="f-metric-label">Costo simulado · CLP</span><strong class="f-metric-value">${{ formatMoney(result.result.after.cost) }}</strong><small>Tasa {{ result.result.after.reference_rate }}</small></article></div>
+        <div class="f-form-grid"><article class="f-metric"><span class="f-metric-label">Costo de la base · CLP</span><strong class="f-metric-value">${{ formatMoney(result.result.before.cost) }}</strong><small>Tasa {{ formatRate(result.result.before.reference_rate) }}</small></article><article class="f-metric f-metric-accent"><span class="f-metric-label">Costo simulado · CLP</span><strong class="f-metric-value">${{ formatMoney(result.result.after.cost) }}</strong><small>Tasa {{ formatRate(result.result.after.reference_rate) }}</small></article></div>
         <div class="f-breakdown-row"><span>Diferencia de costo</span><strong :class="deltaClass(result.result.cost_delta)">{{ signed(result.result.cost_delta) }}</strong></div>
         <div class="f-breakdown-row"><span>Utilidad antes de comisión · base → simulación</span><strong>{{ result.result.before.projection.profit === null ? 'Pendiente' : '$'+formatMoney(result.result.before.projection.profit) }} → {{ result.result.after.projection.profit === null ? 'Pendiente' : '$'+formatMoney(result.result.after.projection.profit) }}</strong></div>
         <div v-if="result.result.pricing" class="f-breakdown-row"><span>Utilidad tras comisión · productos seleccionados</span><strong>${{ formatMoney(result.result.pricing.totals.profit_after_commission,2) }}</strong></div>

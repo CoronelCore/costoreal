@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import axios from 'axios';
 import Modal from '@/Components/UI/Modal.vue';
 import { useRoute } from '@/Composables/useRoute';
-import { formatMoney, formatDateOnly } from '@/Utils/format';
+import { formatMoney, formatDateOnly, formatRate } from '@/Utils/format';
 import type { AllocationMethod, CostBreakdown, CostRunSummary, ProductData } from '@/Types/financial';
 
 const props = defineProps<{ tripId: number; currentRevision: number; product: ProductData | null; run: CostRunSummary | null }>();
@@ -69,7 +69,7 @@ const close = () => { cancel(); emit('close'); };
             <div class="f-breakdown-row"><span>Total de {{ line?.quantity ?? displayedProduct.cantidad }} {{ (line?.quantity ?? displayedProduct.cantidad) === 1 ? 'unidad' : 'unidades' }}</span><strong>${{ formatMoney(line?.total ?? displayedProduct.costo_final_total_clp) }}</strong></div>
             <div class="f-breakdown-row"><span>Costo por unidad · CLP</span><strong>${{ formatMoney(line?.unit_cost ?? displayedProduct.costo_final_unitario_clp,2) }}</strong></div>
             <template v-if="line && result">
-                <p class="f-hint" style="margin:12px 0"><template v-if="line.currency === 'CLP'">Moneda original CLP · conversión 1:1</template><template v-else>Tasa {{ line.rate_mode === 'paid' ? 'histórica de pago' : 'estimada' }}: {{ line.rate ?? 'Sin dato' }} CLP / {{ line.currency }} · fuente: {{ source }}<template v-if="line.rate_date"> · {{ formatDateOnly(line.rate_date) }}</template></template></p>
+                <p class="f-hint" style="margin:12px 0"><template v-if="line.currency === 'CLP'">Moneda original CLP · conversión 1:1</template><template v-else>Tasa {{ line.rate_mode === 'paid' ? 'histórica de pago' : 'estimada' }}: {{ formatRate(line.rate) }} CLP / {{ line.currency }} · fuente: {{ source }}<template v-if="line.rate_date"> · {{ formatDateOnly(line.rate_date) }}</template></template></p>
                 <p v-if="result.run.revision !== result.current_revision" class="f-notice">Este cálculo corresponde a la revisión {{ result.run.revision }}; la importación está en la {{ result.current_revision }}. Se muestran los valores conservados de ese cálculo.</p>
                 <h3 style="margin:20px 0 8px;font-weight:650">Gastos que componen el costo</h3>
                 <p class="f-hint">{{ result.allocations.total }} {{ result.allocations.total === 1 ? 'reparto' : 'repartos' }} · importes en CLP enteros</p>

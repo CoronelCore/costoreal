@@ -14,7 +14,7 @@ import Modal from '@/Components/UI/Modal.vue';
 import { useRoute } from '@/Composables/useRoute';
 import type { ImportShowProps } from '@/Types/financial';
 import { useTabs } from '@/Composables/useTabs';
-import { formatDateOnly } from '@/Utils/format';
+import { formatDateOnly, formatRate } from '@/Utils/format';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, ArrowPathIcon, PencilIcon } from '@heroicons/vue/24/outline';
 const route = useRoute();
 const props = defineProps<ImportShowProps>();
@@ -52,7 +52,7 @@ const confirm = () => { busy.value = true; confirmation.value?.action(); };
         <ReviewPanel v-else-if="activeTab === 'revision'" :trip="trip" :stats="estadisticas" :projection="projection" @close="askClose" @tab="setTab" />
         <ScenariosPanel v-else-if="activeTab === 'escenarios'" :trip="trip" :scenarios="scenarios" />
         <HistoryPanel v-else-if="activeTab === 'historial'" :trip="trip" :history="history" :baseline="legacyBaseline" />
-        <section v-else class="f-panel"><div class="f-panel-body"><h2>Configuración de la importación</h2><p class="f-hint">Moneda original {{ trip.moneda_trabajo }} · tasa de referencia {{ trip.tipo_cambio }} CLP / {{ trip.moneda_trabajo }}</p><Link v-if="trip.estado === 'activo'" :href="route('trips.edit',trip.id)" class="f-button" style="margin-top:16px">Editar configuración</Link></div></section>
+        <section v-else class="f-panel"><div class="f-panel-body"><h2>Configuración de la importación</h2><p class="f-hint">Moneda original {{ trip.moneda_trabajo }} · tasa de referencia {{ formatRate(trip.tipo_cambio) }} CLP / {{ trip.moneda_trabajo }}</p><Link v-if="trip.estado === 'activo'" :href="route('trips.edit',trip.id)" class="f-button" style="margin-top:16px">Editar configuración</Link></div></section>
         <Modal :show="!!confirmation" :title="visibleConfirmation?.title" :initial-focus="(visibleConfirmation?.kind === 'reopen' ? reopenReasonInput : cancelConfirmationButton) ?? undefined" :closeable="!busy" @closed="visibleConfirmation = null" @close="!busy && (confirmation = null)"><p class="text-gray-700 dark:text-slate-200">{{ visibleConfirmation?.message }}</p><div v-if="visibleConfirmation?.kind === 'reopen'" class="f-field" style="margin-top:18px"><label for="reopen-reason">Motivo de la reapertura *</label><textarea ref="reopenReasonInput" id="reopen-reason" class="f-input" v-model="reopenForm.reason" rows="4" maxlength="1000" :disabled="busy" :aria-invalid="!!reopenForm.errors.reason" aria-describedby="reopen-reason-help reopen-reason-error" placeholder="Ej. Incorporar el flete definitivo o corregir una cantidad"></textarea><p id="reopen-reason-help" class="f-hint">Se conservará junto a tu nombre y la nueva revisión.</p><p id="reopen-reason-error" class="f-field-error" role="alert">{{ reopenForm.errors.reason }}</p><p v-for="(message,key) in reopenForm.errors" v-show="key !== 'reason'" :key="key" class="f-field-error" role="alert">{{ message }}</p></div><template #footer><div class="f-actions"><button ref="cancelConfirmationButton" class="f-button" @click="confirmation = null" :disabled="busy || !confirmation">Cancelar</button><button class="f-button f-button-primary" @click="confirm" :disabled="busy || !confirmation">{{ busy ? 'Guardando…' : 'Confirmar' }}</button></div></template></Modal>
     </FinancialLayout>
 </template>
