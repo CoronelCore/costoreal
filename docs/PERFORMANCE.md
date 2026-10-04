@@ -48,3 +48,32 @@ El runtime SQLite 3.53.4 recibe lotes JSONB transitorios de hasta 5.120 asignaci
 En tres fixtures CLI nuevas de 1000/500, mediana de guardar 3.772 ms y cerrar 4.115 ms, frente a 6.809/8.401 de la línea base previa. No son p95 HTTP. Consultas 142/133 frente a 156/147; coste de escritura por lotes, sin una consulta por asignación. Cada fixture conserva/hash-verifica un millón de trazas en dos versiones y revierte el fallo de segunda tanda.
 
 Caso alterno con trece importes diferentes: guardar/cerrar ~4.625 ms y escenario ~3.297 ms; sigue excediendo 2.500. Presupuestos/alertas vigentes no se aumentan. El contador process_peak_mb representa heap PHP rastreado; no certifica RSS o memoria nativa SQLite. Detalles/método en docs/COST_ENGINE_PERFORMANCE.md. CR-040 continúa para HTTP y optimización restante.
+
+
+## Perfil HTTP de escrituras reproducible
+
+`tools/profile-http-writes.py` mide PUT de gasto y PATCH de cierre por loopback con sesión SQLite, CSRF e Inertia reales. Se mide la respuesta de guardado 303 completa sin seguir el redirect; la siguiente navegación y el render del navegador quedan fuera de la muestra. El middleware y el transporte deben conciliar estado y tamaño de respuesta.
+
+```sh
+python3 tools/profile-http-writes.py --samples 20 > perfil-escrituras-http.json
+python3 tools/profile-http-writes.py --samples 3 --lines 10 --modes same > smoke-escrituras-http.json
+```
+
+Volúmenes 10/100/1000 productos, un gasto por cada dos líneas; modos same e importe alterno entre trece valores. La operación cambia un gasto en un peso y cierra la importación. Cada par usa una copia nueva de la misma DB inicial autenticada, proceso PHP nuevo a 128 MiB y dos lecturas de calentamiento. Dos pares previos no cuentan como muestras; veinte pares producen p95 empírico local (muestra 19 ordenada). No se acumula historial entre muestras ni se arrastra el caché de un cálculo anterior.
+
+Después de cada respuesta se concilian revisión/estado, total exacto de productos y ejecución, conteos completos por versión y suma/cantidad por gasto, integridad y FK. El cierre debe conservar todos los campos de la primera ejecución. El chequeo de trazas HTTP es una muestra de JSON; la igualdad de todas las trazas con el oráculo congelado se verifica por separado en profile-costing.php. Las sumas SQLite enteras aquí son exactas solo por los importes enteros acotados de esta fixture, y no reemplazan el dominio decimal del producto.
+
+El proceso crea un directorio temporal privado (0700). El helper exige su prefijo y archivo de DB nuevo; no acepta bases existentes. Credenciales, claves, discos y logs son sintéticos y temporales. No consulta cuentas reales, no modifica configuración cacheada y detiene el proceso propio incluso ante fallo. Una aserción o error HTTP aborta el perfil con salida distinta de cero; un presupuesto excedido se informa en cada muestra y no invalida una conciliación correcta. No usar este ensayo como prueba concurrente o SLA de producción.
+
+Resultados locales del 4 de octubre de 2026: veinte muestras por caso, 240 escrituras medidas y 24 escrituras de calentamiento; todas concilian.
+
+| Productos / gastos | Importes | Guardar mediana / p95 HTTP ms | Cerrar mediana / p95 HTTP ms | Consultas guardar / cerrar | Heap PHP máximo MiB |
+|---|---|---|---|---|---|
+| 10 / 5 | Uniformes | 27.27 / 28.34 | 18.68 / 19.36 | 44–44 / 37–37 | 4 |
+| 10 / 5 | Trece alternos | 26.87 / 27.48 | 18.50 / 19.76 | 44–45 / 37–37 | 4 |
+| 100 / 50 | Uniformes | 89.57 / 92.63 | 85.72 / 87.70 | 44–45 / 37–37 | 10 |
+| 100 / 50 | Trece alternos | 94.06 / 96.29 | 91.03 / 93.17 | 44–45 / 37–37 | 10 |
+| 1000 / 500 | Uniformes | 3714.49 / 3943.11 | 3912.07 / 4029.87 | 148–148 / 141–141 | 30 |
+| 1000 / 500 | Trece alternos | 4412.40 / 4505.11 | 4590.98 / 4647.59 | 148–148 / 141–141 | 32 |
+
+Las 80 muestras máximas exceden únicamente el presupuesto de duración; las 160 pequeñas no exceden presupuesto. La variación ocasional de una consulta corresponde a limpieza de sesión, no a filas. Es un escenario sintético de primera escritura y cierre, no un certificado de todas las mutaciones. CR-040 continúa: falta optimización máxima, otros perfiles presupuestados y UX de espera. Conserva el límite de 2.500 ms y las alertas.
