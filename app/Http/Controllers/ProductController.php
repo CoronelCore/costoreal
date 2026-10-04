@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductRequest;
 use App\Models\Product;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Documents\StoreDocument;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Importations\Data\ProductData;
@@ -31,17 +32,18 @@ class ProductController extends Controller
     public function store(ProductRequest $request, Trip $trip)
     {
         $data = $request->safe()->except(['expected_revision', 'imagen', 'eliminar_imagen']);
-        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen')) : null;
+        $context = AccessContext::forRequest($request);
+        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen'), $context) : null;
         try {
-            $this->mutation->execute($trip, function ($current) use ($data, $stage) {
+            $this->mutation->execute($trip, function ($current) use ($data, $stage, $context) {
                 $product = $current->products()->create([...$data, 'subtotal_clp' => 0, 'costo_final_unitario_clp' => 0, 'costo_final_total_clp' => 0]);
                 if ($stage) {
-                    $document = $this->storage->attach($stage, $current, 'product_image', $product);
+                    $document = $this->storage->attach($stage, $current, 'product_image', $product, $context);
                     $product->update(['document_id' => $document->id, 'imagen' => $stage['storage_path']]);
                 }
-            }, 'product_create');
+            }, 'product_create', context: $context);
         } catch (\Throwable $e) {
-            $this->storage->discard($stage);
+            $this->storage->discard($stage, $context);
             throw $e;
         }
 
@@ -51,20 +53,21 @@ class ProductController extends Controller
     public function update(ProductRequest $request, Trip $trip, Product $product)
     {
         $data = $request->safe()->except(['expected_revision', 'imagen', 'eliminar_imagen']);
-        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen')) : null;
+        $context = AccessContext::forRequest($request);
+        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen'), $context) : null;
         try {
-            $this->mutation->execute($trip, function ($current) use ($request, $data, $stage, $product) {
+            $this->mutation->execute($trip, function ($current) use ($request, $data, $stage, $product, $context) {
                 $record = $current->products()->findOrFail($product->id);
                 $record->update($data);
                 if ($stage) {
-                    $document = $this->storage->attach($stage, $current, 'product_image', $record);
+                    $document = $this->storage->attach($stage, $current, 'product_image', $record, $context);
                     $record->update(['document_id' => $document->id, 'imagen' => $stage['storage_path']]);
                 } elseif ($request->boolean('eliminar_imagen')) {
                     $record->update(['document_id' => null, 'imagen' => null]);
                 }
-            }, 'product_update');
+            }, 'product_update', context: $context);
         } catch (\Throwable $e) {
-            $this->storage->discard($stage);
+            $this->storage->discard($stage, $context);
             throw $e;
         }
 

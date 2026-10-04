@@ -12,7 +12,7 @@ CR-010,E1,P1,Diagnóstico y parches · Desarrollo,"F15: retirar diagnósticos ex
 CR-011,E2,P1,Mapa de tareas y navegación · Diseño/Producto,"Control, hoja, alta guiada y cierre; nomenclatura y jerarquía.",CR-003,"Mapa de pantallas, acciones primarias y estados de dominio coherentes.",Verificado
 CR-012,E2,P1,Tokens y componentes · Diseño/Frontend,"Color, type, densidad, tablas, formularios, mensajes, overlays.",CR-011,Catálogo revisable en claro/oscuro; contraste y foco medidos en estados usados.,En curso
 CR-013,E2,P1,Pantallas y móvil · Diseño,Control/detalle/hoja/gastos/documentos/revisión y vacíos/errores.,CR-012,Prototipo permite recorrer tareas principales a 390/1024 y revisar 320 px.,En curso
-CR-014,E3,P1,Acciones y AccessContext · Backend,"Requests, políticas, acciones y consultas de lectura.","CR-004,CR-005,CR-007",Controladores delegan cálculo; contexto autorizado llega a reports/documents/jobs.,En curso
+CR-014,E3,P1,Acciones y AccessContext · Backend,"Requests, políticas, acciones y consultas de lectura.","CR-004,CR-005,CR-007",Controladores delegan cálculo; contexto autorizado llega a reports/documents/jobs.,Verificado
 CR-015,E3,P1,Money y tasas · Backend,"Tipos decimales, Currency, Rate y redondeo.","CR-003,CR-006",Sin floats en dominio; tasas faltantes fallan; precisión/quantum probados.,Verificado
 CR-016,E3,P1,Motor de reparto por valor · Backend,"Entradas puras, residuales estables y CostResult.",CR-015,"Determinismo e invariantes con 0, grandes montos, fracciones y reordenamiento.",Verificado
 CR-017,E3,P1,Atomicidad y conflictos · Backend,"Transacción, versión esperada y bloqueo según DB.","CR-014,CR-016","Error intermedio revierte todo; dos pestañas generan conflicto legible, sin pérdida.",Verificado

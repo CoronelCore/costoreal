@@ -75,7 +75,7 @@ class TripController extends Controller
     {
         $this->authorize('close', $trip);
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        app(CloseImportation::class)->execute($trip, $request->integer('expected_revision'));
+        app(CloseImportation::class)->execute($trip, $request->integer('expected_revision'), AccessContext::forRequest($request));
 
         return to_route('trips.show', $trip)->with('success', 'Importación cerrada; revisión conservada');
     }
@@ -85,7 +85,7 @@ class TripController extends Controller
         $this->authorize('reopen', $trip);
         $data = $request->validate(['expected_revision' => 'required|integer|min:1', 'reason' => 'required|string|min:3|max:1000'],
             ['reason.required' => 'Explica por qué necesitas reabrir la importación.', 'reason.min' => 'El motivo debe contener al menos tres caracteres.', 'reason.max' => 'El motivo admite hasta 1.000 caracteres.']);
-        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', expectedRevision: (int) $data['expected_revision'], ability: 'reopen', recalculate: false, reason: $data['reason']);
+        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', expectedRevision: (int) $data['expected_revision'], ability: 'reopen', recalculate: false, reason: $data['reason'], context: AccessContext::forRequest($request));
 
         return to_route('trips.show', $trip)->with('success', 'Importación reabierta; motivo registrado y cierre anterior conservado');
     }
@@ -94,7 +94,7 @@ class TripController extends Controller
     {
         $this->authorize('delete', $trip);
         $data = $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $recovery->execute($trip, (int) $data['expected_revision'], false);
+        $recovery->execute($trip, (int) $data['expected_revision'], false, AccessContext::forRequest($request));
 
         return to_route('trips.index')->with('success', 'Importación movida a la papelera; puedes restaurarla');
     }

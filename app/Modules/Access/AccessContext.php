@@ -5,9 +5,11 @@ namespace App\Modules\Access;
 use App\Models\Company;
 use App\Models\Trip;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 final class AccessContext
 {
@@ -29,6 +31,33 @@ final class AccessContext
         }
 
         return $context;
+    }
+
+    /** Resolve the server-recorded actor again when work runs without an HTTP session. */
+    public static function forActor(int $actorId): self
+    {
+        return new self(User::query()->findOrFail($actorId), null);
+    }
+
+    /** Compatibility boundary for synchronous callers; workers pass forActor explicitly. */
+    public static function current(): self
+    {
+        return new self(auth()->user(), null);
+    }
+
+    public function actorId(): int
+    {
+        if (! $this->user?->exists) {
+            throw new AuthorizationException('Esta operación requiere un actor autenticado.');
+        }
+
+        return (int) $this->user->id;
+    }
+
+    public function authorizeTrip(Trip $trip, string $ability = 'view'): void
+    {
+        $this->actorId();
+        Gate::forUser($this->user)->authorize($ability, $trip);
     }
 
     public function activeCompany(): ?Company

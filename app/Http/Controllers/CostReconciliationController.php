@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CostReconciliation;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Costing\Reconciliation\CompareStoredCosts;
 use App\Modules\Costing\Reconciliation\ReviewStoredCosts;
 use App\Modules\Importations\Actions\MutateTrip;
@@ -41,7 +42,7 @@ class CostReconciliationController extends Controller
     {
         $this->authorize('view', $trip);
         $input = $request->validate(['expected_revision' => 'required|integer|min:1', 'fingerprint' => 'required|string|size:64']);
-        $saved = $this->review->execute($trip, (int) $input['expected_revision'], $input['fingerprint']);
+        $saved = $this->review->execute($trip, (int) $input['expected_revision'], $input['fingerprint'], AccessContext::forRequest($request));
 
         return response()->json(['id' => $saved->id, ...$this->page($saved->comparison, $request), 'applied_revision' => $saved->applied_revision]);
     }

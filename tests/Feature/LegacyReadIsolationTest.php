@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\ExpenseCategory;
+use App\Models\ImportDraft;
 use App\Models\LegacyCostBaseline;
 use App\Models\Trip;
 use App\Models\User;
@@ -16,6 +17,7 @@ use App\Modules\Scenarios\ListScenarios;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -132,5 +134,34 @@ class LegacyReadIsolationTest extends TestCase
         $this->assertNull($report->expenses[0]->category);
         $this->assertSame('25.00', FinancialSummaryData::fromTrip($report)->statistics['costo_total']);
         $this->assertSame($snapshot, $baseline->fresh()->snapshot);
+    }
+
+    public function test_resumed_creation_filters_foreign_metadata_without_rewriting_draft_or_links(): void
+    {
+        $trip = $this->legacyTrip();
+        $draft = ImportDraft::create(['id' => (string) Str::uuid(),
+            'user_id' => $trip->user_id, 'trip_id' => $trip->id, 'step' => 'productos', 'revision' => 1,
+            'payload' => ['context' => ['nombre' => 'Borrador heredado', 'company_id' => $trip->company_id,
+                'moneda_trabajo' => 'USD', 'tipo_cambio' => '900'], 'product' => null, 'expense' => null],
+            'last_write_key' => (string) Str::uuid(), 'last_write_hash' => hash('sha256', 'legacy')]);
+        $before = $draft->fresh()->getRawOriginal();
+        $this->get('/trips/create?draft='.$draft->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('trip.company', null)->where('trip.company_id', null)
+            ->where('trip.expenses.0.category', null)->where('trip.expenses.0.expense_category_id', null)
+            ->where('draft.payload.context.company_id', '')->where('estadisticas.costo_total', '25.00'));
+        $this->assertSame($before, $draft->fresh()->getRawOriginal());
+        $this->assertSame($trip->company_id, $trip->fresh()->company_id);
+    }
+
+    public function test_trash_hides_foreign_company_metadata_and_preserves_recorded_cost(): void
+    {
+        $trip = $this->legacyTrip();
+        $trip->delete();
+        $before = Trip::withTrashed()->findOrFail($trip->id)->getRawOriginal();
+        $this->get('/trips/trash')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('trips.data.0.company', null)->where('trips.data.0.company_id', null)
+            ->where('trips.data.0.costo_total', '25')->where('trips.data.0.documents_count', 0)
+            ->missing('trips.data.0.user_id'));
+        $this->assertSame($before, Trip::withTrashed()->findOrFail($trip->id)->getRawOriginal());
     }
 }

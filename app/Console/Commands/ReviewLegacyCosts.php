@@ -27,7 +27,7 @@ class ReviewLegacyCosts extends Command
         $checkpoint = $after;
         foreach (Trip::where('id', '>', $after)->whereDoesntHave('costRuns')->orderBy('id')->lazyById(1) as $trip) {
             $prior = CostReconciliation::where('trip_id', $trip->id)->count();
-            $record = $review->execute($trip, $trip->revision);
+            $record = $review->executeForMaintenance($trip, $trip->revision);
             $created += (int) (CostReconciliation::where('trip_id', $trip->id)->count() > $prior);
             $data = $record->comparison;
             $this->line("Importación {$trip->id} · revisión {$trip->revision} · diferencias ".count($data['differences']).' · errores '.count($data['errors']));

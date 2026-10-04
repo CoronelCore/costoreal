@@ -2,8 +2,10 @@
 
 namespace App\Modules\Importations\Creation;
 
+use App\Models\ExpenseCategory;
 use App\Models\ImportDraft;
 use App\Models\User;
+use App\Modules\Access\AccessContext;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -96,9 +98,22 @@ final class DraftPayload
         return ['context' => $context, 'product' => $product, 'expense' => $expense];
     }
 
-    public function data(ImportDraft $draft): array
+    public function data(ImportDraft $draft, ?AccessContext $context = null): array
     {
+        $context ??= AccessContext::current();
+        $actor = $context->actorId();
+        abort_unless((int) $draft->user_id === $actor, 403);
+        $payload = $this->viewPayload($draft->payload);
+        $companyId = $payload['context']['company_id'];
+        if ($companyId && ! $context->user->companies()->whereKey($companyId)->exists()) {
+            $payload['context']['company_id'] = '';
+        }
+        $categoryId = $payload['expense']['fields']['expense_category_id'] ?? null;
+        if ($categoryId && ! ExpenseCategory::visibleTo($actor)->whereKey($categoryId)->exists()) {
+            $payload['expense']['fields']['expense_category_id'] = '';
+        }
+
         return ['id' => $draft->id, 'revision' => $draft->revision, 'step' => $draft->step, 'trip_id' => $draft->trip_id === null ? null : (int) $draft->trip_id,
-            'payload' => $this->viewPayload($draft->payload), 'updated_at' => $draft->updated_at->toISOString(), 'completed_at' => $draft->completed_at?->toISOString()];
+            'payload' => $payload, 'updated_at' => $draft->updated_at->toISOString(), 'completed_at' => $draft->completed_at?->toISOString()];
     }
 }

@@ -4,22 +4,24 @@ namespace App\Modules\Importations\Actions;
 
 use App\Models\AuditEvent;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Costing\Actions\RecordCostRun;
 use App\Modules\Costing\Reconciliation\PreserveLegacyCosts;
 use App\Modules\Shared\TransactionRunner;
 use App\Services\ProrrateoService;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class MutateTrip
 {
     public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder, private TransactionRunner $transaction, private PreserveLegacyCosts $legacy) {}
 
-    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null, bool $recalculate = true, ?string $reason = null): mixed
+    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null, bool $recalculate = true, ?string $reason = null, ?AccessContext $context = null): mixed
     {
-        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify, $recalculate, $reason) {
+        $context ??= AccessContext::current();
+        $context->actorId();
+        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify, $recalculate, $reason, $context) {
             $current = Trip::whereKey($trip->id)->lockForUpdate()->firstOrFail();
-            Gate::authorize($ability, $current);
+            $context->authorizeTrip($current, $ability);
             if ($expectedRevision === null) {
                 $validated = request()->validate(['expected_revision' => 'required|integer|min:1'], ['expected_revision.required' => 'Falta la revisión de origen. Recarga la importación antes de guardar.']);
                 $expectedRevision = (int) $validated['expected_revision'];
@@ -34,7 +36,7 @@ final class MutateTrip
                 throw ValidationException::withMessages(['conflict' => 'La revisión cambió. Recarga antes de volver a guardar.']);
             }
             $before = $current->load(['products', 'expenses', 'documents'])->toArray();
-            $this->legacy->execute($current);
+            $this->legacy->execute($current, $context);
             $result = $mutation($current);
             $cost = $recalculate ? $this->costing->calcularProrrateo($current) : null;
             if (! $recalculate) {
@@ -48,9 +50,9 @@ final class MutateTrip
             $current->updated_at = Trip::whereKey($current->id)->value('updated_at');
             $current->syncOriginalAttribute('updated_at');
             if ($cost) {
-                $this->recorder->execute($current, $cost, $action);
+                $this->recorder->execute($current, $cost, $action, $context);
             }
-            AuditEvent::create(['trip_id' => $current->id, 'actor_id' => auth()->id(), 'action' => $action, 'revision' => $current->revision,
+            AuditEvent::create(['trip_id' => $current->id, 'actor_id' => $context->actorId(), 'action' => $action, 'revision' => $current->revision,
                 'before' => $before, 'after' => $current->toArray(), 'reason' => $reason, 'created_at' => now()]);
 
             return $result;

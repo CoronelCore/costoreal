@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LaunchImportDraftRequest;
-use App\Models\ExpenseCategory;
 use App\Models\ImportDraft;
 use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\CloseImportation;
 use App\Modules\Importations\Actions\CreateImportation;
 use App\Modules\Importations\Creation\DraftPayload;
-use App\Modules\Importations\Data\ImportationData;
-use App\Modules\Reporting\FinancialSummaryData;
+use App\Modules\Importations\Queries\ReadCreation;
 use App\Modules\Shared\TransactionRunner;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -18,30 +16,17 @@ use Inertia\Inertia;
 
 class ImportDraftController extends Controller
 {
-    public function __construct(private DraftPayload $payload, private TransactionRunner $transaction) {}
+    public function __construct(private DraftPayload $payload, private TransactionRunner $transaction, private ReadCreation $query) {}
 
     public function create(Request $request)
     {
         $request->validate(['draft' => 'nullable|uuid']);
-        $draft = $request->filled('draft') ? ImportDraft::where('user_id', $request->user()->id)->findOrFail($request->query('draft')) : null;
-        if ($draft?->completed_at) {
-            return to_route('trips.show', $draft->trip_id);
+        $data = $this->query->read(AccessContext::forRequest($request), $request->query('draft'));
+        if (array_key_exists('redirectTripId', $data)) {
+            return to_route('trips.show', $data['redirectTripId']);
         }
-        $trip = $draft?->trip;
-        if ($trip) {
-            $this->authorize('view', $trip);
-            $trip->load(['products', 'expenses.category', 'documents', 'company']);
-        }
-        $summary = $trip ? FinancialSummaryData::fromTrip($trip) : null;
-        $context = AccessContext::forRequest($request);
-        $drafts = ImportDraft::where('user_id', $request->user()->id)->whereNull('completed_at')->latest('updated_at')->paginate(10, ['id', 'trip_id', 'step', 'payload', 'updated_at'], 'draft_page')
-            ->through(fn ($item) => ['id' => $item->id, 'trip_id' => $item->trip_id, 'step' => $item->step, 'name' => $item->payload['context']['nombre'] ?? 'Sin nombre todavía', 'updated_at' => $item->updated_at->toISOString()]);
 
-        return Inertia::render('Trips/Create', ['draft' => $draft ? $this->payload->data($draft) : null, 'drafts' => $drafts,
-            'companies' => $context->companies()->map->only(['id', 'nombre']), 'selectedCompanyId' => $context->activeCompany()?->id,
-            'trip' => $trip ? ImportationData::detail($trip, $summary) : null, 'estadisticas' => $summary?->statistics, 'projection' => $summary?->projection,
-            'latestCostRun' => $trip?->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->first(),
-            'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get(['id', 'nombre'])]);
+        return Inertia::render('Trips/Create', $data);
     }
 
     public function store(Request $request)
@@ -63,7 +48,7 @@ class ImportDraftController extends Controller
             return ImportDraft::create(['id' => $input['draft_id'], 'user_id' => $request->user()->id, 'step' => 'contexto', 'revision' => 1, 'payload' => $data, 'last_write_key' => $input['write_key'], 'last_write_hash' => $hash]);
         });
 
-        return response()->json(['draft' => $this->payload->data($draft)]);
+        return response()->json(['draft' => $this->payload->data($draft, AccessContext::forRequest($request))]);
     }
 
     public function update(Request $request, ImportDraft $draft)
@@ -97,7 +82,7 @@ class ImportDraftController extends Controller
             return $current->fresh();
         });
 
-        return response()->json(['draft' => $this->payload->data($current)]);
+        return response()->json(['draft' => $this->payload->data($current, AccessContext::forRequest($request))]);
     }
 
     public function launch(LaunchImportDraftRequest $request, ImportDraft $draft, CreateImportation $create)
@@ -129,7 +114,7 @@ class ImportDraftController extends Controller
     {
         abort_unless($draft->user_id === $request->user()->id, 403);
         $input = $request->validate(['draft_revision' => 'required|integer|min:1', 'expected_revision' => 'required|integer|min:1', 'mode' => 'required|in:active,close']);
-        $trip = $this->transaction->execute(function () use ($draft, $input, $close) {
+        $trip = $this->transaction->execute(function () use ($draft, $input, $close, $request) {
             $current = ImportDraft::whereKey($draft->id)->lockForUpdate()->firstOrFail();
             $trip = $current->trip()->lockForUpdate()->firstOrFail();
             $this->authorize('view', $trip);
@@ -145,7 +130,7 @@ class ImportDraftController extends Controller
                 throw ValidationException::withMessages(['draft' => 'Guarda o cancela los editores pendientes antes de terminar el alta.']);
             }
             if ($input['mode'] === 'close') {
-                $close->execute($trip, $trip->revision);
+                $close->execute($trip, $trip->revision, AccessContext::forRequest($request));
             }
             $current->update(['step' => 'revision', 'revision' => $current->revision + 1, 'completed_at' => now(), 'payload' => ['context' => $current->payload['context'], 'product' => null, 'expense' => null]]);
 
