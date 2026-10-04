@@ -17,6 +17,10 @@ const props = defineProps({
         type: Boolean,
         default: true
     },
+    initialFocus: {
+        type: Object,
+        default: null
+    },
     title: {
         type: String,
         default: undefined
@@ -61,7 +65,7 @@ const maxWidthClass = computed(() => {
 
 <template>
     <TransitionRoot :show="show" as="template" @after-leave="finishClose">
-        <Dialog as="div" class="financial-overlay relative z-50" @close="close">
+        <Dialog as="div" class="financial-overlay relative z-50" :initial-focus="initialFocus" @close="close">
             <!-- Backdrop -->
             <TransitionChild
                 as="template"
