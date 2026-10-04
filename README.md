@@ -53,7 +53,7 @@ Las pruebas usan SQLite en memoria y archivos falsos; la concurrencia se verific
 - `app/Modules/Pricing`: proyección que distingue precios pendientes y pérdidas, y cálculo de precio por margen/recargo con comisión opcional.
 - `resources/js/Components/Importations`: resumen, hoja, gastos, documentos, precios, revisión e historial.
 
-Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Laravel 13 y PHP 8.5 ya forman parte del entorno actual. Las actualizaciones de Inertia y CSS se validan en entregas independientes.
+Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Laravel 13 y PHP 8.5 ya forman parte del entorno actual. Inertia v3 ya está alineado y verificado; su contrato y recuperación se documentan en `docs/INERTIA_UPGRADE.md`. La migración de CSS conserva su validación visual independiente.
 
 ## Funciones avanzadas actuales
 

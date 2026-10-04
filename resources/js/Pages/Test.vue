@@ -9,7 +9,7 @@ const { isDark, toggleTheme } = useDarkMode();
 
 const auth = computed(() => page.props.auth);
 const company = computed(() => page.props.company);
-const flash = computed(() => page.props.flash);
+const flash = computed(() => page.flash);
 </script>
 
 <template>

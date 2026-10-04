@@ -6,7 +6,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 
 | Tarea | Estado | Evidencia / pendiente |
 |---|---|---|
-| CR-001 · Entorno y CI mínimo · Desarrollo | Verificado | Instalación limpia y setup repetido preservan clave; PHP 8.3/Node 24, CI configurada. CI remota aún no ejecutada. |
+| CR-001 · Entorno y CI mínimo · Desarrollo | Verificado | Instalación limpia y setup repetido preservan clave; PHP 8.5/Node 24, CI configurada. CI remota aún no ejecutada. |
 | CR-002 · Fixtures y restauración · Desarrollo/QA | Verificado | Copia personal y fixture QA con valores no cero restaurados: conteos/totales coinciden, integridad ok y cero violaciones FK. Ensayo DB/storage de release continúa en CR-041. |
 | CR-003 · Política de costeo · Producto/contabilidad | Verificado | docs/COSTING_POLICY.md con ejemplos, estimaciones/pagos, precisión y legado. |
 | CR-004 · Padre/hijo y empresa · Backend | Verificado | CoreIntegrityTest y PrivateDocumentTest: relaciones ajenas 404/403, cero escrituras/archivos y asignación de empresa atómica. |
@@ -43,7 +43,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-035 · Analítica renovada · Full stack | Verificado | Período/estado y empresa autorizados; inversión/proyección/cobertura concilian con reportes. Tablas equivalentes paginadas, lectura exacta y seis consultas con 1/200 importaciones; QA de temas, seis anchuras, errores/foco y empresa. Volumen máximo frío 4,6 s: presupuesto y optimización posterior siguen en CR-040. |
 | CR-036 · Historial y recuperación · Full stack | En curso | Papelera/restauración de importaciones con CAS, auditoría, costos/pagos/cierres/snapshots/documentos conservados; recorrido QA móvil real. Retención automática desactivada. Falta completar la política global y archivos heredados junto con CR-028. |
 | CR-037 · Runtime y Laravel 13 · Desarrollo | En curso | PHP 8.3/Node 24 certificados en setup limpio. Laravel 13 pendiente. |
-| CR-038 · Inertia y tooling · Desarrollo | Pendiente | — |
+| CR-038 · Inertia y tooling · Desarrollo | Verificado | Adaptadores Laravel 3.5.1/Vue 3.8.0; flash nativo fuera de history y preservado en reload 409; 7 pruebas de protocolo, tipos y navegador real: login/errores/multipart/borrador/pestañas/atrás/adelante. |
 | CR-039 · Tailwind y limpieza · Frontend | Pendiente | — |
 | CR-040 · Rendimiento y observación · Desarrollo/QA | En curso | Control 1/200 y escritura 1.000 líneas (64 consultas, 412 ms local) medidos. Faltan presupuestos por ruta y observación. |
 | CR-041 · Ensayo de release y restauración · Desarrollo/QA | Pendiente | — |
@@ -219,3 +219,15 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Servicios 8000/8010 reiniciados con PHP 8.5. UI real: login QA, perfil inválido conserva input/foco, sesión personal anterior aún válida. Descargas PDF y XLSX generadas; B15 del Excel numérico = 530.012. Multipart en DB/discos temporales creó segundo documento y revisión 4, mantuvo costo heredado 99.000 y cero nuevos cost_runs; bytes verificados. Temporal 8011 detenido, tabs/emulación retirados.
 - Sin migraciones de esquema ni escrituras financieras originales. Veintiuna tablas personal/QA idénticas, restauración igual, integrity=ok/FK=0; discos originales iguales. Checkpoint local preserva código/vendor anteriores, entorno privado, DB y storage. Evidencia outputs/verificacion-laravel13-costoreal.json y capturas. Procedimiento/limitaciones en docs/FRAMEWORK_UPGRADE.md.
 - El plan permanece activo. Siguiente fase: Inertia v3 y pruebas de navegación/formularios/errores/cargas/history; después Tailwind/QA visual global, perfiles restantes y ensayo integral/aceptación. CR-038/039/040/041/042 no se consideran completados por esta entrega.
+
+
+## Inertia v3 y contrato de navegación · 4 de octubre de 2026
+
+- CR-038 verificado: adaptadores Laravel 3.5.1 y Vue/core 3.8.0 alineados. Se conserva Vite 7.3.6, la resolución explícita de páginas y Axios para las peticiones JSON del dominio. Build ES2022; sin SSR ni nuevo servicio auxiliar.
+- Configuración publicada/adaptada: páginas Vue en js/Pages con existencia comprobada, diagnósticos desactivados también en local. Inicialización usa script JSON protegido y Head data-inertia. Tipos compartidos/flash registrados en InertiaConfig, sin tipos any añadidos.
+- Mensajes existentes de redirect se convierten a page.flash. No reaparecen al retroceder. Una regresión reproducida con el middleware original perdía el mensaje cuando un 409 exigía recargar assets; el hook propio conserva ese flash y la prueba comprueba entrega única.
+- Resultado final: 214 pruebas PHP / 3.409 aserciones, 17 frontend, tipos/build/Pint, Composer validate/platform/audit sin advisories. CI remota no ejecutada. Npm conserva los cinco altos de la cadena de Tailwind 3; CR-039/010 siguen abiertos.
+- Navegador real: login, credenciales inválidas y reintento, logout; perfil con nombre vacío conserva input y foco; pestañas/hash, atrás/adelante y página 2 del historial 21–40/62. Borrador guardado y retomado conserva nombre/tasa al recargar. Multipart privado en copia de DB/storage: revisión 4→5, tres documentos, costo heredado 99.000 conservado, cero cost_runs nuevos, bytes/SHA verificados. Console sin errores durante el recorrido.
+- Servicios 8000/8010 actualizados, sesiones anteriores vigentes y total QA 930.012 igual. Veintiuna tablas originales personal/QA idénticas, copias restauradas con todas sus tablas iguales, integrity=ok y FK=0; archivos originales iguales. No migraciones originales ni escrituras financieras. Temporal 8011 detenido y emulación retirada.
+- Checkpoint local contiene código/vendor/build anteriores, entorno privado, DB y storage. Procedimiento en docs/INERTIA_UPGRADE.md y prueba en outputs/verificacion-inertia3-costoreal.json. El ensayo integral de rollback continúa en CR-041.
+- El plan sigue activo: Tailwind, QA global estructural/visual y accesibilidad, rendimiento máximo, release/recuperación integral y aceptación. Las cinco extensiones conservan sus activadores.

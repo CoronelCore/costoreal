@@ -3,8 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Helpers\CompanyHelper;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 use Tighten\Ziggy\Ziggy;
 
 class HandleInertiaRequests extends Middleware
@@ -28,6 +31,20 @@ class HandleInertiaRequests extends Middleware
         return parent::version($request);
     }
 
+    public function onVersionChange(Request $request, Response $response): Response
+    {
+        // The rendered v3 response already consumed flash before a 409 reload.
+        // Preserve it for the subsequent full visit to the updated build.
+        if ($response instanceof JsonResponse) {
+            $flash = $response->getData(true)['flash'] ?? [];
+            if (is_array($flash) && $flash !== []) {
+                Inertia::flash($flash);
+            }
+        }
+
+        return parent::onVersionChange($request, $response);
+    }
+
     /**
      * Define the props that are shared by default.
      *
@@ -37,6 +54,14 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // Bridge existing redirect messages to v3 flash, outside browser history.
+        foreach (['success', 'error', 'info'] as $key) {
+            $message = $request->session()->pull($key);
+            if (is_string($message) && $message !== '') {
+                Inertia::flash($key, $message);
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -52,11 +77,6 @@ class HandleInertiaRequests extends Middleware
                 'activeId' => CompanyHelper::getActiveCompanyId(),
                 'activeName' => CompanyHelper::getActiveCompanyName(),
                 'userCompanies' => CompanyHelper::getUserCompanies(),
-            ],
-            'flash' => [
-                'success' => $request->session()->get('success'),
-                'error' => $request->session()->get('error'),
-                'info' => $request->session()->get('info'),
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),

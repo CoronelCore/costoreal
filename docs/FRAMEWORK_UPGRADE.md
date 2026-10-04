@@ -2,7 +2,7 @@
 
 ## Versiones verificadas
 
-PHP 8.5.8, Laravel 13.34.0, Tinker 3.0.2, Excel 4.0.3, PhpSpreadsheet 5.10.0, PHPUnit 12.5.37 y Symfony 8.1. Los lockfiles fijan la instalación; composer.json acepta PHP 8.5 y rechaza otras ramas. Node sigue en 24 LTS. Inertia continúa con sus adaptadores anteriores hasta la siguiente entrega, CR-038; Tailwind corresponde a CR-039.
+PHP 8.5.8, Laravel 13.34.0, Tinker 3.0.2, Excel 4.0.3, PhpSpreadsheet 5.10.0, PHPUnit 12.5.37 y Symfony 8.1. Los lockfiles fijan la instalación; composer.json acepta PHP 8.5 y rechaza otras ramas. Node sigue en 24 LTS. Inertia se actualizó después a v3, en CR-038; véase INERTIA_UPGRADE.md. Tailwind corresponde a CR-039.
 
 La actualización sigue la [guía oficial de Laravel 13](https://laravel.com/framework/docs/13.x/upgrade) y la [guía de Excel 4](https://github.com/SpartnerNL/Laravel-Excel/blob/4.x/UPGRADE-4.x.md). Excel 3.1 dependía de PhpSpreadsheet 1.x, que rechazó el runtime 8.5 al resolver. Se adoptó Excel 4 con PhpSpreadsheet 5, se tiparon los métodos styles y se añadió el marcador Export al libro de múltiples hojas. SafeValueBinder conserva los textos ajenos como texto literal y los importes como números.
 
@@ -26,4 +26,4 @@ Browser real: login con QA existente, validación de Nombre vacío/foco, sesión
 
 Veintiuna tablas originales personal/QA permanecen idénticas respecto al checkpoint anterior a instalar. Las copias restauradas concilian, integrity=ok y FK=0. Discos originales iguales. Respaldo local incluye código anterior, vendor anterior, DB, discos y entorno privado; nunca se incluye en Git. Para recuperar, detener escrituras/workers y restaurar código/dependencias/DB/discos/entorno del mismo checkpoint con PHP 8.3; comprobar en copia antes de activar. El ensayo integral de release/rollback sigue en CR-041 y no se sustituye por esta verificación de actualización.
 
-CR-037 verificado. CR-038/039, la QA global, rendimiento, ensayo integral y aceptación siguen abiertos en docs/backlog.csv.
+CR-037 y CR-038 verificados. CR-039, la QA global, rendimiento, ensayo integral y aceptación siguen abiertos en docs/backlog.csv.
