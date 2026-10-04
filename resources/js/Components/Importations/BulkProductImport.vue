@@ -1,34 +1,41 @@
-<script setup>
-import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import Modal from '@/Components/UI/Modal.vue';
 import { formatMoney } from '@/Utils/format';
 
-const props = defineProps({ trip: Object });
-const route = inject('route');
+import { useRoute } from '@/Composables/useRoute';
+import { inputFile } from '@/Utils/input';
+import { bulkRequest, bulkMultipart } from '@/Utils/advancedDrafts';
+import { requestErrors, validationErrors } from '@/Utils/validation';
+import type { ImportDetail, RevisionMutation } from '@/Types/financial';
+import type { BulkSettings, BulkPreview, BulkSource, BulkApplyMutation, ImportColumn, ErrorBag } from '@/Types/advanced';
+const props = defineProps<{ trip: ImportDetail }>();
+const route = useRoute();
 const open = ref(false);
 const mode = ref('paste');
 const text = ref('');
-const file = ref(null);
-const settings = ref({ delimiter: 'tab', has_header: true, default_currency: props.trip.moneda_trabajo,
+const file = ref<File | null>(null);
+const settings = ref<BulkSettings>({ delimiter: 'tab', has_header: true, default_currency: props.trip.moneda_trabajo,
     mapping: { nombre: 0, cantidad: 1, moneda: 2, costo_unitario: 3, weight: null, volume: null } });
-const fields = [{ key:'nombre', label:'Producto', required:true }, { key:'cantidad', label:'Cantidad', required:true }, { key:'moneda', label:'Moneda original' }, { key:'costo_unitario', label:'Costo unitario original', required:true }, { key:'weight', label:'Peso total de la línea · kg' }, { key:'volume', label:'Volumen total de la línea · m³' }];
+const fields: { key: ImportColumn; label: string; required?: boolean }[] = [{ key:'nombre', label:'Producto', required:true }, { key:'cantidad', label:'Cantidad', required:true }, { key:'moneda', label:'Moneda original' }, { key:'costo_unitario', label:'Costo unitario original', required:true }, { key:'weight', label:'Peso total de la línea · kg' }, { key:'volume', label:'Volumen total de la línea · m³' }];
 const columns = ref(Array.from({length:32}, (_, index) => ({index, label:`Columna ${index+1}`})));
-const preview = ref(null);
-const payload = ref(null);
+const preview = ref<BulkPreview | null>(null);
+const payload = ref<BulkApplyMutation | null>(null);
 const pending = ref(false);
-const errors = ref({});
+const errors = ref<ErrorBag>({});
 const page = ref(1);
 const invalidOnly = ref(false);
 const confirming = ref(false);
-const applyForm = useForm({});
-let controller;
+const applyForm = useForm<RevisionMutation>({expected_revision:props.trip.revision});
+const applyErrors = computed(()=>validationErrors(applyForm.errors));
+let controller: AbortController | undefined;
 let sequence = 0;
 const filteredRows = computed(() => (preview.value?.rows || []).filter(row => !invalidOnly.value || Object.keys(row.errors).length));
 const pages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / 20)));
 const visibleRows = computed(() => filteredRows.value.slice((page.value-1)*20, page.value*20));
-const messages = computed(() => [...Object.values(errors.value).flat(), ...Object.values(applyForm.errors).flat(), ...Object.values(preview.value?.cost_errors || {}).flat()]);
+const messages = computed(() => [...Object.values(errors.value).flat(), ...Object.values(applyErrors.value).flat(), ...Object.values(preview.value?.cost_errors || {}).flat()]);
 const invalidate = (clearErrors = true) => {
     sequence++;
     controller?.abort();
@@ -39,7 +46,7 @@ const invalidate = (clearErrors = true) => {
     if (clearErrors) { errors.value = {}; applyForm.clearErrors(); }
     page.value = 1;
 };
-watch([text, file, mode, settings], invalidate, {deep:true});
+watch([text, file, mode, settings], () => invalidate(), {deep:true});
 watch(() => props.trip.revision, () => invalidate(false));
 watch(invalidOnly, () => page.value = 1);
 onBeforeUnmount(() => controller?.abort());
@@ -55,32 +62,29 @@ const generate = async () => {
     const current = sequence;
     controller = new AbortController();
     pending.value = true;
-    const data = { ...JSON.parse(JSON.stringify(settings.value)), expected_revision:props.trip.revision,
-        ...(mode.value === 'file' ? {file:file.value} : {source_text:text.value}) };
+    if (mode.value === 'file' && !file.value) {
+        pending.value = false; errors.value = {file:'Selecciona el archivo que quieres revisar.'}; return;
+    }
+    const source: BulkSource = mode.value === 'file' && file.value ? {file:file.value} : {source_text:text.value};
+    const data = bulkRequest(settings.value,source,props.trip.revision);
     try {
-        let body = data;
-        if (data.file) {
-            body = new FormData();
-            for (const [key,value] of Object.entries(data)) {
-                if (key === 'mapping') for (const [field,index] of Object.entries(value)) body.append(`mapping[${field}]`, index ?? '');
-                else body.append(key, typeof value === 'boolean' ? (value ? '1' : '0') : value);
-            }
-        }
-        const result = await axios.post(route('trips.products.import.preview',props.trip.id),body,{signal:controller.signal,headers:{Accept:'application/json'}});
+        const body = data.file ? bulkMultipart(data) : data;
+        const result = await axios.post<BulkPreview>(route('trips.products.import.preview',props.trip.id),body,{signal:controller.signal,headers:{Accept:'application/json'}});
         if (current === sequence) {
             preview.value = result.data;
             columns.value = result.data.columns;
             payload.value = {...data,idempotency_key:crypto.randomUUID()};
         }
     } catch (error) {
-        if (current === sequence && !axios.isCancel(error)) errors.value = error.response?.data?.errors || {import:'No se pudo revisar el lote. Comprueba la conexión y vuelve a intentarlo.'};
+        if (current === sequence && !axios.isCancel(error)) errors.value = requestErrors(error,'import','No se pudo revisar el lote. Comprueba la conexión y vuelve a intentarlo.');
     } finally {
         if (current === sequence) pending.value = false;
     }
 };
 const apply = () => {
     if (!preview.value?.can_apply || !payload.value || applyForm.processing) return;
-    applyForm.transform(() => payload.value).post(route('trips.products.import.apply',props.trip.id), {
+    const request = payload.value;
+    applyForm.transform(() => request).post(route('trips.products.import.apply',props.trip.id), {
         preserveScroll:true,
         onSuccess:() => { invalidate(); text.value = ''; file.value = null; open.value = false; },
         onError:() => confirming.value = false,
@@ -101,7 +105,7 @@ const apply = () => {
                         <div class="f-field"><label for="bulk-delimiter">Separador</label><select id="bulk-delimiter" class="f-input" v-model="settings.delimiter"><option value="tab">Tabulador · hoja de cálculo</option><option value=",">Coma</option><option value=";">Punto y coma</option></select></div>
                     </div>
                     <div v-if="mode === 'paste'" class="f-field" style="margin-top:16px"><label for="bulk-text">Filas para importar</label><textarea id="bulk-text" class="f-input" v-model="text" rows="6" placeholder="Producto, cantidad, moneda y costo unitario en columnas separadas" required spellcheck="false" /><button class="f-button" type="button" style="justify-self:start" @click="example">Usar ejemplo</button></div>
-                    <div v-else class="f-field" style="margin-top:16px"><label for="bulk-file">Archivo CSV · UTF-8 · máximo 2 MB</label><input id="bulk-file" class="f-input" type="file" accept=".csv,.txt,text/csv,text/plain" @change="file = $event.target.files?.[0] ?? null" required /></div>
+                    <div v-else class="f-field" style="margin-top:16px"><label for="bulk-file">Archivo CSV · UTF-8 · máximo 2 MB</label><input id="bulk-file" class="f-input" type="file" accept=".csv,.txt,text/csv,text/plain" @change="file = inputFile($event)" required /></div>
                     <label style="display:flex;gap:10px;align-items:center;min-height:44px;margin-top:12px"><input type="checkbox" v-model="settings.has_header" /> La primera fila contiene encabezados</label>
                     <div class="f-form-grid" style="margin-top:12px">
                         <div v-for="field in fields" :key="field.key" class="f-field"><label :for="`bulk-map-${field.key}`">{{ field.label }}{{ field.required ? ' · obligatorio' : '' }}</label><select :id="`bulk-map-${field.key}`" class="f-input" v-model="settings.mapping[field.key]"><option v-if="!field.required" :value="null">{{ field.key === 'moneda' ? 'Usar moneda por defecto' : 'Sin columna' }}</option><option v-for="column in columns" :key="column.index" :value="column.index">{{ column.index + 1 }} · {{ column.label }}</option></select></div>
@@ -110,7 +114,7 @@ const apply = () => {
                     <div class="f-actions" style="margin-top:16px"><button type="submit" class="f-button f-button-primary">{{ pending ? 'Revisando…' : 'Revisar lote' }}</button><span class="f-hint">Todavía no guarda productos ni costos.</span></div>
                 </fieldset>
             </form>
-            <div v-if="messages.length" class="f-notice f-notice-error" role="alert" style="margin-top:16px"><p v-for="(message,index) in messages" :key="index">{{ message }}</p><button v-if="errors.conflict || applyForm.errors.conflict" class="f-button" @click="router.reload({preserveScroll:true})">Recargar revisión</button></div>
+            <div v-if="messages.length" class="f-notice f-notice-error" role="alert" style="margin-top:16px"><p v-for="(message,index) in messages" :key="index">{{ message }}</p><button v-if="errors.conflict || applyErrors.conflict" class="f-button" @click="router.reload()">Recargar revisión</button></div>
             <template v-if="preview">
                 <div class="f-panel-heading" style="padding:20px 0 12px"><div><h3>Vista previa · revisión {{ preview.revision }}</h3><p class="f-hint">{{ preview.count }} filas · {{ preview.invalid_count }} con errores</p></div><label><input type="checkbox" v-model="invalidOnly" /> Solo errores</label></div>
                 <div class="f-table-scroll f-desktop-table"><table class="f-table"><caption class="sr-only">Productos del lote y errores por fila</caption><thead><tr><th>Fila / producto</th><th class="f-numeric">Cantidad</th><th class="f-numeric">Unitario original</th><th>Validación</th></tr></thead><tbody><tr v-for="row in visibleRows" :key="row.row"><td><span class="f-hint">Fila {{ row.row }}</span><strong class="f-table-title">{{ row.data.nombre || 'Sin nombre' }}</strong></td><td class="f-numeric">{{ row.data.cantidad }}</td><td class="f-numeric">{{ row.data.costo_unitario }} {{ row.data.moneda }}</td><td><span v-if="!Object.keys(row.errors).length" class="f-status">Válida</span><p v-for="(error,index) in Object.values(row.errors).flat()" :key="index" class="f-error-text">{{ error }}</p></td></tr></tbody></table></div>

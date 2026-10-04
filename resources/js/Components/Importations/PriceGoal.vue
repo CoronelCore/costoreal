@@ -1,23 +1,30 @@
-<script setup>
-import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import Modal from '@/Components/UI/Modal.vue';
 import { formatMoney } from '@/Utils/format';
 
-const props = defineProps({ trip: Object, lastBatch: Object });
-const route = inject('route');
+import { useRoute } from '@/Composables/useRoute';
+import { inputValue } from '@/Utils/input';
+import { pricingRequest } from '@/Utils/advancedDrafts';
+import { requestErrors, validationErrors } from '@/Utils/validation';
+import type { ImportDetail, PricingBatch, RevisionMutation } from '@/Types/financial';
+import type { PricingSettings, PricingPreview, ErrorBag } from '@/Types/advanced';
+const props = defineProps<{ trip: ImportDetail; lastBatch: PricingBatch | null }>();
+const route = useRoute();
 const selected = ref(props.trip.products.map(product => product.id));
-const policy = ref({ method: 'margin', target: '20', commission: '0', quantum: 1 });
-const preview = ref(null);
+const policy = ref<PricingSettings>({ method: 'margin', target: '20', commission: '0', quantum: 1 });
+const preview = ref<PricingPreview | null>(null);
 const pending = ref(false);
-const errors = ref({});
+const errors = ref<ErrorBag>({});
 const confirming = ref(false);
-const applyForm = useForm({});
-let controller;
+const applyForm = useForm<RevisionMutation>({expected_revision:props.trip.revision});
+const applyErrors = computed(()=>validationErrors(applyForm.errors));
+let controller: AbortController | undefined;
 let requestSequence = 0;
 const selectedCount = computed(() => selected.value.length);
-const messages = computed(() => [...Object.values(errors.value).flat(), ...Object.values(applyForm.errors).flat()]);
+const messages = computed(() => [...Object.values(errors.value).flat(), ...Object.values(applyErrors.value).flat()]);
 const invalidated = (clearErrors = true) => {
     requestSequence++;
     controller?.abort();
@@ -26,7 +33,7 @@ const invalidated = (clearErrors = true) => {
     confirming.value = false;
     if (clearErrors) { errors.value = {}; applyForm.clearErrors(); }
 };
-watch([policy, selected], invalidated, { deep: true });
+watch([policy, selected], () => invalidated(), { deep: true });
 watch(() => props.trip.revision, () => invalidated(false));
 watch(() => props.trip.products.map(product => product.id), ids => {
     selected.value = selected.value.filter(id => ids.includes(id));
@@ -38,13 +45,11 @@ const generate = async () => {
     pending.value = true;
     controller = new AbortController();
     try {
-        const response = await axios.post(route('trips.pricing.preview', props.trip.id), {
-            ...policy.value, product_ids: selected.value, expected_revision: props.trip.revision,
-        }, { signal: controller.signal, headers: { Accept: 'application/json' } });
+        const response = await axios.post<PricingPreview>(route('trips.pricing.preview', props.trip.id), pricingRequest(policy.value,selected.value,props.trip.revision), { signal: controller.signal, headers: { Accept: 'application/json' } });
         if (sequence === requestSequence) preview.value = response.data;
     } catch (error) {
         if (sequence === requestSequence && !axios.isCancel(error)) {
-            errors.value = error.response?.data?.errors ?? { pricing: 'No se pudo generar la vista previa. Revisa tu conexión y vuelve a intentarlo.' };
+            errors.value = requestErrors(error,'pricing','No se pudo generar la vista previa. Revisa tu conexión y vuelve a intentarlo.');
         }
     } finally {
         if (sequence === requestSequence) pending.value = false;
@@ -75,8 +80,8 @@ const apply = () => {
                     <legend class="sr-only">Objetivo comercial y productos</legend>
                     <div class="f-form-grid">
                         <div class="f-field"><label for="price-method">Tipo de objetivo</label><select id="price-method" class="f-input" v-model="policy.method"><option value="margin">Margen sobre venta</option><option value="markup">Recargo sobre costo</option></select></div>
-                        <div class="f-field"><label for="price-goal">{{ policy.method === 'margin' ? 'Margen objetivo' : 'Recargo objetivo' }} · %</label><input id="price-goal" class="f-input" type="number" v-model="policy.target" min="0" :max="policy.method === 'margin' ? '99.99' : '1000'" step="0.01" required /></div>
-                        <div class="f-field"><label for="price-commission">Comisión de venta · %</label><input id="price-commission" class="f-input" type="number" v-model="policy.commission" min="0" max="99.99" step="0.01" required /></div>
+                        <div class="f-field"><label for="price-goal">{{ policy.method === 'margin' ? 'Margen objetivo' : 'Recargo objetivo' }} · %</label><input id="price-goal" class="f-input" type="number" :value="policy.target" @input="policy.target = inputValue($event)" min="0" :max="policy.method === 'margin' ? '99.99' : '1000'" step="0.01" required /></div>
+                        <div class="f-field"><label for="price-commission">Comisión de venta · %</label><input id="price-commission" class="f-input" type="number" :value="policy.commission" @input="policy.commission = inputValue($event)" min="0" max="99.99" step="0.01" required /></div>
                         <div class="f-field"><label for="price-quantum">Redondear hacia arriba</label><select id="price-quantum" class="f-input" v-model="policy.quantum"><option :value="1">Al peso</option><option :value="10">A 10 CLP</option><option :value="100">A 100 CLP</option><option :value="1000">A 1.000 CLP</option></select></div>
                     </div>
                     <div class="f-actions" style="margin:16px 0 8px"><button class="f-button" type="button" @click="selected = trip.products.map(product => product.id)">Seleccionar todas</button><button class="f-button" type="button" @click="selected = []">Limpiar selección</button></div>
@@ -89,7 +94,7 @@ const apply = () => {
                     <div class="f-actions" style="margin-top:16px"><button class="f-button f-button-primary" type="submit" :disabled="!selectedCount">{{ pending ? 'Calculando…' : 'Generar vista previa' }}</button><span class="f-hint">No cambia los precios guardados.</span></div>
                 </fieldset>
             </form>
-            <div v-if="messages.length" class="f-notice f-notice-error" role="alert" style="margin-top:16px"><p v-for="(message,index) in messages" :key="index">{{ message }}</p><button v-if="errors.conflict || applyForm.errors.conflict" class="f-button" @click="router.reload({preserveScroll:true})">Recargar revisión</button></div>
+            <div v-if="messages.length" class="f-notice f-notice-error" role="alert" style="margin-top:16px"><p v-for="(message,index) in messages" :key="index">{{ message }}</p><button v-if="errors.conflict || applyErrors.conflict" class="f-button" @click="router.reload()">Recargar revisión</button></div>
             <template v-if="preview">
                 <div class="f-panel-heading" style="padding:20px 0 12px"><h3>Vista previa · revisión {{ preview.revision }}</h3><span class="f-hint">Precios por unidad en CLP</span></div>
                 <div class="f-table-scroll f-desktop-table"><table class="f-table"><caption class="sr-only">Comparación de precios actuales y propuestos</caption><thead><tr><th>Producto</th><th class="f-numeric">Actual</th><th class="f-numeric">Propuesto</th><th class="f-numeric">Margen tras comisión</th></tr></thead><tbody><tr v-for="line in preview.lines" :key="line.id"><td>{{ line.name }}</td><td class="f-numeric">{{ line.previous_price === null ? 'Pendiente' : '$' + formatMoney(line.previous_price,2) }}</td><td class="f-numeric"><strong>${{ formatMoney(line.price) }}</strong></td><td class="f-numeric">{{ formatMoney(line.margin_after_commission,2) }} %</td></tr></tbody></table></div>

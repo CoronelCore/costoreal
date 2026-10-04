@@ -1,41 +1,45 @@
-<script setup>
-import { inject, onBeforeUnmount, ref, watch } from 'vue';
+<script setup lang="ts">
+import { onBeforeUnmount, ref, watch } from 'vue';
 import axios from 'axios';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
-const props = defineProps({ trip:Object, history:Object, runs:Array });
-const route = inject('route');
+import { useRoute } from '@/Composables/useRoute';
+import type { ImportDetail, Pagination, AuditEventSummary, CostRunSummary } from '@/Types/financial';
+import type { AuditComparison, AuditValue } from '@/Types/advanced';
+const props = defineProps<{ trip: ImportDetail; history: Pagination<AuditEventSummary>; runs: CostRunSummary[] }>();
+const route = useRoute();
 const listing = ref(props.history);
-const expanded = ref(null);
-const comparison = ref(null);
+const expanded = ref<number | null>(null);
+const comparison = ref<AuditComparison | null>(null);
 const busy = ref(false);
 const error = ref('');
-let controller;
+let controller: AbortController | undefined;
 let sequence = 0;
-const labels = { update:'Actualización del lote', products_import:'Productos importados por lote', product_create:'Producto agregado', product_update:'Producto actualizado', product_delete:'Producto eliminado', expense_create:'Gasto agregado', expense_update:'Gasto actualizado', expense_delete:'Gasto eliminado', scenario_apply:'Escenario aplicado', price_target:'Precios por objetivo', price_update:'Precio de venta actualizado', document_upload:'Documento adjunto', document_trash:'Documento a papelera', document_restore:'Documento restaurado', company_assignment:'Empresa asignada', configuration:'Configuración y revaluación', close:'Cierre de importación', reopen:'Reapertura de importación', trip_trash:'Importación a papelera', trip_restore:'Importación restaurada' };
-const fields = { nombre:'Nombre', descripcion:'Descripción', company_id:'Empresa · identificador', estado:'Estado', fecha_inicio:'Fecha de inicio', fecha_fin:'Fecha de fin', moneda_trabajo:'Moneda de trabajo', tipo_cambio:'Tasa de referencia', costo_total:'Costo del lote · CLP', deleted_at:'Fecha en papelera', cantidad:'Cantidad', moneda:'Moneda original', costo_unitario:'Costo unitario original', rate_mode:'Tipo de conversión', applied_rate:'Tasa aplicada', rate_source:'Fuente de la tasa', rate_date:'Fecha de la tasa', weight:'Peso total · kg', volume:'Volumen total · m³', subtotal_clp:'Compra · CLP', gastos_prorrateados_clp:'Gastos asignados · CLP', costo_final_total_clp:'Costo final total · CLP', costo_final_unitario_clp:'Costo final unitario · CLP', precio_venta:'Precio unitario de venta · CLP', document_id:'Documento · identificador', concepto:'Concepto', expense_category_id:'Categoría · identificador', monto:'Monto original', monto_clp:'Monto convertido · CLP', allocation_method:'Regla de reparto', target_product_id:'Producto destino · identificador', filename:'Archivo', mime:'Tipo de archivo', size:'Tamaño · bytes', kind:'Uso del documento' };
-const states = { activo:'En curso',finalizado:'Cerrada',archivado:'Archivada',estimated:'Estimado',paid:'Pagado',value:'Valor de compra',units:'Unidades',weight:'Peso',volume:'Volumen',direct:'Producto directo' };
+const labels: Record<string,string> = { update:'Actualización del lote', products_import:'Productos importados por lote', product_create:'Producto agregado', product_update:'Producto actualizado', product_delete:'Producto eliminado', expense_create:'Gasto agregado', expense_update:'Gasto actualizado', expense_delete:'Gasto eliminado', scenario_apply:'Escenario aplicado', price_target:'Precios por objetivo', price_update:'Precio de venta actualizado', document_upload:'Documento adjunto', document_trash:'Documento a papelera', document_restore:'Documento restaurado', company_assignment:'Empresa asignada', configuration:'Configuración y revaluación', close:'Cierre de importación', reopen:'Reapertura de importación', trip_trash:'Importación a papelera', trip_restore:'Importación restaurada' };
+const fields: Record<string,string> = { nombre:'Nombre', descripcion:'Descripción', company_id:'Empresa · identificador', estado:'Estado', fecha_inicio:'Fecha de inicio', fecha_fin:'Fecha de fin', moneda_trabajo:'Moneda de trabajo', tipo_cambio:'Tasa de referencia', costo_total:'Costo del lote · CLP', deleted_at:'Fecha en papelera', cantidad:'Cantidad', moneda:'Moneda original', costo_unitario:'Costo unitario original', rate_mode:'Tipo de conversión', applied_rate:'Tasa aplicada', rate_source:'Fuente de la tasa', rate_date:'Fecha de la tasa', weight:'Peso total · kg', volume:'Volumen total · m³', subtotal_clp:'Compra · CLP', gastos_prorrateados_clp:'Gastos asignados · CLP', costo_final_total_clp:'Costo final total · CLP', costo_final_unitario_clp:'Costo final unitario · CLP', precio_venta:'Precio unitario de venta · CLP', document_id:'Documento · identificador', concepto:'Concepto', expense_category_id:'Categoría · identificador', monto:'Monto original', monto_clp:'Monto convertido · CLP', allocation_method:'Regla de reparto', target_product_id:'Producto destino · identificador', filename:'Archivo', mime:'Tipo de archivo', size:'Tamaño · bytes', kind:'Uso del documento' };
+const states: Record<string,string> = { activo:'En curso',finalizado:'Cerrada',archivado:'Archivada',estimated:'Estimado',paid:'Pagado',value:'Valor de compra',units:'Unidades',weight:'Peso',volume:'Volumen',direct:'Producto directo' };
 const moneyFields = new Set(['costo_total','subtotal_clp','gastos_prorrateados_clp','costo_final_total_clp','costo_final_unitario_clp','precio_venta','monto_clp']);
-const value = (field,data) => data === null || data === undefined ? 'Sin dato' : moneyFields.has(field) ? '$'+formatMoney(data,['costo_final_unitario_clp','precio_venta'].includes(field) ? 2 : 0) : field === 'deleted_at' ? date(data) : ['fecha_inicio','fecha_fin','rate_date'].includes(field) ? formatDateOnly(data) : (['estado','rate_mode','allocation_method'].includes(field) ? states[data] || data : String(data));
-const date = value => new Date(value).toLocaleString('es-CL');
+const stateLabel = (state: string | null) => state === null ? 'Sin dato' : states[state] || state;
+const value = (field: string, data: AuditValue | undefined) => data === null || data === undefined ? 'Sin dato' : moneyFields.has(field) ? '$'+formatMoney(String(data),['costo_final_unitario_clp','precio_venta'].includes(field) ? 2 : 0) : field === 'deleted_at' ? date(String(data)) : ['fecha_inicio','fecha_fin','rate_date'].includes(field) ? formatDateOnly(String(data)) : (['estado','rate_mode','allocation_method'].includes(field) ? stateLabel(String(data)) : String(data));
+const date = (value: string) => new Date(value).toLocaleString('es-CL');
 const cancel = () => { sequence++; controller?.abort(); busy.value = false; };
 watch(()=>props.history,data=>{ cancel(); listing.value = data; expanded.value = null; comparison.value = null; });
 onBeforeUnmount(cancel);
-const load = async (event,page = 1) => {
+const load = async (event: AuditEventSummary,page = 1) => {
     cancel(); const current = sequence; controller = new AbortController(); busy.value = true; error.value = '';
     try {
-        const response = await axios.get(route('trips.audit.show',[props.trip.id,event.id]),{params:{page},signal:controller.signal,headers:{Accept:'application/json'}});
+        const response = await axios.get<AuditComparison>(route('trips.audit.show',[props.trip.id,event.id]),{params:{page},signal:controller.signal,headers:{Accept:'application/json'}});
         if (current === sequence) comparison.value = response.data;
     } catch(failure) { if (current === sequence && !axios.isCancel(failure)) error.value = 'No se pudo abrir la comparación. Vuelve a intentarlo.'; }
     finally { if (current === sequence) busy.value = false; }
 };
-const toggle = event => {
+const toggle = (event: AuditEventSummary) => {
     if (expanded.value === event.id) { cancel(); expanded.value = null; comparison.value = null; return; }
     expanded.value = event.id; comparison.value = null; load(event);
 };
-const page = async number => {
+const page = async (number: number) => {
     cancel(); const current = sequence; controller = new AbortController(); busy.value = true; error.value = '';
     try {
-        const response = await axios.get(route('trips.audit.index',props.trip.id),{params:{page:number},signal:controller.signal,headers:{Accept:'application/json'}});
+        const response = await axios.get<Pagination<AuditEventSummary>>(route('trips.audit.index',props.trip.id),{params:{page:number},signal:controller.signal,headers:{Accept:'application/json'}});
         if (current === sequence) { listing.value = response.data; expanded.value = null; comparison.value = null; }
     } catch(failure) { if (current === sequence && !axios.isCancel(failure)) error.value = 'No se pudo cambiar de página. Vuelve a intentarlo.'; }
     finally { if (current === sequence) busy.value = false; }
@@ -47,7 +51,7 @@ const page = async number => {
         <div v-if="error" class="f-notice f-notice-error" role="alert">{{ error }}</div>
         <article v-for="event in listing?.data || []" :key="event.id" class="audit-event"><button class="f-breakdown-row" style="width:100%;text-align:left;border:0;padding:0;flex-wrap:wrap" :aria-expanded="expanded === event.id" :aria-controls="`audit-${event.id}`" @click="toggle(event)"><span><strong>{{ labels[event.action] || event.action }}</strong><span class="f-table-subtitle">{{ event.actor?.name || 'Proceso del sistema' }} · {{ date(event.created_at) }}</span></span><span class="f-hint">Revisión {{ event.revision }} {{ expanded === event.id ? '−' : '+' }}</span></button>
             <div v-if="expanded === event.id" :id="`audit-${event.id}`" class="f-draft" style="margin-top:12px" :aria-busy="busy">
-                <template v-if="event.summary"><div class="f-breakdown-row"><span>Estado</span><strong>{{ states[event.summary.before.state] || event.summary.before.state }} → {{ states[event.summary.after.state] || event.summary.after.state }}</strong></div><div class="f-breakdown-row"><span>Costo del lote · CLP</span><strong>{{ value('costo_total',event.summary.before.cost) }} → {{ value('costo_total',event.summary.after.cost) }}</strong></div><div class="f-breakdown-row"><span>Productos · gastos · documentos</span><strong>{{ event.summary.before.products }} · {{ event.summary.before.expenses }} · {{ event.summary.before.documents }} → {{ event.summary.after.products }} · {{ event.summary.after.expenses }} · {{ event.summary.after.documents }}</strong></div></template>
+                <template v-if="event.summary"><div class="f-breakdown-row"><span>Estado</span><strong>{{ stateLabel(event.summary.before.state) }} → {{ stateLabel(event.summary.after.state) }}</strong></div><div class="f-breakdown-row"><span>Costo del lote · CLP</span><strong>{{ value('costo_total',event.summary.before.cost) }} → {{ value('costo_total',event.summary.after.cost) }}</strong></div><div class="f-breakdown-row"><span>Productos · gastos · documentos</span><strong>{{ event.summary.before.products }} · {{ event.summary.before.expenses }} · {{ event.summary.before.documents }} → {{ event.summary.after.products }} · {{ event.summary.after.expenses }} · {{ event.summary.after.documents }}</strong></div></template>
                 <p v-else class="f-hint">Resumen heredado pendiente de completar. Puedes consultar las diferencias originales.</p>
                 <p v-if="busy" role="status" class="f-hint" style="margin-top:16px">Cargando diferencias…</p>
                 <template v-if="comparison?.id === event.id"><h3 style="margin-top:20px;font-weight:600">Diferencias por registro · {{ comparison.total }}</h3><p class="f-hint">Valores originales conservados, antes y después de este cambio. Los identificadores permiten reconocer los registros históricos.</p><article v-for="row in comparison.data" :key="`${row.kind}-${row.id}`" class="audit-diff"><strong>{{ row.name }}</strong><p class="f-hint">{{ ({trip:'Importación',products:'Producto',expenses:'Gasto',documents:'Documento'})[row.kind] }} #{{ row.id }} · {{ ({added:'Agregado',removed:'Retirado',updated:'Actualizado'})[row.change] }}</p><div v-for="field in row.fields" :key="field.field" class="audit-field"><strong>{{ fields[field.field] || field.field }}</strong><div class="audit-values"><div><span class="f-hint">Antes</span><p>{{ value(field.field,field.before) }}</p></div><div><span class="f-hint">Después</span><p>{{ value(field.field,field.after) }}</p></div></div></div></article><p v-if="!comparison.total" class="f-hint" style="margin-top:12px">No hay diferencias en los campos del expediente.</p><div v-if="comparison.last_page > 1" class="f-pagination"><span>{{ comparison.current_page }} / {{ comparison.last_page }}</span><div class="f-actions"><button class="f-button" @click="load(event,comparison.current_page-1)" :disabled="busy || comparison.current_page <= 1">Diferencias anteriores</button><button class="f-button" @click="load(event,comparison.current_page+1)" :disabled="busy || comparison.current_page >= comparison.last_page">Más diferencias</button></div></div></template>

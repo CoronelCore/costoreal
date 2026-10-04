@@ -8,6 +8,7 @@ use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Trip;
 use App\Modules\Importations\Actions\MutateTrip;
+use App\Modules\Scenarios\ScenarioData;
 use App\Modules\Scenarios\SimulateCost;
 use App\Modules\Shared\TransactionRunner;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class ScenarioController extends Controller
     public function listing(Trip $trip, string $pageName = 'page')
     {
         return $trip->scenarios()->select('id', 'trip_id', 'actor_id', 'name', 'base_revision', 'applied_revision', 'applied_at', 'created_at')
-            ->with('actor:id,name')->latest('id')->paginate(20, ['*'], $pageName);
+            ->with('actor:id,name')->latest('id')->paginate(20, ['*'], $pageName)->through(fn ($scenario) => ScenarioData::summary($scenario));
     }
 
     public function preview(ScenarioRequest $request, Trip $trip)
@@ -42,7 +43,7 @@ class ScenarioController extends Controller
             return $this->simulate->execute($current, $input)['result'];
         });
 
-        return response()->json(['revision' => (int) $request->expected_revision, 'result' => $result]);
+        return response()->json(['revision' => (int) $request->expected_revision, 'result' => ScenarioData::result($result)]);
     }
 
     public function store(ScenarioRequest $request, Trip $trip)
@@ -67,14 +68,14 @@ class ScenarioController extends Controller
                 'input' => $input, 'result' => $simulation['result'], 'created_at' => now()]);
         });
 
-        return response()->json(['scenario' => $scenario->load('actor:id,name')]);
+        return response()->json(['scenario' => ScenarioData::detail($scenario->load('actor:id,name'))]);
     }
 
     public function show(Trip $trip, CostScenario $scenario)
     {
         $this->authorize('view', $trip);
 
-        return response()->json(['scenario' => $scenario->load('actor:id,name')]);
+        return response()->json(['scenario' => ScenarioData::detail($scenario->load('actor:id,name'))]);
     }
 
     public function apply(Request $request, Trip $trip, CostScenario $scenario)

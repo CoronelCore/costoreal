@@ -6,6 +6,7 @@ use App\Http\Requests\ProductImportRequest;
 use App\Models\Product;
 use App\Models\Trip;
 use App\Modules\Importations\Actions\MutateTrip;
+use App\Modules\Importations\Importing\BulkImportData;
 use App\Modules\Importations\Importing\PrepareProductImport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +21,7 @@ class ProductImportController extends Controller
         $this->authorize('update', $current);
         $this->checkRevision($request, $current);
 
-        return response()->json($this->prepare->execute($current, $request->source(), $request->settings()));
+        return response()->json(BulkImportData::preview($this->prepare->execute($current, $request->source(), $request->settings())));
     }
 
     public function apply(ProductImportRequest $request, Trip $trip)

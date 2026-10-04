@@ -9,6 +9,7 @@ use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Importations\Actions\RecoverTrip;
 use App\Modules\Importations\Data\ImportationData;
+use App\Modules\Pricing\Data\PricingData;
 use App\Modules\Reporting\FinancialSummaryData;
 use Brick\Math\BigDecimal;
 use Illuminate\Http\Request;
@@ -82,7 +83,7 @@ class TripController extends Controller
         $summary = FinancialSummaryData::fromTrip($trip);
 
         $batch = DB::table('pricing_batches')->where('trip_id', $trip->id)->latest('id')->first();
-        $lastBatch = $batch ? ['revision' => (int) $batch->revision, 'policy' => json_decode($batch->policy, true, flags: JSON_THROW_ON_ERROR),
+        $lastBatch = $batch ? ['revision' => (int) $batch->revision, 'policy' => PricingData::policy(json_decode($batch->policy, true, flags: JSON_THROW_ON_ERROR)),
             'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
 
         return Inertia::render('Trips/Show', ['trip' => ImportationData::detail($trip, $summary), 'lastPricingBatch' => $lastBatch, 'projection' => $summary->projection, 'estadisticas' => $summary->statistics,

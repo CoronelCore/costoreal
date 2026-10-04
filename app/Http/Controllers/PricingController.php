@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Trip;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Pricing\Actions\PreviewPrices;
+use App\Modules\Pricing\Data\PricingData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -26,7 +27,7 @@ class PricingController extends Controller
             return $this->preview->execute($current, $policy);
         });
 
-        return response()->json($result);
+        return response()->json(PricingData::preview($result));
     }
 
     public function apply(TargetPriceRequest $request, Trip $trip)

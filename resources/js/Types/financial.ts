@@ -166,7 +166,7 @@ export interface ProductRevision { revision: number; editable: boolean; product:
 export interface MutationReceipt { revision: number }
 export interface ValidationFailure { errors?: Record<string, string | string[]> }
 export interface PricingPolicy {
-    method: 'margin' | 'markup'; target: Decimal; commission: Decimal; quantum: number; product_ids?: number[];
+    method: 'margin' | 'markup'; target: Decimal; commission: Decimal; quantum: 1 | 10 | 100 | 1000; product_ids: number[];
 }
 export interface PricingBatch { revision: number; policy: PricingPolicy; lines_count: number }
 export interface Actor { id: number; name: string }
