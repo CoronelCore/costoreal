@@ -16,3 +16,5 @@
 @media(prefers-reduced-motion:reduce){.financial-shell *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .financial-overlay{color:var(--f-ink);font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums}.financial-overlay :is(a,button,input,select,textarea):focus-visible{outline:3px solid var(--f-brand);outline-offset:3px}
+
+.dark .financial-shell{color-scheme:dark}.financial-shell [tabindex="0"]:focus-visible{outline:3px solid var(--f-brand);outline-offset:-3px}

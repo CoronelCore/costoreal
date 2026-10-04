@@ -33,7 +33,7 @@ CR-031,E5,P1,Pegado y CSV · Full stack,"Mapeo columnas, preview, errores por fi
 CR-032,E5,P1,Reglas avanzadas de reparto · Full stack,Unidades/peso/volumen/directo; metadata necesaria.,"CR-016,CR-026",Sin datos faltantes para regla; reparto exacto y explicación por producto.,Verificado
 CR-033,E5,P1,Precio por objetivo · Full stack,"Margen/recargo, comisiones acordadas y redondeo.","CR-025,CR-003",Casos 37.500/31.500 correctos; preview de lote y límites validados.,Verificado
 CR-034,E5,P1,Escenarios y revaluación · Full stack,Entradas alternativas separadas y promoción versionada.,"CR-032,CR-033,CR-018",Simular no escribe costos reales; aplicar exige versión vigente y muestra diferencias.,Verificado
-CR-035,E5,P1,Analítica renovada · Full stack,"Filtros autorizados, proyección/cobertura y tablas equivalentes.","CR-021,CR-018,CR-024",Métricas concilian con detalle y período; gráfico tiene alternativa legible.,Pendiente
+CR-035,E5,P1,Analítica renovada · Full stack,"Filtros autorizados, proyección/cobertura y tablas equivalentes.","CR-021,CR-018,CR-024",Métricas concilian con detalle y período; gráfico tiene alternativa legible.,Verificado
 CR-036,E5,P1,Historial y recuperación · Full stack,"Audit UI, restaurar importación/documento y retención.","CR-028,CR-019",Autor y cambios visibles; restauración respeta reglas y snapshots.,En curso
 CR-037,E6,P1,Runtime y Laravel 13 · Desarrollo,Compatibilidad PHP/extensiones/wrappers y framework.,"CR-010,CR-001",Instalación/build/suite y smoke de auth/CSRF/exports pasan en runtime elegido.,En curso
 CR-038,E6,P1,Inertia y tooling · Desarrollo,Alinear adaptadores y migrar a v3 con pasos aislados.,"CR-037,CR-020","Formularios, flash, uploads, eventos, history y tipos verificados.",Pendiente

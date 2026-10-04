@@ -111,7 +111,7 @@ class CoreIntegrityTest extends TestCase
         $this->expenseFor($this->tripFor($owner), $category, 200);
         $this->expenseFor($this->tripFor(User::factory()->create()), $category, 300);
         $this->actingAs($owner)->withSession(['active_company_id' => $company->id])->get('/analytics')
-            ->assertInertia(fn (Assert $page) => $page->component('Analytics/Index')->where('gastosPorCategoria.0.total_monto', 100)->etc());
+            ->assertInertia(fn (Assert $page) => $page->component('Analytics/Index')->where('categories.data.0.total', '100.00')->etc());
     }
 
     public function test_trip_index_supplies_purchase_plus_expenses(): void

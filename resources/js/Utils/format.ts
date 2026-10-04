@@ -19,3 +19,6 @@ export function formatMoney(value: string | number | null | undefined, decimals 
     const part = decimals ? ',' + (scaled % quantum).toString().padStart(decimals, '0') : '';
     return (sign && scaled !== 0n ? '-' : '') + whole + part;
 }
+
+/** Preserve legacy cents while keeping whole CLP compact. */
+export const analyticsMoney = (value: string) => formatMoney(value, /\.\d*[1-9]/.test(value) ? 2 : 0);

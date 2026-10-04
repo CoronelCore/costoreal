@@ -1,426 +1,79 @@
-<script setup>
-import { computed, inject } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Card from '@/Components/UI/Card.vue';
-import Badge from '@/Components/UI/Badge.vue';
-import Button from '@/Components/UI/Button.vue';
-import Alert from '@/Components/UI/Alert.vue';
-import CategoryIcon from '@/Components/Domain/CategoryIcon.vue';
-import CompanyIcon from '@/Components/Domain/CompanyIcon.vue';
-import ChartPie from '@/Components/Domain/ChartPie.vue';
-import ChartBar from '@/Components/Domain/ChartBar.vue';
-import KpiCard from '@/Components/Domain/KpiCard.vue';
-import NumberDisplay from '@/Components/UI/NumberDisplay.vue';
-import {
-    ChartBarIcon,
-    BuildingOfficeIcon,
-    CurrencyDollarIcon,
-    ReceiptPercentIcon,
-    ArrowTrendingUpIcon,
-    XMarkIcon,
-    TruckIcon,
-} from '@heroicons/vue/24/outline';
-
-// Ziggy route helper
-const route = inject('route');
-
-const props = defineProps({
-    totalTrips: {
-        type: Number,
-        required: true
-    },
-    totalGastado: {
-        type: Number,
-        required: true
-    },
-    promedioViaje: {
-        type: Number,
-        required: true
-    },
-    viajeMasCostoso: {
-        type: Object,
-        default: null
-    },
-    gastosPorCategoria: {
-        type: Array,
-        required: true
-    },
-    topViajes: {
-        type: Array,
-        required: true
-    },
-    ultimosGastos: {
-        type: Array,
-        required: true
-    },
-    evolucionMensual: {
-        type: Array,
-        required: true
-    }
-});
-
-const page = usePage();
-const activeCompany = computed(() => page.props.auth?.activeCompany);
-
-// DEBUG: Temporary console logs
-console.log('=== ANALYTICS DEBUG ===');
-console.log('totalTrips:', props.totalTrips);
-console.log('totalGastado:', props.totalGastado);
-console.log('viajeMasCostoso:', JSON.parse(JSON.stringify(props.viajeMasCostoso)));
-console.log('gastosPorCategoria:', JSON.parse(JSON.stringify(props.gastosPorCategoria)));
-console.log('topViajes:', JSON.parse(JSON.stringify(props.topViajes)));
-console.log('ultimosGastos:', JSON.parse(JSON.stringify(props.ultimosGastos)));
-console.log('evolucionMensual:', JSON.parse(JSON.stringify(props.evolucionMensual)));
-console.log('======================');
-
-// Preparar datos para gráfico de categorías
-const chartCategoriesData = computed(() => {
-    return props.gastosPorCategoria
-        .filter(cat => cat.total_monto > 0)
-        .map(cat => cat.total_monto);
-});
-
-const chartCategoriesLabels = computed(() => {
-    return props.gastosPorCategoria
-        .filter(cat => cat.total_monto > 0)
-        .map(cat => cat.nombre);
-});
-
-const chartCategoriesColors = computed(() => {
-    return props.gastosPorCategoria
-        .filter(cat => cat.total_monto > 0)
-        .map(cat => cat.color || '#6B7280');
-});
-
-// Preparar datos para gráfico de top viajes
-const chartTopViajesData = computed(() => {
-    return props.topViajes.map(trip => trip.costo_calculado || 0);
-});
-
-const chartTopViajesLabels = computed(() => {
-    return props.topViajes.map(trip => {
-        const maxLength = 25;
-        return trip.nombre.length > maxLength
-            ? trip.nombre.substring(0, maxLength) + '...'
-            : trip.nombre;
+<script setup lang="ts">
+import { reactive, ref, nextTick, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import FinancialLayout from '@/Layouts/FinancialLayout.vue';
+import ValueBars from '@/Components/Analytics/ValueBars.vue';
+import TablePagination from '@/Components/Analytics/TablePagination.vue';
+import { useRoute } from '@/Composables/useRoute';
+import type { AnalyticsProps } from '@/Types/analytics';
+import { analyticsMoney as money, formatDateOnly, formatMoney } from '@/Utils/format';
+const route = useRoute();
+const props = defineProps<AnalyticsProps>();
+const filters = reactive({ from: props.filters.from || '', to: props.filters.to || '', state: props.filters.state || '' });
+const busy = ref(false);
+watch(() => props.filters, value => { if (!busy.value) Object.assign(filters, { from: value.from || '', to: value.to || '', state: value.state || '' }); });
+const errors = ref<Record<string, string>>({});
+function apply() {
+    if (busy.value) return;
+    busy.value = true; errors.value = {};
+    router.get(route('analytics.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), {
+        preserveState: true, preserveScroll: true, replace: true,
+        onError: value => { errors.value = value; },
+        onFinish: async () => { if (!Object.keys(errors.value).length) Object.assign(filters, { from: props.filters.from || '', to: props.filters.to || '', state: props.filters.state || '' }); busy.value = false; await nextTick(); if (Object.keys(errors.value).length) (document.getElementById(`analytics-${Object.keys(errors.value)[0]}`) ?? document.getElementById('main-content'))?.focus(); },
     });
-});
-
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-CL', {
-        style: 'currency',
-        currency: 'CLP',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(value);
-};
-
-const formatDate = (date) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('es-CL', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-};
-
-const getRelativeTime = (date) => {
-    const now = new Date();
-    const past = new Date(date);
-    const diffInSeconds = Math.floor((now - past) / 1000);
-
-    if (diffInSeconds < 60) return 'Hace un momento';
-    if (diffInSeconds < 3600) return `Hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `Hace ${Math.floor(diffInSeconds / 3600)} horas`;
-    if (diffInSeconds < 604800) return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
-    return formatDate(date);
-};
-
-const clearCompanyFilter = () => {
-    router.post(route('company.switch', 'all'));
-};
-
-const hasData = computed(() => {
-    return props.totalTrips > 0 || props.ultimosGastos.length > 0;
-});
+}
+function clear() { Object.assign(filters, { from: '', to: '', state: '' }); apply(); }
+const monthName = (month: string) => month === 'undated' ? 'Sin fecha de inicio' : formatDateOnly(`${month}-01`, { day: undefined, month: 'short' });
+const stateName = (state: string) => ({ activo: 'En curso', finalizado: 'Cerrada', archivado: 'Archivada' })[state] || state;
+const percentage = (priced: number, all: number) => all ? Math.round(priced * 100 / all) : 0;
 </script>
-
 <template>
-    <AuthenticatedLayout>
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-start justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gradient-primary">
-                        Analítica
-                    </h1>
-                    <p class="mt-1 metadata">
-                        Visualiza estadísticas y tendencias de tus importaciones
-                    </p>
-                </div>
-            </div>
-
-            <!-- Company Filter Badge -->
-            <div v-if="activeCompany" class="mt-4">
-                <Alert type="info">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <CompanyIcon
-                                :icon="activeCompany.icono"
-                                :color="activeCompany.color"
-                                size="sm"
-                            />
-                            <span class="text-sm">
-                                Filtrando por empresa: <strong>{{ activeCompany.nombre }}</strong>
-                            </span>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            @click="clearCompanyFilter"
-                        >
-                            <XMarkIcon class="h-4 w-4" />
-                            Limpiar filtro
-                        </Button>
-                    </div>
-                </Alert>
-            </div>
+    <Head title="Analítica financiera" />
+    <FinancialLayout error-heading="No se aplicaron los filtros.">
+        <div class="f-heading"><div><div class="f-eyebrow">DECISIONES CON RESPALDO</div><h1>Analítica financiera</h1><p>Inversión, cobertura y utilidad proyectada de tus importaciones.</p></div><Link :href="route('trips.index')" class="f-button">Control de importaciones →</Link></div>
+        <section class="f-panel" aria-labelledby="analytics-filter-heading">
+            <div class="f-panel-heading"><h2 id="analytics-filter-heading">Período y alcance</h2><span class="f-hint">Empresa seleccionada · importaciones fuera de la papelera</span></div>
+            <form class="f-panel-body f-filters" @submit.prevent="apply" :aria-busy="busy">
+                <div class="f-field"><label for="analytics-from">Desde</label><input id="analytics-from" v-model="filters.from" type="date" class="f-input" :disabled="busy" :aria-invalid="!!errors.from" :aria-describedby="errors.from ? 'from-error' : undefined" /><p v-if="errors.from" id="from-error" class="f-field-error">{{ errors.from }}</p></div>
+                <div class="f-field"><label for="analytics-to">Hasta</label><input id="analytics-to" v-model="filters.to" type="date" class="f-input" :disabled="busy" :aria-invalid="!!errors.to" :aria-describedby="errors.to ? 'to-error' : undefined" /><p v-if="errors.to" id="to-error" class="f-field-error">{{ errors.to }}</p></div>
+                <div class="f-field"><label for="analytics-state">Estado</label><select id="analytics-state" v-model="filters.state" class="f-input" :disabled="busy" :aria-invalid="!!errors.state" :aria-describedby="errors.state ? 'state-error' : undefined"><option value="">Todos los estados</option><option value="activo">En curso</option><option value="finalizado">Cerradas</option><option value="archivado">Archivadas</option></select><p v-if="errors.state" id="state-error" class="f-field-error">{{ errors.state }}</p></div>
+                <button type="submit" class="f-button f-button-primary" :disabled="busy">{{ busy ? 'Aplicando…' : 'Aplicar filtros' }}</button><button v-if="filters.from || filters.to || filters.state" type="button" class="f-button" :disabled="busy" @click="clear">Limpiar</button>
+            </form>
+            <p class="analytics-scope">El período usa la <strong>fecha de inicio de la importación</strong>, con ambos extremos incluidos. Sin fechas, incluye todo el historial y las importaciones sin fecha. Los indicadores abarcan el filtro completo; cada gráfico representa las filas de su tabla.</p>
+        </section>
+        <p class="sr-only" role="status">{{ metrics.count }} {{ metrics.count === 1 ? 'importación' : 'importaciones' }} en el filtro. Inversión {{ money(metrics.total) }} pesos.</p>
+        <div class="f-metrics">
+            <article class="f-metric f-metric-accent"><span class="f-metric-label">Inversión total · CLP</span><strong class="f-metric-value">${{ money(metrics.total) }}</strong><small>{{ metrics.count }} {{ metrics.count === 1 ? 'importación' : 'importaciones' }} · {{ metrics.active }} en curso</small></article>
+            <article class="f-metric"><span class="f-metric-label">Compra de productos · CLP</span><strong class="f-metric-value">${{ money(metrics.purchase) }}</strong><small>Conversión registrada por línea</small></article>
+            <article class="f-metric"><span class="f-metric-label">Gastos de importación · CLP</span><strong class="f-metric-value">${{ money(metrics.expenses) }}</strong><small>Incluye gastos sin distribuir</small></article>
+            <article class="f-metric"><span class="f-metric-label">Inversión media · CLP</span><strong class="f-metric-value">${{ money(metrics.average) }}</strong><small>Inversión total / importaciones del filtro</small></article>
         </div>
-
-        <template v-if="hasData">
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Total Gastado -->
-                <KpiCard
-                    class="stagger-item"
-                    title="Total Gastado"
-                    :value="formatCurrency(totalGastado)"
-                    :icon="CurrencyDollarIcon"
-                    variant="primary"
-                />
-
-                <!-- Total Importaciones -->
-                <KpiCard
-                    class="stagger-item"
-                    title="Total Importaciones"
-                    :value="totalTrips"
-                    :icon="TruckIcon"
-                    variant="primary"
-                />
-
-                <!-- Promedio por Importación -->
-                <KpiCard
-                    class="stagger-item"
-                    title="Promedio por Importación"
-                    :value="formatCurrency(promedioViaje)"
-                    :icon="ChartBarIcon"
-                    variant="success"
-                />
-
-                <!-- Importación Más Costosa -->
-                <KpiCard
-                    v-if="viajeMasCostoso"
-                    class="stagger-item"
-                    title="Más Costosa"
-                    :value="formatCurrency(viajeMasCostoso.costo_calculado || 0)"
-                    :icon="ArrowTrendingUpIcon"
-                    variant="warning"
-                />
+        <section class="f-panel" aria-labelledby="projection-heading">
+            <div class="f-panel-heading"><h2 id="projection-heading">Proyección de venta</h2><span class="f-status" :class="{ 'f-status-warning': !projection.complete }">{{ projection.complete ? 'Precios completos' : projection.lines ? 'Cobertura parcial' : 'Sin productos' }}</span></div>
+            <div class="analytics-projection">
+                <div><span class="f-metric-label">Cobertura de precios</span><strong class="f-metric-value">{{ projection.priced_lines }} <span class="analytics-denominator">/ {{ projection.lines }} líneas</span></strong><div class="f-bar" aria-hidden="true"><span :style="{ width: `${percentage(projection.priced_lines, projection.lines)}%` }"></span></div><p class="f-hint">{{ projection.priced_units }} / {{ projection.units }} unidades con precio positivo</p></div>
+                <div><span class="f-metric-label">{{ projection.complete ? 'Ingreso proyectado' : 'Ingreso de líneas con precio' }} · CLP</span><strong class="f-metric-value">{{ projection.priced_lines ? `$${money(projection.covered_revenue)}` : 'Sin precios' }}</strong><p class="f-hint">Costo de esas líneas: ${{ money(projection.covered_cost) }}</p></div>
+                <div><span class="f-metric-label">{{ projection.complete ? 'Utilidad proyectada total' : 'Utilidad de líneas con precio' }} · CLP</span><strong class="f-metric-value" :class="{ 'f-negative': (projection.profit ?? projection.covered_profit).startsWith('-') }">{{ projection.priced_lines ? `$${money(projection.profit ?? projection.covered_profit)}` : 'Sin precios' }}</strong><p class="f-hint">Margen {{ projection.margin === null ? 'sin dato' : `${formatMoney(projection.margin, 2)}%` }} · {{ projection.complete ? 'incluye gastos sin distribuir' : 'sobre ingreso de líneas con precio' }}</p></div>
             </div>
-
-            <!-- Gráficos -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Gráfico de Categorías -->
-                <div class="card">
-                    <div class="p-6">
-                        <h2 class="metadata mb-4">
-                            Distribución por Categoría
-                        </h2>
-                        <div v-if="chartCategoriesData.length > 0" class="h-80 flex items-center justify-center">
-                            <ChartPie
-                                :data="chartCategoriesData"
-                                :labels="chartCategoriesLabels"
-                                :colors="chartCategoriesColors"
-                            />
-                        </div>
-                        <div v-else class="h-80 flex items-center justify-center">
-                            <p class="text-gray-500 dark:text-slate-400 text-sm">
-                                No hay datos de categorías disponibles
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gráfico Top Viajes -->
-                <div class="card">
-                    <div class="p-6">
-                        <h2 class="metadata mb-4">
-                            Top 5 Importaciones Más Costosas
-                        </h2>
-                        <div v-if="topViajes.length > 0" class="h-80">
-                            <ChartBar
-                                :data="chartTopViajesData"
-                                :labels="chartTopViajesLabels"
-                                :horizontal="true"
-                                color="#6366F1"
-                            />
-                        </div>
-                        <div v-else class="h-80 flex items-center justify-center">
-                            <p class="text-gray-500 dark:text-slate-400 text-sm">
-                                No hay importaciones disponibles
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            <div class="analytics-scope"><p v-if="!projection.complete && projection.lines"><strong>{{ projection.lines - projection.priced_lines }} líneas pendientes.</strong> La utilidad parcial descuenta solo el costo final de las líneas con precio. La utilidad total estará disponible cuando todas tengan precio de venta.</p><p v-else-if="!projection.lines">Agrega productos y precios de venta para obtener una proyección.</p><p>Gastos sin distribuir: <strong>${{ money(metrics.unassigned) }}</strong>. Se descuentan de la utilidad total cuando la cobertura es completa. Los precios representan una proyección; la utilidad realizada requiere ventas reales.</p></div>
+        </section>
+        <div v-if="!metrics.count" class="f-panel f-empty"><h2>{{ filters.from || filters.to || filters.state ? 'Sin importaciones en este filtro' : 'Tu analítica empieza con una importación' }}</h2><p>Los indicadores se actualizarán con tus productos, gastos y precios de venta.</p><button v-if="filters.from || filters.to || filters.state" class="f-button" @click="clear">Limpiar filtros</button><Link v-else :href="route('trips.create')" class="f-button f-button-primary">Crear importación</Link></div>
+        <template v-else>
+            <section class="f-panel" aria-labelledby="investment-heading">
+                <div class="f-panel-heading"><h2 id="investment-heading">Inversión por importación</h2><span class="f-hint">Mayor a menor · tabla y gráfico de la página actual</span></div>
+                <ValueBars :items="imports.data.map(row => ({ key: row.id, label: row.name, value: row.total }))" />
+                <p class="analytics-table-hint">Desplaza la tabla para ver todas las columnas →</p><div class="f-table-scroll" role="region" aria-label="Detalle de inversión por importación; desplázate para ver todas las columnas" tabindex="0"><table class="f-table analytics-table"><caption class="sr-only">Alternativa al gráfico de inversión. Importes en CLP.</caption><thead><tr><th scope="col">Importación</th><th scope="col" class="f-numeric">Compra</th><th scope="col" class="f-numeric">Gastos</th><th scope="col" class="f-numeric">Inversión</th><th scope="col">Precios / utilidad proyectada</th></tr></thead><tbody><tr v-for="row in imports.data" :key="row.id"><th scope="row"><Link :href="route('trips.show', row.id)" class="f-table-title">{{ row.name }}</Link><span class="f-table-subtitle">{{ stateName(row.state) }} · {{ formatDateOnly(row.date, { month: 'short' }) }}</span></th><td class="f-numeric">${{ money(row.purchase) }}</td><td class="f-numeric">${{ money(row.expenses) }}</td><td class="f-numeric"><strong>${{ money(row.total) }}</strong></td><td><Link :href="`${route('trips.show', row.id)}#precio-venta`" class="analytics-link">{{ row.projection.priced_lines }} / {{ row.projection.lines }} líneas</Link><span class="f-table-subtitle" :class="{ 'f-negative': row.projection.profit?.startsWith('-') }">{{ row.projection.profit === null ? 'Utilidad total pendiente' : `$${money(row.projection.profit)} de utilidad` }}</span></td></tr></tbody></table></div>
+                <TablePagination :page="imports" label="importaciones" />
+            </section>
+            <div class="analytics-grid">
+                <section class="f-panel" aria-labelledby="monthly-heading"><div class="f-panel-heading"><h2 id="monthly-heading">Inversión por mes de inicio</h2><span class="f-hint">Más reciente primero</span></div><ValueBars :items="months.data.map(row => ({ key: row.month, label: monthName(row.month), value: row.total }))" /><p class="analytics-table-hint">Desplaza la tabla para ver todas las columnas →</p><div class="f-table-scroll" role="region" aria-label="Detalle mensual; desplázate para ver todas las columnas" tabindex="0"><table class="f-table analytics-table analytics-month-table"><caption class="sr-only">Alternativa al gráfico mensual. Importes en CLP; solo meses con importaciones.</caption><thead><tr><th scope="col">Mes / importaciones</th><th scope="col" class="f-numeric">Compra</th><th scope="col" class="f-numeric">Gastos</th><th scope="col" class="f-numeric">Inversión</th></tr></thead><tbody><tr v-for="row in months.data" :key="row.month"><th scope="row">{{ monthName(row.month) }}<span class="f-table-subtitle">{{ row.count }} {{ row.count === 1 ? 'importación' : 'importaciones' }}</span></th><td class="f-numeric">${{ money(row.purchase) }}</td><td class="f-numeric">${{ money(row.expenses) }}</td><td class="f-numeric"><strong>${{ money(row.total) }}</strong></td></tr></tbody></table></div><TablePagination :page="months" label="meses o grupos sin fecha" /></section>
+                <section class="f-panel" aria-labelledby="category-heading"><div class="f-panel-heading"><h2 id="category-heading">Gastos por categoría</h2><span class="f-hint">Mayor a menor</span></div><template v-if="categories.total"><ValueBars :items="categories.data.map(row => ({ key: row.id, label: row.name, value: row.total }))" /><p class="analytics-table-hint">Desplaza la tabla para ver todas las columnas →</p><div class="f-table-scroll" role="region" aria-label="Detalle de gastos por categoría" tabindex="0"><table class="f-table analytics-table analytics-category-table"><caption class="sr-only">Alternativa al gráfico de categorías. Importes en CLP.</caption><thead><tr><th scope="col">Categoría</th><th scope="col" class="f-numeric">Gastos</th><th scope="col" class="f-numeric">Importe</th></tr></thead><tbody><tr v-for="row in categories.data" :key="row.id"><th scope="row">{{ row.name }}</th><td class="f-numeric">{{ row.count }}</td><td class="f-numeric">${{ money(row.total) }}</td></tr></tbody></table></div><TablePagination :page="categories" label="categorías" /></template><div v-else class="f-empty"><h3>Sin gastos registrados</h3><p>Las compras de productos se muestran en inversión, separadas de los gastos.</p></div></section>
             </div>
-
-            <!-- Tablas -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Gastos por Categoría -->
-                <Card>
-                    <div class="card-header">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Gastos por Categoría
-                        </h2>
-                    </div>
-
-                    <div v-if="gastosPorCategoria && gastosPorCategoria.length > 0" class="overflow-x-auto">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Categoría</th>
-                                    <th class="text-center">Total Gastos</th>
-                                    <th class="text-right">Monto Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="category in gastosPorCategoria" :key="category.id" class="hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <td>
-                                        <div class="flex items-center gap-2">
-                                            <CategoryIcon
-                                                :icon="category.icono"
-                                                :color="category.color"
-                                                size="sm"
-                                            />
-                                            <span class="font-medium">{{ category.nombre }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <Badge variant="gray">{{ category.total_gastos }}</Badge>
-                                    </td>
-                                    <td class="text-right">
-                                        <NumberDisplay
-                                            :value="category.total_monto"
-                                            :currency="true"
-                                            size="sm"
-                                        />
-                                    </td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="bg-gray-50 dark:bg-slate-900 font-semibold">
-                                    <td>Total</td>
-                                    <td class="text-center">
-                                        {{ gastosPorCategoria.reduce((sum, cat) => sum + cat.total_gastos, 0) }}
-                                    </td>
-                                    <td class="text-right">
-                                        <NumberDisplay
-                                            :value="gastosPorCategoria.reduce((sum, cat) => sum + cat.total_monto, 0)"
-                                            :currency="true"
-                                            size="sm"
-                                        />
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <div v-else class="card-body text-center py-12">
-                        <ReceiptPercentIcon class="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p class="text-gray-500 dark:text-slate-400 text-sm">
-                            No hay gastos registrados por categoría
-                        </p>
-                    </div>
-                </Card>
-
-                <!-- Últimos Gastos -->
-                <Card>
-                    <div class="card-header">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            Últimos Gastos Registrados
-                        </h2>
-                    </div>
-
-                    <div v-if="ultimosGastos && ultimosGastos.length > 0" class="divide-y divide-gray-200 dark:divide-slate-700">
-                        <div
-                            v-for="expense in ultimosGastos"
-                            :key="expense.id"
-                            class="p-4 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all duration-200 hover:shadow-sm cursor-pointer"
-                        >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex items-start gap-3 flex-1 min-w-0">
-                                    <CategoryIcon
-                                        v-if="expense.category"
-                                        :icon="expense.category.icono"
-                                        :color="expense.category.color"
-                                        size="sm"
-                                    />
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-medium text-gray-900 dark:text-white truncate">
-                                            {{ expense.concepto }}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-slate-400">
-                                            {{ expense.category ? expense.category.nombre : 'Sin categoría' }}
-                                        </p>
-                                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                                            {{ getRelativeTime(expense.created_at) }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="text-right flex-shrink-0">
-                                    <NumberDisplay
-                                        :value="expense.monto_clp"
-                                        :currency="true"
-                                        size="sm"
-                                    />
-                                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                                        {{ expense.moneda }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-else class="card-body text-center py-12">
-                        <ReceiptPercentIcon class="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p class="text-gray-500 dark:text-slate-400 text-sm">
-                            No hay gastos recientes
-                        </p>
-                    </div>
-                </Card>
-            </div>
+            <section class="f-panel" aria-labelledby="latest-heading"><div class="f-panel-heading"><h2 id="latest-heading">Últimos gastos del filtro</h2><span class="f-hint">Hasta 10 registros · orden de registro</span></div><div v-if="latestExpenses.length" class="analytics-latest"><article v-for="expense in latestExpenses" :key="expense.id"><div><Link :href="`${route('trips.show', expense.trip_id)}#gastos`" class="analytics-link">{{ expense.name }}</Link><span class="f-table-subtitle">{{ expense.trip_name }} · {{ expense.category }} · {{ formatDateOnly(expense.date, { month: 'short' }) }}</span></div><strong>${{ money(expense.amount) }}</strong></article></div><div v-else class="f-empty"><p>No hay gastos en las importaciones del filtro.</p></div></section>
         </template>
-
-        <!-- Empty State -->
-        <Card v-else>
-            <div class="card-body text-center py-16">
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-slate-800 mb-4">
-                    <ChartBarIcon class="h-10 w-10 text-gray-400" />
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    No hay datos disponibles
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
-                    Comienza creando tu primera importación y registrando gastos para ver estadísticas y gráficos aquí.
-                </p>
-                <Button
-                    variant="primary"
-                    @click="router.visit(route('trips.create'))"
-                >
-                    Crear Primera Importación
-                </Button>
-            </div>
-        </Card>
-    </AuthenticatedLayout>
+        <p class="f-footer-note">Compra + gastos = inversión. Los importes usan los costos registrados y el mismo cálculo de proyección que el detalle y los reportes. Cambiar filtros o páginas no modifica costos ni cierres históricos.</p>
+    </FinancialLayout>
 </template>
+<style scoped>
+.analytics-table-hint{display:none;color:var(--f-muted);font-size:10px;padding:0 15px 10px}.analytics-scope{padding:0 20px 18px;color:var(--f-muted);font-size:11px;line-height:1.8}.analytics-scope p+p{margin-top:6px}.analytics-projection{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:20px}.analytics-projection .f-hint{margin-top:9px}.analytics-denominator{font-size:12px;font-weight:450;color:var(--f-muted);letter-spacing:0}.analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.analytics-table tbody th{padding:var(--f-pad) 16px;font-size:12px;font-weight:500;border-bottom:1px solid var(--f-line);text-align:left;min-width:150px;max-width:270px;overflow-wrap:anywhere}.analytics-table tbody tr:last-child th{border:0}.analytics-table{min-width:560px}.analytics-month-table{min-width:460px}.analytics-month-table :is(td,th){padding-left:10px;padding-right:10px}.analytics-category-table{min-width:320px}.analytics-link{font-weight:550;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}.analytics-latest article{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 20px;border-bottom:1px solid var(--f-line)}.analytics-latest article:last-child{border:0}.analytics-latest article>div{min-width:0;overflow-wrap:anywhere}.analytics-latest strong{font-size:12px;font-weight:600;flex-shrink:0}@media(max-width:1200px){.analytics-grid{grid-template-columns:1fr}}@media(max-width:760px){.analytics-table-hint{display:block}.analytics-projection{grid-template-columns:1fr;gap:18px;padding:18px 15px}.analytics-projection>div+div{border-top:1px solid var(--f-line);padding-top:16px}.analytics-scope{padding:0 15px 15px}.f-field{flex:1;min-width:120px}.analytics-latest article{padding:15px;align-items:start;flex-wrap:wrap;gap:8px}.analytics-table{min-width:560px}.analytics-category-table{min-width:320px}}
+</style>

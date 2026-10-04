@@ -5,6 +5,7 @@ import { useRoute } from '@/Composables/useRoute';
 import { inputValue } from '@/Utils/input';
 import { useDarkMode } from '@/Composables/useDarkMode';
 import { Squares2X2Icon, ChartBarIcon, BuildingOffice2Icon, TagIcon, SunIcon, MoonIcon, ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline';
+const props = withDefaults(defineProps<{ errorHeading?: string }>(), { errorHeading: 'No se guardaron los cambios.' });
 const route = useRoute();
 const page = usePage();
 const { isDark, toggleTheme } = useDarkMode();
@@ -58,7 +59,7 @@ const flash = computed(() => page.props.flash || {});
                 <div v-if="flash.success" class="f-notice f-notice-success" role="status">{{ flash.success }}</div>
                 <div v-if="flash.error" class="f-notice f-notice-error" role="alert">{{ flash.error }}</div>
                 <div v-if="flash.info" class="f-notice" role="status">{{ flash.info }}</div>
-                <div v-if="errors.length" class="f-notice f-notice-error" role="alert"><strong>No se guardaron los cambios.</strong><p v-for="(error, index) in errors" :key="index">{{ error }}</p></div>
+                <div v-if="errors.length" class="f-notice f-notice-error" role="alert"><strong>{{ props.errorHeading }}</strong><p v-for="(error, index) in errors" :key="index">{{ error }}</p></div>
                 <slot name="header" /><slot />
             </main>
         </div>
