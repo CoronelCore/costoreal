@@ -4,6 +4,7 @@ import { Link, router, usePage } from "@inertiajs/vue3";
 import { useRoute } from "@/Composables/useRoute";
 import { inputValue } from "@/Utils/input";
 import { useDarkMode } from "@/Composables/useDarkMode";
+import BrandMark from "@/Components/BrandMark.vue";
 import {
     Squares2X2Icon,
     ChartBarIcon,
@@ -132,8 +133,7 @@ const flash = computed(() => page.flash || {});
                 :href="route('trips.index')"
                 class="f-brand"
                 aria-label="Costo Real, control de importaciones"
-                ><span class="f-brand-mark">c<span>r</span></span
-                ><span>Costo Real<small>Control financiero</small></span></Link
+                ><BrandMark /><span>Costo Real<small>Control financiero</small></span></Link
             >
             <button
                 class="f-icon-button f-mobile-only"

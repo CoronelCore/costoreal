@@ -83,21 +83,10 @@
     margin-top: 1px;
 }
 .f-brand-mark {
-    width: 37px;
-    height: 37px;
-    border: 1px solid var(--f-brand);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--f-brand);
-    font-size: 23px;
-    letter-spacing: -4px;
-    padding-right: 4px;
-    font-weight: 500;
-}
-.f-brand-mark span {
-    font-weight: 750;
+    display: block;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
 }
 .f-nav-label {
     font-size: 10px;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from "@inertiajs/vue3";
 import { useDarkMode } from "@/Composables/useDarkMode";
+import BrandMark from "@/Components/BrandMark.vue";
 import { SunIcon, MoonIcon } from "@heroicons/vue/24/outline";
 const { isDark, toggleTheme } = useDarkMode();
 </script>
@@ -9,8 +10,7 @@ const { isDark, toggleTheme } = useDarkMode();
         <a class="f-skip" href="#main-content">Saltar al contenido</a>
         <header class="f-auth-header">
             <Link href="/" class="f-brand" aria-label="Costo Real"
-                ><span class="f-brand-mark">c<span>r</span></span
-                ><span>Costo Real<small>Control financiero</small></span></Link
+                ><BrandMark /><span>Costo Real<small>Control financiero</small></span></Link
             ><button
                 class="f-icon-button"
                 @click="toggleTheme"
