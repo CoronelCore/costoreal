@@ -58,9 +58,9 @@ class VersionedCostingTest extends TestCase
     {
         $trip = $this->trip();
         $p = $this->addProduct($trip);
-        $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'Pago', 'moneda' => 'USD', 'monto' => '10', 'rate_mode' => 'paid', 'applied_rate' => '800', 'rate_source' => 'Comprobante bancario', 'rate_date' => '2026-10-03'])->assertSessionHasNoErrors();
-        $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'Estimación', 'moneda' => 'USD', 'monto' => '10'])->assertSessionHasNoErrors();
-        $this->put("/trips/{$trip->id}", ['nombre' => $trip->nombre, 'moneda_trabajo' => 'USD', 'tipo_cambio' => '1000'])->assertSessionHasNoErrors();
+        $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'Pago', 'moneda' => 'USD', 'monto' => '10', 'rate_mode' => 'paid', 'applied_rate' => '800', 'rate_source' => 'Comprobante bancario', 'rate_date' => '2026-10-03'])->assertSessionHasNoErrors();
+        $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'Estimación', 'moneda' => 'USD', 'monto' => '10'])->assertSessionHasNoErrors();
+        $this->put("/trips/{$trip->id}", ['expected_revision' => $trip->fresh()->revision, 'nombre' => $trip->nombre, 'moneda_trabajo' => 'USD', 'tipo_cambio' => '1000'])->assertSessionHasNoErrors();
         $this->assertEquals(8000, $trip->expenses()->where('concepto', 'Pago')->first()->monto_clp);
         $this->assertEquals(10000, $trip->expenses()->where('concepto', 'Estimación')->first()->monto_clp);
         $this->assertEquals(318000, $p->fresh()->costo_final_total_clp);
@@ -70,11 +70,11 @@ class VersionedCostingTest extends TestCase
     {
         $trip = $this->trip();
         $p = $this->addProduct($trip);
-        $this->patch("/trips/{$trip->id}/close")->assertSessionHasNoErrors();
+        $this->patch("/trips/{$trip->id}/close", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $run = $trip->costRuns()->where('reason', 'close')->firstOrFail();
         $original = $run->snapshot;
-        $this->patch("/trips/{$trip->id}/reopen")->assertSessionHasNoErrors();
-        $this->put("/trips/{$trip->id}/products/{$p->id}", ['nombre' => 'Actualizado', 'moneda' => 'USD', 'cantidad' => 3, 'costo_unitario' => '200'])->assertSessionHasNoErrors();
+        $this->patch("/trips/{$trip->id}/reopen", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
+        $this->put("/trips/{$trip->id}/products/{$p->id}", ['expected_revision' => $trip->fresh()->revision, 'nombre' => 'Actualizado', 'moneda' => 'USD', 'cantidad' => 3, 'costo_unitario' => '200'])->assertSessionHasNoErrors();
         $this->assertSame($original, $run->fresh()->snapshot);
         $historical = app(ReportTrip::class)->resolve($trip->fresh(), $run->id);
         $this->assertSame('Producto', $historical->products[0]->nombre);
@@ -87,9 +87,9 @@ class VersionedCostingTest extends TestCase
     {
         $trip = $this->trip();
         $p = $this->addProduct($trip);
-        $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'Gasto', 'moneda' => 'CLP', 'monto' => '30']);
+        $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'Gasto', 'moneda' => 'CLP', 'monto' => '30']);
         $e = $trip->expenses()->firstOrFail();
-        $this->patch("/trips/{$trip->id}/close")->assertSessionHasNoErrors();
+        $this->patch("/trips/{$trip->id}/close", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $version = $trip->fresh()->revision;
         $this->put("/trips/{$trip->id}", ['nombre' => 'Cambiado'])->assertForbidden();
         $this->put("/trips/{$trip->id}/products/{$p->id}", [])->assertForbidden();
@@ -109,7 +109,7 @@ class VersionedCostingTest extends TestCase
         $this->mock(ProrrateoService::class, fn ($mock) => $mock->shouldReceive('calcularProrrateo')->once()->andThrow(new \RuntimeException('Synthetic failure')));
         $this->withoutExceptionHandling();
         try {
-            $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'Rollback', 'moneda' => 'USD', 'monto' => '10', 'comprobante' => UploadedFile::fake()->image('receipt.jpg')]);
+            $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'Rollback', 'moneda' => 'USD', 'monto' => '10', 'comprobante' => UploadedFile::fake()->image('receipt.jpg')]);
             $this->fail('Failure expected');
         } catch (\RuntimeException $e) {
             $this->assertSame('Synthetic failure', $e->getMessage());
@@ -131,9 +131,9 @@ class VersionedCostingTest extends TestCase
     public function test_estimated_form_clears_null_metadata_and_invalid_paid_clp_is_rejected(): void
     {
         $trip = $this->trip();
-        $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'Estimado', 'moneda' => 'USD', 'monto' => '10', 'rate_mode' => 'estimated', 'rate_source' => null, 'applied_rate' => null, 'rate_date' => null])->assertSessionHasNoErrors();
+        $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'Estimado', 'moneda' => 'USD', 'monto' => '10', 'rate_mode' => 'estimated', 'rate_source' => null, 'applied_rate' => null, 'rate_date' => null])->assertSessionHasNoErrors();
         $this->assertSame('trip-reference', $trip->expenses()->firstOrFail()->rate_source);
-        $this->post("/trips/{$trip->id}/expenses", ['concepto' => 'CLP inválido', 'moneda' => 'CLP', 'monto' => '10', 'rate_mode' => 'paid', 'applied_rate' => '2', 'rate_source' => 'Banco', 'rate_date' => '2026-10-03'])->assertSessionHasErrors('applied_rate');
+        $this->post("/trips/{$trip->id}/expenses", ['expected_revision' => $trip->fresh()->revision, 'concepto' => 'CLP inválido', 'moneda' => 'CLP', 'monto' => '10', 'rate_mode' => 'paid', 'applied_rate' => '2', 'rate_source' => 'Banco', 'rate_date' => '2026-10-03'])->assertSessionHasErrors('applied_rate');
         $this->assertDatabaseMissing('expenses', ['concepto' => 'CLP inválido']);
     }
 
@@ -141,7 +141,7 @@ class VersionedCostingTest extends TestCase
     {
         $trip = $this->trip();
         $trip->expenses()->create(['concepto' => 'Legado', 'moneda' => 'XYZ', 'monto' => '10', 'monto_clp' => 10, 'rate_mode' => 'paid', 'applied_rate' => '1', 'rate_source' => 'Fuente heredada', 'rate_date' => '2026-10-03']);
-        $this->put("/trips/{$trip->id}", ['nombre' => 'Intento', 'moneda_trabajo' => 'USD', 'tipo_cambio' => '1000'])->assertSessionHasErrors('applied_rate');
+        $this->put("/trips/{$trip->id}", ['expected_revision' => $trip->fresh()->revision, 'nombre' => 'Intento', 'moneda_trabajo' => 'USD', 'tipo_cambio' => '1000'])->assertSessionHasErrors('applied_rate');
         $this->assertSame('Caso sintético', $trip->fresh()->nombre);
         $this->assertSame(1, $trip->fresh()->revision);
     }

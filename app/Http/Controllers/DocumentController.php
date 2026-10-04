@@ -41,7 +41,7 @@ class DocumentController extends Controller
     public function destroy(Request $request, Trip $trip, Document $document, MutateTrip $mutation)
     {
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $mutation->execute($trip, fn () => $document->delete(), 'document_trash');
+        $mutation->execute($trip, fn ($current) => $current->documents()->findOrFail($document->id)->delete(), 'document_trash');
 
         return to_route('trips.show', $trip)->with('success', 'Documento movido a la papelera; puedes restaurarlo');
     }
@@ -49,7 +49,7 @@ class DocumentController extends Controller
     public function restore(Request $request, Trip $trip, Document $document, MutateTrip $mutation)
     {
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $mutation->execute($trip, fn () => $document->restore(), 'document_restore');
+        $mutation->execute($trip, fn ($current) => $current->documents()->onlyTrashed()->findOrFail($document->id)->restore(), 'document_restore');
 
         return to_route('trips.show', $trip)->with('success', 'Documento restaurado');
     }

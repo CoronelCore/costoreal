@@ -82,7 +82,7 @@ class CoreIntegrityTest extends TestCase
         $trip = $this->tripFor($owner);
         $expense = $this->expenseFor($trip);
         $product = $this->productFor($trip);
-        $this->actingAs($owner)->put("/trips/{$trip->id}", ['nombre' => $trip->nombre, 'moneda_trabajo' => 'USD', 'tipo_cambio' => 1000, 'estado' => 'activo'])->assertRedirect();
+        $this->actingAs($owner)->put("/trips/{$trip->id}", ['nombre' => $trip->nombre, 'moneda_trabajo' => 'USD', 'tipo_cambio' => 1000, 'estado' => 'activo', 'expected_revision' => 1])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertEquals(10000, $expense->fresh()->monto_clp);
         $this->assertEquals(100000, $product->fresh()->subtotal_clp);
         $this->assertEquals(110000, $product->fresh()->costo_final_total_clp);
@@ -159,7 +159,7 @@ class CoreIntegrityTest extends TestCase
         $company = Company::create(['user_id' => $owner->id, 'nombre' => 'Propia', 'color' => '#123456']);
         $own = $this->tripFor($owner);
         $foreign = $this->tripFor(User::factory()->create());
-        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$own->id, $foreign->id]])->assertForbidden();
+        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$own->id, $foreign->id], 'expected_revisions' => [$own->id => 1, $foreign->id => 1]])->assertForbidden();
         $this->assertNull($own->fresh()->company_id);
     }
 
@@ -207,7 +207,7 @@ class CoreIntegrityTest extends TestCase
         $first = $this->tripFor($owner);
         $trashed = $this->tripFor($owner);
         $trashed->delete();
-        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$first->id, $trashed->id]])->assertSessionHasErrors('trip_ids.1');
+        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$first->id, $trashed->id], 'expected_revisions' => [$first->id => 1, $trashed->id => 1]])->assertSessionHasErrors('trip_ids.1');
         $this->assertNull($first->fresh()->company_id);
     }
 }

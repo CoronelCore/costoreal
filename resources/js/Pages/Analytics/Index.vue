@@ -138,7 +138,7 @@ const getRelativeTime = (date) => {
 };
 
 const clearCompanyFilter = () => {
-    router.post(route('companies.switch'), { company_id: null });
+    router.post(route('company.switch', 'all'));
 };
 
 const hasData = computed(() => {

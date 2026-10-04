@@ -47,12 +47,12 @@ class PrivateDocumentTest extends TestCase
         $u = User::factory()->create();
         $t = $this->trip($u);
         $file = UploadedFile::fake()->createWithContent('invoice.pdf', "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF");
-        $this->actingAs($u)->post("/trips/{$t->id}/expenses", ['concepto' => 'Factura', 'moneda' => 'USD', 'monto' => '10', 'comprobante' => $file])->assertSessionHasNoErrors();
+        $this->actingAs($u)->post("/trips/{$t->id}/expenses", ['expected_revision' => $t->fresh()->revision, 'concepto' => 'Factura', 'moneda' => 'USD', 'monto' => '10', 'comprobante' => $file])->assertSessionHasNoErrors();
         $e = $t->expenses()->firstOrFail();
         $d = Document::findOrFail($e->document_id);
         $response = $this->get("/trips/{$t->id}/documents/{$d->id}")->assertOk();
         $this->assertStringContainsString('attachment', $response->headers->get('Content-Disposition'));
-        $this->post("/trips/{$t->id}/expenses/{$e->id}", ['_method' => 'put', 'concepto' => 'Factura corregida', 'moneda' => 'USD', 'monto' => '20', 'comprobante' => UploadedFile::fake()->image('new.png')])->assertSessionHasNoErrors();
+        $this->post("/trips/{$t->id}/expenses/{$e->id}", ['expected_revision' => $t->fresh()->revision, '_method' => 'put', 'concepto' => 'Factura corregida', 'moneda' => 'USD', 'monto' => '20', 'comprobante' => UploadedFile::fake()->image('new.png')])->assertSessionHasNoErrors();
         $this->assertSame('Factura corregida', $e->fresh()->concepto);
         $this->assertEquals(18000, $e->fresh()->monto_clp);
         $this->assertSame(2, $t->documents()->count());

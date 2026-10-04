@@ -31,7 +31,7 @@ const nav = [
     { label: 'Categorías', route: 'categories.index', pattern: 'categories.*', icon: TagIcon },
 ];
 const company = computed(() => page.props.company);
-const switchCompany = event => router.get(route('company.switch', event.target.value || 'all'), {}, { preserveState: false });
+const switchCompany = event => router.post(route('company.switch', event.target.value || 'all'), {}, { preserveState: false });
 const errors = computed(() => Object.values(page.props.errors || {}));
 const flash = computed(() => page.props.flash || {});
 </script>

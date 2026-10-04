@@ -40,8 +40,8 @@ Route::middleware('auth')->scopeBindings()->group(function () {
 
     // Company routes
     Route::resource('companies', CompanyController::class);
-    Route::get('/companies/{company}/switch', [CompanyController::class, 'switch'])->name('companies.switch');
-    Route::get('/company/switch/{companyId?}', [CompanyController::class, 'switch'])->name('company.switch');
+    Route::post('/companies/{company}/switch', [CompanyController::class, 'switch'])->name('companies.switch');
+    Route::post('/company/switch/{companyId?}', [CompanyController::class, 'switch'])->name('company.switch');
     Route::post('/companies/{company}/assign-trips', [CompanyController::class, 'assignTrips'])->name('companies.assign-trips');
 
     // Analytics route
@@ -79,6 +79,7 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::delete('trips/{trip}/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('trips.expenses.destroy');
 
     Route::post('trips/{trip}/products', [ProductController::class, 'store'])->name('trips.products.store');
+    Route::get('trips/{trip}/products/{product}', [ProductController::class, 'show'])->name('trips.products.show');
     Route::put('trips/{trip}/products/{product}', [ProductController::class, 'update'])->name('trips.products.update');
     Route::patch('trips/{trip}/products/{product}/precio-venta', [ProductController::class, 'updatePrecioVenta'])->name('trips.products.update-precio-venta');
     Route::delete('trips/{trip}/products/{product}', [ProductController::class, 'destroy'])->name('trips.products.destroy');

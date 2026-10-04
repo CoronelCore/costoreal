@@ -15,7 +15,7 @@ CR-013,E2,P1,Pantallas y móvil · Diseño,Control/detalle/hoja/gastos/documento
 CR-014,E3,P1,Acciones y AccessContext · Backend,"Requests, políticas, acciones y consultas de lectura.","CR-004,CR-005,CR-007",Controladores delegan cálculo; contexto autorizado llega a reports/documents/jobs.,En curso
 CR-015,E3,P1,Money y tasas · Backend,"Tipos decimales, Currency, Rate y redondeo.","CR-003,CR-006",Sin floats en dominio; tasas faltantes fallan; precisión/quantum probados.,Verificado
 CR-016,E3,P1,Motor de reparto por valor · Backend,"Entradas puras, residuales estables y CostResult.",CR-015,"Determinismo e invariantes con 0, grandes montos, fracciones y reordenamiento.",Verificado
-CR-017,E3,P1,Atomicidad y conflictos · Backend,"Transacción, versión esperada y bloqueo según DB.","CR-014,CR-016","Error intermedio revierte todo; dos pestañas generan conflicto legible, sin pérdida.",En curso
+CR-017,E3,P1,Atomicidad y conflictos · Backend,"Transacción, versión esperada y bloqueo según DB.","CR-014,CR-016","Error intermedio revierte todo; dos pestañas generan conflicto legible, sin pérdida.",Verificado
 CR-018,E3,P1,Ejecuciones y snapshots · Backend,"cost_runs, allocations, cierre y reapertura versionados.","CR-017,CR-008",Reporte histórico usa su snapshot; reapertura conserva revisión previa.,Verificado
 CR-019,E3,P1,Auditoría y comparación · Backend/QA,Actor/antes/después; comparador antiguo/nuevo y backfill.,CR-018,Diferencias clasificadas y conciliadas; migración reentrante sin inventar datos.,En curso
 CR-020,E3,P1,DTOs y TypeScript · Full stack,"Resumen, dinero, resultado y tipos de mutación.","CR-014,CR-016",Chequeo de tipos detecta campos faltantes; serializer comparte totales con exportaciones.,Pendiente
@@ -23,7 +23,7 @@ CR-021,E3,P1,Lecturas y consultas · Backend,"F14: agregados, scopes, paginació
 CR-022,E4,P1,Layout financiero · Frontend,"Chrome, contexto empresa, tema, densidad y navegación.","CR-012,CR-020","Desktop/móvil, foco y URLs correctos; contexto permanece visible.",En curso
 CR-023,E4,P1,Control de importaciones · Full stack,"Búsqueda/filtros, scope de métricas, tabla/lista y pendientes.","CR-022,CR-021",Totales del filtro completo; pendiente abre su tarea; estados vacíos/errores recuperables.,En curso
 CR-024,E4,P1,Detalle y resumen · Frontend,"Dividir Show.vue, tabs válidas, cobertura y composición.","CR-022,CR-018",Resumen inicial útil; conteos reactivos; proyección etiquetada y eventos limpios.,En curso
-CR-025,E4,P1,Hoja editable · Full stack,"Celda/selección, guardado por fila y vista móvil.","CR-024,CR-017","Teclado, validación y conflicto por fila; no confundir borrador con total guardado.",En curso
+CR-025,E4,P1,Hoja editable · Full stack,"Celda/selección, guardado por fila y vista móvil.","CR-024,CR-017","Teclado, validación y conflicto por fila; no confundir borrador con total guardado.",Verificado
 CR-026,E4,P1,Desglose de costo · Frontend,Panel compra/tasa/gastos/residual/versión.,"CR-025,CR-016",Cualquier total tiene trazabilidad; cifras del panel reconcilian con la línea.,En curso
 CR-027,E4,P1,Formularios de gastos · Full stack,"Tasa estimada/pagada, archivos y errors/flash.","CR-022,CR-015,CR-008",Edición persiste con archivo y sin archivo; error conserva inputs.,En curso
 CR-028,E4,P1,Documentos privados · Backend/Frontend,"Modelo privado, ruta autorizada, metadata y retención.","CR-014,CR-027",Usuario ajeno no accede; eliminación coordinada; preview/descarga seguros.,En curso

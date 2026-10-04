@@ -118,7 +118,8 @@ class TripController extends Controller
 
     public function close(Request $request, Trip $trip)
     {
-        $request->validate(['expected_revision' => 'nullable|integer|min:1']);
+        $this->authorize('close', $trip);
+        $request->validate(['expected_revision' => 'required|integer|min:1']);
         $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'finalizado']), 'close', ability: 'close', verify: function ($current, $result) {
             if (! $result->lines || $result->unassigned !== '0') {
                 throw ValidationException::withMessages(['cierre' => 'Agrega productos y distribuye todos los gastos antes de cerrar.']);
@@ -130,7 +131,8 @@ class TripController extends Controller
 
     public function reopen(Request $request, Trip $trip)
     {
-        $request->validate(['expected_revision' => 'nullable|integer|min:1']);
+        $this->authorize('reopen', $trip);
+        $request->validate(['expected_revision' => 'required|integer|min:1']);
         $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', ability: 'reopen');
 
         return to_route('trips.show', $trip)->with('success', 'Importación reabierta; el cierre anterior permanece en el historial');

@@ -19,12 +19,12 @@ final class MutateTrip
         $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify) {
             $current = Trip::whereKey($trip->id)->lockForUpdate()->firstOrFail();
             Gate::authorize($ability, $current);
-            if (request()->has('expected_revision')) {
-                request()->validate(['expected_revision' => 'required|integer|min:1']);
+            if ($expectedRevision === null) {
+                $validated = request()->validate(['expected_revision' => 'required|integer|min:1'], ['expected_revision.required' => 'Falta la revisión de origen. Recarga la importación antes de guardar.']);
+                $expectedRevision = (int) $validated['expected_revision'];
             }
-            $expectedRevision ??= request()->has('expected_revision') ? (int) request('expected_revision') : null;
-            if ($expectedRevision !== null && $expectedRevision !== $current->revision) {
-                throw ValidationException::withMessages(['conflict' => 'Esta importación cambió en otra pestaña. Recarga para revisar la nueva versión; tus datos no se han guardado.']);
+            if ($expectedRevision !== $current->revision) {
+                throw ValidationException::withMessages(['conflict' => 'Esta importación cambió en otra pestaña. Revisa la versión actual antes de guardar; tu borrador no se ha aplicado.']);
             }
             $nextRevision = $current->revision + 1;
             // Compare-and-swap claims the revision in the same transaction before child writes.

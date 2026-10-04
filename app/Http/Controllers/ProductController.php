@@ -8,10 +8,25 @@ use App\Models\Trip;
 use App\Modules\Documents\StoreDocument;
 use App\Modules\Importations\Actions\MutateTrip;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
     public function __construct(private MutateTrip $mutation, private StoreDocument $storage) {}
+
+    public function show(Trip $trip, Product $product)
+    {
+        $this->authorize('view', $trip);
+
+        return DB::transaction(function () use ($trip, $product) {
+            $current = $trip->fresh();
+            $record = $current->products()->findOrFail($product->id);
+
+            return response()->json(['revision' => $current->revision, 'editable' => $current->estado === 'activo',
+                'product' => $record->only(['id', 'nombre', 'moneda', 'cantidad', 'costo_unitario', 'weight', 'volume',
+                    'rate_mode', 'applied_rate', 'rate_source', 'rate_date'])]);
+        });
+    }
 
     public function store(ProductRequest $request, Trip $trip)
     {
@@ -53,13 +68,15 @@ class ProductController extends Controller
             throw $e;
         }
 
-        return to_route('trips.show', $trip)->with('success', 'Producto actualizado');
+        return $request->expectsJson()
+            ? response()->json(['revision' => $trip->fresh()->revision])
+            : to_route('trips.show', $trip)->with('success', 'Producto actualizado');
     }
 
     public function updatePrecioVenta(Request $request, Trip $trip, Product $product)
     {
         $this->authorize('update', $trip);
-        $data = $request->validate(['precio_venta' => 'nullable|numeric|gt:0|max:9999999999.99|decimal:0,2', 'expected_revision' => 'nullable|integer|min:1']);
+        $data = $request->validate(['precio_venta' => 'nullable|numeric|gt:0|max:9999999999.99|decimal:0,2', 'expected_revision' => 'required|integer|min:1']);
         unset($data['expected_revision']);
         $this->mutation->execute($trip, fn ($current) => $current->products()->findOrFail($product->id)->update($data), 'price_update');
 

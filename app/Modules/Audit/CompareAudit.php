@@ -6,9 +6,9 @@ final class CompareAudit
 {
     private const TRIP = ['nombre', 'descripcion', 'company_id', 'estado', 'fecha_inicio', 'fecha_fin', 'moneda_trabajo', 'tipo_cambio', 'costo_total', 'deleted_at'];
 
-    private const PRODUCT = ['nombre', 'cantidad', 'moneda', 'costo_unitario', 'rate_mode', 'applied_rate', 'rate_source', 'rate_date', 'weight', 'volume', 'subtotal_clp', 'gastos_asignados_clp', 'costo_final_total_clp', 'costo_final_unitario_clp', 'precio_venta', 'document_id'];
+    private const PRODUCT = ['nombre', 'cantidad', 'moneda', 'costo_unitario', 'rate_mode', 'applied_rate', 'rate_source', 'rate_date', 'weight', 'volume', 'subtotal_clp', 'gastos_prorrateados_clp', 'costo_final_total_clp', 'costo_final_unitario_clp', 'precio_venta', 'document_id'];
 
-    private const EXPENSE = ['concepto', 'category_id', 'moneda', 'monto', 'monto_clp', 'rate_mode', 'applied_rate', 'rate_source', 'rate_date', 'allocation_method', 'target_product_id', 'document_id'];
+    private const EXPENSE = ['concepto', 'expense_category_id', 'moneda', 'monto', 'monto_clp', 'rate_mode', 'applied_rate', 'rate_source', 'rate_date', 'allocation_method', 'target_product_id', 'document_id'];
 
     private const DOCUMENT = ['filename', 'mime', 'size', 'kind', 'deleted_at'];
 

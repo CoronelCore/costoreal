@@ -14,7 +14,7 @@ class TripRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['expected_revision' => 'nullable|integer|min:1', 'company_id' => ['nullable', Rule::exists('companies', 'id')->where('user_id', $this->user()->id)],
+        return ['expected_revision' => $this->route('trip') ? 'required|integer|min:1' : 'prohibited', 'company_id' => ['nullable', Rule::exists('companies', 'id')->where('user_id', $this->user()->id)],
             'nombre' => 'required|string|max:255', 'descripcion' => 'nullable|string|max:5000',
             'fecha_inicio' => 'nullable|date_format:Y-m-d',
             'fecha_fin' => ['nullable', 'date_format:Y-m-d', ...($this->filled('fecha_inicio') ? ['after_or_equal:fecha_inicio'] : [])],

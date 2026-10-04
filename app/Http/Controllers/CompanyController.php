@@ -122,9 +122,9 @@ class CompanyController extends Controller
         $this->authorize('delete', $company);
 
         // Verificar si tiene importaciones asignadas
-        if ($company->trips()->count() > 0) {
+        if ($company->trips()->withTrashed()->exists()) {
             return redirect()->route('companies.index')
-                ->with('error', 'No puedes eliminar una empresa que tiene importaciones asignadas. Primero reasigna o elimina las importaciones.');
+                ->with('error', 'No puedes eliminar una empresa que tiene importaciones asignadas. Reasigna primero las importaciones, incluidas las de la papelera.');
         }
 
         $company->delete();
@@ -168,10 +168,10 @@ class CompanyController extends Controller
         $validated = $request->validate([
             'trip_ids' => 'required|array|min:1|max:500',
             'trip_ids.*' => ['required', 'integer', 'distinct', Rule::exists('trips', 'id')->whereNull('deleted_at')],
-            'expected_revisions' => 'nullable|array', 'expected_revisions.*' => 'required|integer|min:1',
+            'expected_revisions' => 'required|array', 'expected_revisions.*' => 'required|integer|min:1',
         ]);
 
-        if (isset($validated['expected_revisions']) && (count($validated['expected_revisions']) !== count($validated['trip_ids']) || array_diff($validated['trip_ids'], array_keys($validated['expected_revisions'])))) {
+        if (count($validated['expected_revisions']) !== count($validated['trip_ids']) || array_diff($validated['trip_ids'], array_keys($validated['expected_revisions']))) {
             throw ValidationException::withMessages(['expected_revisions' => 'Incluye la revisión de cada importación seleccionada.']);
         }
         DB::transaction(function () use ($validated, $company) {
@@ -180,7 +180,7 @@ class CompanyController extends Controller
                 $this->authorize('update', $trip);
             }
             foreach ($trips as $trip) {
-                $this->mutation->execute($trip, fn ($current) => $current->update(['company_id' => $company->id]), 'company_assignment', expectedRevision: $validated['expected_revisions'][$trip->id] ?? null);
+                $this->mutation->execute($trip, fn ($current) => $current->update(['company_id' => $company->id]), 'company_assignment', expectedRevision: (int) $validated['expected_revisions'][$trip->id]);
             }
         });
 

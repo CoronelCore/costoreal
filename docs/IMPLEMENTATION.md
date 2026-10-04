@@ -22,7 +22,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-014 · Acciones y AccessContext · Backend | En curso | Requests/AccessContext/MutateTrip y reportes/documentos autorizados. Falta completar separación de lecturas. |
 | CR-015 · Money y tasas · Backend | Verificado | Money/Currency/Rate decimales, sin floats en dominio; RateTest y CostEngineTest. |
 | CR-016 · Motor de reparto por valor · Backend | Verificado | CostEngineTest: 100 casos deterministas, fracciones, valores grandes, residuales, cero y reglas avanzadas. |
-| CR-017 · Atomicidad y conflictos · Backend | En curso | Rollback de datos/versiones/archivos y dos procesos SQLite reales probados, con CAS y reintento acotado. Versión aún opcional en rutas heredadas; falta obligatoriedad y comparación por fila. |
+| CR-017 · Atomicidad y conflictos · Backend | Verificado | Rollback de datos/versiones/archivos y dos procesos SQLite reales probados, con CAS y reintento acotado. Revisión obligatoria en toda mutación de importación y mapa completo en asignación por lote; cinco pruebas de contrato y flujo de dos pestañas con comparación de origen/borrador/actual, resolución explícita y cambios remotos conservados. |
 | CR-018 · Ejecuciones y snapshots · Backend | Verificado | VersionedCostingTest: cierre/reapertura mantienen snapshot inmutable y reportes históricos. |
 | CR-019 · Auditoría y comparación · Backend/QA | En curso | Comparación de auditoría paginada bajo demanda, actor/resúmenes e inicial sin snapshots completos. Backfill de resúmenes reentrante probado. Falta comparación y backfill de costeo heredado. |
 | CR-020 · DTOs y TypeScript · Full stack | Pendiente | — |
@@ -30,14 +30,14 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-022 · Layout financiero · Frontend | En curso | Layout financiero, empresa/tema/densidad y menú móvil. Foco móvil pendiente de verificación tras último ajuste. |
 | CR-023 · Control de importaciones · Full stack | En curso | Control paginado, filtros/métricas del conjunto completo y enlaces a pendientes probados. QA visual de vacíos/errores pendiente. |
 | CR-024 · Detalle y resumen · Frontend | En curso | Show separado, resumen/cobertura/pérdidas y tabs persistidas. Falta verificar eventos tras última compilación. |
-| CR-025 · Hoja editable · Full stack | En curso | Edición por fila, Enter/Escape y vista móvil. Falta conflicto por fila con comparación y edición de metadata. |
+| CR-025 · Hoja editable · Full stack | Verificado | Edición por fila; tasas pagadas/fuente/fecha, peso/volumen; comparación de conflicto de tres versiones, resolución por campo y guardado posterior explícito. Pruebas API y frontend; Enter/Escape y error que conserva inputs verificados a 320 px. |
 | CR-026 · Desglose de costo · Frontend | En curso | Panel de compra/tasa/gastos/versión disponible. Falta detalle de residual y prueba visual. |
 | CR-027 · Formularios de gastos · Full stack | En curso | Formulario estimado/pagado y metadata; multipart con/sin archivo probado. Falta QA de preservación de errores. |
 | CR-028 · Documentos privados · Backend/Frontend | En curso | Privacidad, metadatos, download/preview, papelera y restauración probados. Falta migración de archivos públicos heredados y política final de retención. |
 | CR-029 · Alta y revisión guiadas · Full stack | En curso | Revisión/cierre/reapertura disponibles. Alta guiada y borrador recuperable pendientes. |
 | CR-030 · QA visual y accesible · Diseño/QA | En curso | Evidencia desktop/390 px. Falta 320/1024, zoom, contraste, ambos temas y keyboard completo. |
 | CR-031 · Pegado y CSV · Full stack | Verificado | Mapeo, vista previa por fila, política todo/nada, 100 filas conciliadas, reintento sin duplicados; 1.000 filas con 98 consultas. Flujo de pegado guardado en UI QA. |
-| CR-032 · Reglas avanzadas de reparto · Full stack | En curso | Motor de unidades/peso/volumen/directo probado y formulario de gastos disponible. Falta metadata de productos existentes y trazabilidad completa. |
+| CR-032 · Reglas avanzadas de reparto · Full stack | En curso | Motor de unidades/peso/volumen/directo probado y formulario de gastos disponible. Metadata editable de productos existentes implementada; reglas necesitan todas las medidas y rechazan datos ausentes. Falta detalle del residual por producto en el desglose. |
 | CR-033 · Precio por objetivo · Full stack | Verificado | Margen 20 % → 37.500 y recargo 5 % → 31.500; comisión/redondeo, preview puro, aplicación atómica por revisión. Flujo real QA a 320/1024 px. |
 | CR-034 · Escenarios y revaluación · Full stack | Verificado | Preview puro, conservación separada e idempotente; promoción atómica por revisión, pagos preservados y precios/reglas alternativos. Diez pruebas y flujo UI real: 450.000 → 520.000, revisión 5 → 6; comparación original conservada. |
 | CR-035 · Analítica renovada · Full stack | Pendiente | — |
@@ -56,8 +56,8 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 
 ## Evidencia del checkpoint
 
-- 112 pruebas PHP / 1.631 aserciones; formato Pint pasa.
-- Dos tests frontend de dinero/date-only y build pasan con Node 24 en este checkpoint.
+- 118 pruebas PHP / 1.737 aserciones; formato Pint pasa.
+- Cinco tests frontend de dinero/date-only y resolución de conflictos y build pasan con Node 24 en este checkpoint.
 - Capturas reales de Control desktop y Resumen a 390 px en outputs/.
 - La base personal no recibió fixtures; pruebas y demostración usan bases aisladas.
 - Composer sin advisories después de parches compatibles; cinco advisories altos npm pendientes de Tailwind 4.
@@ -81,3 +81,15 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Evidencia visual: escenarios a 1024 px y papelera/restauración/historial a 320 px, sin overflow global. La matriz completa de accesibilidad sigue en CR-030.
 
 - Checkpoint `6ccd273`: instalación desde archivo Git limpia, setup/build/Pint, 112 pruebas PHP (1.631 aserciones) y dos frontend pasan. Nueva prueba cubre reintento tras rollback sin perder applied_revision del escenario. Copias personal y QA restauradas con conteos/totales iguales, integrity ok y FK=0.
+
+## Contratos de edición y hoja avanzada
+
+- Guardar sin expected_revision se rechaza antes de escribir; creación de una importación nueva no necesita revisión. Asignar empresa por lote exige una revisión para cada importación.
+- POST para cambiar empresa activa; GET devuelve 405 sin mutar la sesión. Empresas con importaciones en papelera no pueden eliminarse perdiendo su asociación.
+- Hoja: compras estimadas/pagadas, tasa histórica de ocho decimales, fecha/fuente y medidas totales por línea. Guardado JSON mantiene el formulario ante 422/403/404/401/419, sin navegar a una página de error.
+- Conflictos: lectura autorizada por padre/hijo, tres versiones, combinación de campos independientes y elección explícita en campos simultáneamente modificados. Preparar revisión no guarda; el guardado vuelve a exigir CAS.
+- QA de dos pestañas: base costo 100, borrador 105, edición remota 110/peso 3; resolución guardó 105 conservando peso 3. Compra pagada conserva tasa 950.12345678/peso 2.12345678. Importación QA 1 terminó en revisión 10 con costo 530.012; QA 2 mantiene revisión 4/costo 400.000.
+- Error de fuente de pago preservó nombre/tasa/peso y mostró mensaje en español. Enter guardó en móvil; Escape descartó un cambio de cantidad sin escritura. DOM a 320 px: scrollWidth 320.
+- Auditoría corregida para comparar los campos persistidos gastos_prorrateados_clp y expense_category_id; prueba verifica diferencia financiera real.
+
+- Reintento de restauración de documento: se recarga el modelo dentro de cada transacción, evitando reutilizar un estado de Eloquent que fue revertido. Prueba con fallo de bloqueo después de cost_runs verifica una sola restauración, archivo conservado y auditoría correcta.
