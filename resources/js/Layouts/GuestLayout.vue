@@ -1,66 +1,47 @@
-<script setup>
-import { Link } from '@inertiajs/vue3';
-import { useDarkMode } from '@/Composables/useDarkMode';
-import { CurrencyDollarIcon, SunIcon, MoonIcon } from '@heroicons/vue/24/outline';
-
+<script setup lang="ts">
+import { Link } from "@inertiajs/vue3";
+import { useDarkMode } from "@/Composables/useDarkMode";
+import { SunIcon, MoonIcon } from "@heroicons/vue/24/outline";
 const { isDark, toggleTheme } = useDarkMode();
-
-const currentYear = new Date().getFullYear();
 </script>
-
 <template>
-    <div
-        class="min-h-screen flex flex-col transition-colors duration-200"
-        :style="{
-            backgroundColor: isDark ? '#0f172a' : '#f9fafb',
-            backgroundImage: isDark
-                ? 'radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)'
-                : 'radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0%, transparent 50%)'
-        }"
-    >
-        <!-- Dark Mode Toggle (top right) -->
-        <div class="absolute top-4 right-4 z-10">
-            <button
+    <div class="financial-shell f-auth-shell">
+        <a class="f-skip" href="#main-content">Saltar al contenido</a>
+        <header class="f-auth-header">
+            <Link href="/" class="f-brand" aria-label="Costo Real"
+                ><span class="f-brand-mark">c<span>r</span></span
+                ><span>Costo Real<small>Control financiero</small></span></Link
+            ><button
+                class="f-icon-button"
                 @click="toggleTheme"
-                class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/50 transition-all duration-300 backdrop-blur-xs shadow-md"
-                type="button"
-                title="Cambiar tema"
+                :aria-label="
+                    isDark ? 'Activar tema claro' : 'Activar tema oscuro'
+                "
             >
-                <SunIcon v-if="isDark" class="h-5 w-5" />
-                <MoonIcon v-else class="h-5 w-5" />
+                <SunIcon v-if="isDark" /><MoonIcon v-else />
             </button>
+        </header>
+        <div class="f-auth-content">
+            <section class="f-auth-intro" aria-label="Control de importaciones">
+                <p class="f-eyebrow">CADA PESO, EN SU LUGAR</p>
+                <h2>Del precio de compra<br />al costo real.</h2>
+                <p>
+                    Organiza tus importaciones, distribuye los gastos y revisa
+                    tus decisiones con cifras que puedes explicar.
+                </p>
+                <ol>
+                    <li><span>01</span> Compra y conversión</li>
+                    <li><span>02</span> Gastos y reparto</li>
+                    <li><span>03</span> Costo, revisión y reportes</li>
+                </ol>
+            </section>
+            <main id="main-content" class="f-auth-panel f-panel" tabindex="-1">
+                <slot />
+            </main>
         </div>
-
-        <!-- Main Content Container -->
-        <div class="flex-1 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <!-- Logo -->
-            <div class="mb-8 text-center">
-                <Link href="/" class="inline-flex flex-col items-center gap-3 group">
-                    <div class="bg-linear-to-br from-primary-500 to-primary-600 p-4 rounded-2xl shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-105">
-                        <CurrencyDollarIcon class="h-12 w-12 text-white animate-coin-flip" />
-                    </div>
-                    <h1 class="text-3xl font-bold text-gradient-primary">
-                        CostoReal
-                    </h1>
-                    <p class="text-sm text-gray-600 dark:text-slate-400">
-                        Sistema de Gestión de Costos de Importación
-                    </p>
-                </Link>
-            </div>
-
-            <!-- Card with Form -->
-            <div class="w-full max-w-md">
-                <div class="card-glass shadow-xl animate-fade-in-up">
-                    <div class="card-body">
-                        <slot />
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <footer class="py-6 text-center text-sm text-gray-500 dark:text-slate-500">
-            <p>&copy; {{ currentYear }} CostoReal. Todos los derechos reservados.</p>
+        <footer class="f-auth-footer">
+            © {{ new Date().getFullYear() }} Costo Real · Control personal de
+            importaciones
         </footer>
     </div>
 </template>

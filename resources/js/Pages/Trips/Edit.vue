@@ -1,354 +1,269 @@
-<script setup>
-import { inject } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
-import { useConfirm } from '@/Composables/useConfirm';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Button from '@/Components/UI/Button.vue';
-import Badge from '@/Components/UI/Badge.vue';
-import Input from '@/Components/UI/Input.vue';
-import InputLabel from '@/Components/UI/InputLabel.vue';
-import InputError from '@/Components/UI/InputError.vue';
-import Card from '@/Components/UI/Card.vue';
-import Alert from '@/Components/UI/Alert.vue';
-import Modal from '@/Components/UI/Modal.vue';
-import { ArrowLeftIcon, InformationCircleIcon, ExclamationTriangleIcon, TrashIcon, CalendarIcon, CurrencyDollarIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline';
-
-// Ziggy route helper
-const route = inject('route');
-
-const props = defineProps({
-    trip: {
-        type: Object,
-        required: true
-    },
-    companies: {
-        type: Array,
-        required: true
-    }
-});
-
+<script setup lang="ts">
+import { ref } from "vue";
+import { Head, Link, useForm, router } from "@inertiajs/vue3";
+import FinancialLayout from "@/Layouts/FinancialLayout.vue";
+import FinancialField from "@/Components/UI/FinancialField.vue";
+import Modal from "@/Components/UI/Modal.vue";
+import { useRoute } from "@/Composables/useRoute";
+import { focusInvalid } from "@/Composables/useFormFocus";
+import type { ImportConfiguration, NamedRecord } from "@/Types/financial";
+const props = defineProps<{
+    trip: ImportConfiguration;
+    companies: NamedRecord[];
+}>();
+const route = useRoute();
 const form = useForm({
     expected_revision: props.trip.revision,
     nombre: props.trip.nombre,
-    descripcion: props.trip.descripcion || '',
-    company_id: props.trip.company_id || '',
-    fecha_inicio: props.trip.fecha_inicio || '',
-    fecha_fin: props.trip.fecha_fin || '',
+    descripcion: props.trip.descripcion || "",
+    company_id:
+        props.trip.company_id === null ? "" : String(props.trip.company_id),
+    fecha_inicio: props.trip.fecha_inicio || "",
+    fecha_fin: props.trip.fecha_fin || "",
     moneda_trabajo: props.trip.moneda_trabajo,
     tipo_cambio: props.trip.tipo_cambio,
-    estado: props.trip.estado
 });
-
-const { show: showConfirm, isOpen, message, title, confirm, cancel } = useConfirm();
-
-const submit = () => {
-    form.put(route('trips.update', props.trip.id));
-};
-
-const deleteTrip = () => {
-    showConfirm({
-        title: 'Mover a la papelera',
-        message: `¿Deseas mover a la papelera la importación "${props.trip.nombre}"? La importación pasará a la papelera y conservará sus productos, gastos e historial.`,
-        onConfirm: () => {
-            router.delete(route('trips.destroy', props.trip.id), { data: { expected_revision: props.trip.revision } });
-        }
+const submit = () =>
+    form.put(route("trips.update", props.trip.id), {
+        onFinish: () => void focusInvalid(),
+    });
+const confirmTrash = ref(false),
+    busy = ref(false),
+    trashError = ref("");
+const trash = () => {
+    if (busy.value) return;
+    busy.value = true;
+    router.delete(route("trips.destroy", props.trip.id), {
+        data: { expected_revision: props.trip.revision },
+        onError: (errors) => {
+            trashError.value = Object.values(errors).join(" ");
+        },
+        onSuccess: () => {
+            confirmTrash.value = false;
+        },
+        onFinish: () => {
+            busy.value = false;
+        },
     });
 };
-
-const getBadgeVariant = (estado) => {
-    return {
-        'activo': 'info',
-        'finalizado': 'success',
-        'archivado': 'gray'
-    }[estado] || 'gray';
-};
-
-const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products?.length > 0;
 </script>
-
 <template>
-    <AuthenticatedLayout>
-        <!-- Back button -->
-        <div class="mb-6">
-            <Button
-                variant="ghost"
-                size="sm"
-                @click="router.visit(route('trips.show', trip.id))"
-            >
-                <ArrowLeftIcon class="h-4 w-4" />
-                Volver a Importación
-            </Button>
-        </div>
-
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-                Editar Importación
-            </h1>
-            <p class="mt-1 text-sm text-gray-600 dark:text-slate-400">
-                Modifica la información de la importación
-            </p>
-        </div>
-
-        <!-- Warning Alert -->
-        <Alert v-if="hasAssociatedData" type="warning" class="max-w-3xl mb-6">
-            <div class="flex items-start gap-2">
-                <ExclamationTriangleIcon class="h-5 w-5 shrink-0" />
-                <div class="text-sm">
-                    <p class="font-medium mb-1">Esta importación tiene datos asociados</p>
-                    <p>
-                        Se encontraron {{ trip.expenses?.length || 0 }} gastos y {{ trip.products?.length || 0 }} productos.
-                        Mover a la papelera conserva estos datos y su historial para recuperarlos.
-                    </p>
-                </div>
+    <Head :title="`Configurar ${trip.nombre}`" /><FinancialLayout
+        ><Link class="f-back" :href="route('trips.show', trip.id)"
+            >← {{ trip.nombre }}</Link
+        >
+        <div class="f-heading">
+            <div>
+                <p class="f-eyebrow">
+                    IMPORTACIÓN #{{ trip.id }} · REVISIÓN {{ trip.revision }}
+                </p>
+                <h1>Configurar importación</h1>
+                <p>Contexto, fechas y conversión de tu compra.</p>
             </div>
-        </Alert>
-
-        <form @submit.prevent="submit" class="max-w-3xl space-y-6">
-            <!-- Información General -->
-            <Card class="animate-fade-in-up">
-                <div class="card-header">
-                    <h2 class="metadata text-gray-900 dark:text-white">
-                        Información General
-                    </h2>
-                </div>
-
-                <div class="card-body space-y-4">
-                    <!-- Nombre -->
-                    <div>
-                        <InputLabel for="nombre" value="Nombre de la Importación" required />
-                        <Input
-                            id="nombre"
-                            v-model="form.nombre"
-                            type="text"
-                            placeholder="Ej: Importación Enero 2025"
-                            :error="form.errors.nombre"
-                            required
-                        />
-                        <InputError :message="form.errors.nombre" />
-                    </div>
-
-                    <!-- Descripción -->
-                    <div>
-                        <InputLabel for="descripcion" value="Descripción (opcional)" />
-                        <textarea
-                            id="descripcion"
-                            v-model="form.descripcion"
-                            rows="3"
-                            class="input"
-                            placeholder="Describe los detalles de esta importación..."
-                        />
-                        <InputError :message="form.errors.descripcion" />
-                    </div>
-
-                    <!-- Empresa -->
-                    <div>
-                        <InputLabel for="company_id" value="Empresa (opcional)" />
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <BuildingOfficeIcon class="h-5 w-5 text-gray-400" />
-                            </div>
-                            <select
-                                id="company_id"
-                                v-model="form.company_id"
-                                class="select pl-10"
-                            >
-                                <option value="">Sin empresa asignada</option>
-                                <option
-                                    v-for="company in companies"
-                                    :key="company.id"
-                                    :value="company.id"
-                                >
-                                    {{ company.nombre }}
-                                </option>
-                            </select>
-                        </div>
-                        <InputError :message="form.errors.company_id" />
-                    </div>
-
-                    <!-- Estado -->
-                    <div>
-                        <InputLabel for="estado" value="Estado de la Importación" required />
-                        <div class="flex gap-3 items-start">
-                            <select
-                                id="estado"
-                                v-model="form.estado"
-                                class="select flex-1"
-                                required
-                            >
-                                <option value="activo">Activo</option>
-                                <option value="finalizado">Finalizado</option>
-                                <option value="archivado">Archivado</option>
-                            </select>
-                            <div class="pt-2">
-                                <Badge :variant="getBadgeVariant(form.estado)">
-                                    {{ form.estado }}
-                                </Badge>
-                            </div>
-                        </div>
-                        <InputError :message="form.errors.estado" />
-                        <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                            Las importaciones finalizadas no permiten agregar más gastos o productos
-                        </p>
-                    </div>
-
-                    <!-- Fechas -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <InputLabel for="fecha_inicio" value="Fecha de Inicio (opcional)" />
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <CalendarIcon class="h-5 w-5 text-gray-400" />
-                                </div>
-                                <Input
-                                    id="fecha_inicio"
-                                    v-model="form.fecha_inicio"
-                                    type="date"
-                                    :error="form.errors.fecha_inicio"
-                                    class="pl-10"
-                                />
-                            </div>
-                            <InputError :message="form.errors.fecha_inicio" />
-                        </div>
-
-                        <div>
-                            <InputLabel for="fecha_fin" value="Fecha de Fin (opcional)" />
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <CalendarIcon class="h-5 w-5 text-gray-400" />
-                                </div>
-                                <Input
-                                    id="fecha_fin"
-                                    v-model="form.fecha_fin"
-                                    type="date"
-                                    :error="form.errors.fecha_fin"
-                                    :min="form.fecha_inicio"
-                                    class="pl-10"
-                                />
-                            </div>
-                            <InputError :message="form.errors.fecha_fin" />
-                        </div>
-                    </div>
-                </div>
-            </Card>
-
-            <!-- Configuración de Moneda -->
-            <Card class="animate-fade-in-up" style="animation-delay: 0.1s;">
-                <div class="card-header">
-                    <h2 class="metadata text-gray-900 dark:text-white">
-                        Configuración de Moneda
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <Alert type="warning" class="mb-4">
-                        <div class="flex items-start gap-2">
-                            <ExclamationTriangleIcon class="h-5 w-5 shrink-0" />
-                            <div class="text-sm">
-                                <p class="font-medium mb-1">Importante: Recalculo Automático</p>
-                                <p>Si modificas el tipo de cambio, todos los cálculos de prorrateo se recalcularán automáticamente. Esto afectará los costos finales de todos los productos.</p>
-                            </div>
-                        </div>
-                    </Alert>
-
-                    <div class="space-y-4">
-                    <!-- Moneda de Trabajo -->
-                    <div>
-                        <InputLabel for="moneda_trabajo" value="Moneda de Trabajo" required />
-                        <select
-                            id="moneda_trabajo"
-                            v-model="form.moneda_trabajo"
-                            class="select"
-                            required
-                        >
-                            <option value="USD">USD - Dólar Estadounidense</option>
-                            <option value="BRL">BRL - Real Brasileño</option>
-                            <option value="PEN">PEN - Sol Peruano</option>
-                        </select>
-                        <InputError :message="form.errors.moneda_trabajo" />
-                    </div>
-
-                    <!-- Tipo de Cambio -->
-                    <div>
-                        <InputLabel for="tipo_cambio" value="Tipo de Cambio a CLP" required />
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <CurrencyDollarIcon class="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="tipo_cambio"
-                                v-model="form.tipo_cambio"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="950.00"
-                                :error="form.errors.tipo_cambio"
-                                required
-                                class="pl-10"
-                            />
-                        </div>
-                        <InputError :message="form.errors.tipo_cambio" />
-                        <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                            Tipo de cambio actual de {{ form.moneda_trabajo }} a CLP
-                        </p>
-                    </div>
-                    </div>
-                </div>
-            </Card>
-
-            <!-- Actions -->
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-in-up" style="animation-delay: 0.2s;">
-                <Button
-                    variant="danger"
-                    type="button"
-                    @click="deleteTrip"
+        </div>
+        <form
+            class="f-editor-form f-config-editor"
+            @submit.prevent="submit"
+            novalidate
+        >
+            <section class="f-panel">
+                <div class="f-panel-heading"><h2>Información general</h2></div>
+                <fieldset
+                    class="f-panel-body f-editor-form"
+                    :disabled="form.processing || busy"
                 >
-                    <TrashIcon class="h-4 w-4" />
+                    <FinancialField
+                        id="nombre"
+                        label="Nombre de la importación *"
+                        v-model="form.nombre"
+                        maxlength="255"
+                        required
+                        :error="form.errors.nombre"
+                    />
+                    <FinancialField
+                        id="descripcion"
+                        label="Descripción · opcional"
+                        v-model="form.descripcion"
+                        multiline
+                        rows="3"
+                        maxlength="5000"
+                        :error="form.errors.descripcion"
+                    />
+                    <div class="f-field">
+                        <label for="company_id">Empresa · opcional</label
+                        ><select
+                            id="company_id"
+                            class="f-input"
+                            v-model="form.company_id"
+                            :aria-invalid="!!form.errors.company_id"
+                            :aria-describedby="
+                                form.errors.company_id
+                                    ? 'company_id-error'
+                                    : undefined
+                            "
+                        >
+                            <option value="">Sin empresa asignada</option>
+                            <option
+                                v-for="company in companies"
+                                :key="company.id"
+                                :value="String(company.id)"
+                            >
+                                {{ company.nombre }}
+                            </option>
+                        </select>
+                        <p
+                            id="company_id-error"
+                            role="alert"
+                            class="f-field-error"
+                            v-if="form.errors.company_id"
+                        >
+                            {{ form.errors.company_id }}
+                        </p>
+                    </div>
+                    <div class="f-form-grid">
+                        <FinancialField
+                            id="fecha_inicio"
+                            label="Fecha de inicio · opcional"
+                            v-model="form.fecha_inicio"
+                            type="date"
+                            :error="form.errors.fecha_inicio"
+                        /><FinancialField
+                            id="fecha_fin"
+                            label="Fecha de fin · opcional"
+                            v-model="form.fecha_fin"
+                            type="date"
+                            :min="form.fecha_inicio || undefined"
+                            :error="form.errors.fecha_fin"
+                        />
+                    </div>
+                </fieldset>
+            </section>
+            <section class="f-panel">
+                <div class="f-panel-heading"><h2>Moneda y conversión</h2></div>
+                <fieldset
+                    class="f-panel-body f-editor-form"
+                    :disabled="form.processing || busy"
+                >
+                    <p class="f-notice">
+                        Al guardar se recalculan los costos estimados con la
+                        tasa vigente. Las operaciones pagadas conservan su tasa
+                        y monto registrados. Cambiar la moneda exige
+                        compatibilidad con las líneas existentes.
+                    </p>
+                    <div class="f-form-grid">
+                        <div class="f-field">
+                            <label for="moneda_trabajo"
+                                >Moneda de trabajo *</label
+                            ><select
+                                id="moneda_trabajo"
+                                class="f-input"
+                                v-model="form.moneda_trabajo"
+                                :aria-invalid="!!form.errors.moneda_trabajo"
+                                :aria-describedby="
+                                    form.errors.moneda_trabajo
+                                        ? 'moneda_trabajo-error'
+                                        : undefined
+                                "
+                            >
+                                <option value="USD">
+                                    USD · dólar estadounidense
+                                </option>
+                                <option value="EUR">EUR · euro</option>
+                                <option value="CNY">CNY · yuan chino</option>
+                                <option value="BRL">
+                                    BRL · real brasileño
+                                </option>
+                                <option value="PEN">PEN · sol peruano</option>
+                            </select>
+                            <p
+                                id="moneda_trabajo-error"
+                                class="f-field-error"
+                                role="alert"
+                                v-if="form.errors.moneda_trabajo"
+                            >
+                                {{ form.errors.moneda_trabajo }}
+                            </p>
+                        </div>
+                        <FinancialField
+                            id="tipo_cambio"
+                            label="Tasa de referencia a CLP *"
+                            v-model="form.tipo_cambio"
+                            inputmode="decimal"
+                            required
+                            :error="form.errors.tipo_cambio"
+                            :help="`CLP por 1 ${form.moneda_trabajo} · hasta ocho decimales, con punto`"
+                        />
+                    </div>
+                </fieldset>
+            </section>
+            <p class="f-hint">
+                Esta importación está en curso. Para conservar su revisión y
+                bloquear cambios, usa
+                <Link
+                    class="f-text-link"
+                    :href="`${route('trips.show', trip.id)}#revision`"
+                    >Revisar cierre</Link
+                >.
+            </p>
+            <div class="f-actions f-config-actions">
+                <button
+                    type="button"
+                    class="f-button f-button-danger"
+                    :disabled="form.processing || busy"
+                    @click="
+                        trashError = '';
+                        confirmTrash = true;
+                    "
+                >
                     Mover a la papelera
-                </Button>
-
-                <div class="flex flex-wrap items-center gap-3">
-                    <Button
-                        variant="ghost"
+                </button>
+                <div class="f-actions">
+                    <button
                         type="button"
+                        class="f-button"
+                        :disabled="form.processing || busy"
                         @click="router.visit(route('trips.show', trip.id))"
                     >
-                        Cancelar
-                    </Button>
-                    <Button
-                        variant="primary"
-                        type="submit"
-                        :loading="form.processing"
-                        :disabled="form.processing"
+                        Cancelar</button
+                    ><button
+                        class="f-button f-button-primary"
+                        :disabled="form.processing || busy"
                     >
-                        Guardar Cambios
-                    </Button>
+                        {{ form.processing ? "Guardando…" : "Guardar cambios" }}
+                    </button>
                 </div>
             </div>
         </form>
-
-        <!-- Confirmation Modal -->
-        <Modal :show="isOpen" @close="cancel">
-            <template #header>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    {{ title }}
-                </h3>
-            </template>
-
-            <p class="text-gray-600 dark:text-slate-400">
-                {{ message }}
+        <Modal
+            :show="confirmTrash"
+            title="Mover importación a la papelera"
+            :closeable="!busy"
+            @close="!busy && (confirmTrash = false)"
+            ><p>
+                «{{ trip.nombre }}» saldrá del Control y la Analítica. Se
+                conservarán sus productos, gastos, documentos e historial para
+                recuperarla.
             </p>
-
-            <template #footer>
-                <div class="flex items-center justify-end gap-3">
-                    <Button variant="secondary" @click="cancel">
-                        Cancelar
-                    </Button>
-                    <Button variant="danger" @click="confirm">
-                        Eliminar
-                    </Button>
-                </div>
-            </template>
-        </Modal>
-    </AuthenticatedLayout>
+            <p v-if="trashError" class="f-field-error" role="alert">
+                {{ trashError }}
+            </p>
+            <template #footer
+                ><div class="f-actions">
+                    <button
+                        class="f-button"
+                        :disabled="busy"
+                        @click="confirmTrash = false"
+                    >
+                        Cancelar</button
+                    ><button
+                        class="f-button f-button-danger"
+                        :disabled="busy"
+                        @click="trash"
+                    >
+                        {{ busy ? "Moviendo…" : "Mover a la papelera" }}
+                    </button>
+                </div></template
+            ></Modal
+        >
+    </FinancialLayout>
 </template>

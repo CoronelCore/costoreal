@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
 use App\Models\Trip;
+use App\Modules\Companies\ReadCompany;
 use App\Modules\Importations\Actions\MutateTrip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,19 +21,9 @@ class CompanyController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request, ReadCompany $read)
     {
-        $companies = Auth::user()->companies()
-            ->withCount('trips')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $tripsUnassigned = Company::getTripsUnassigned(Auth::id());
-
-        return Inertia::render('Companies/Index', [
-            'companies' => $companies,
-            'tripsUnassigned' => $tripsUnassigned,
-        ]);
+        return Inertia::render('Companies/Index', ['companies' => $read->index($request->user())]);
     }
 
     /**
@@ -45,15 +37,9 @@ class CompanyController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CompanyRequest $request)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'rut' => 'nullable|string|max:255',
-            'color' => 'required|string|size:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'icono' => 'nullable|string|max:50',
-            'descripcion' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $validated['user_id'] = Auth::id();
         $validated['activa'] = true;
@@ -67,17 +53,11 @@ class CompanyController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Company $company)
+    public function show(Request $request, Company $company, ReadCompany $read)
     {
-        $this->authorize('view', $company);
+        $request->validate(['page' => 'nullable|integer|min:1']);
 
-        $company->load(['trips' => function ($query) {
-            $query->withFinancialTotals()->orderBy('created_at', 'desc');
-        }]);
-
-        return Inertia::render('Companies/Show', [
-            'company' => $company,
-        ]);
+        return Inertia::render('Companies/Show', $read->show($request->user(), $company));
     }
 
     /**
@@ -88,25 +68,16 @@ class CompanyController extends Controller
         $this->authorize('update', $company);
 
         return Inertia::render('Companies/Edit', [
-            'company' => $company,
+            'companyRecord' => app(ReadCompany::class)->record($company),
         ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Company $company)
+    public function update(CompanyRequest $request, Company $company)
     {
-        $this->authorize('update', $company);
-
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'rut' => 'nullable|string|max:255',
-            'color' => 'required|string|size:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'icono' => 'nullable|string|max:50',
-            'descripcion' => 'nullable|string',
-            'activa' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $company->update($validated);
 

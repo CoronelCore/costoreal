@@ -9,7 +9,7 @@ CR-007,E1,P0,Contrato de reportes · Backend/QA,"F05/F08/F09: campos, nulos, exp
 CR-008,E1,P1,Edición y cierre básico · Full stack,"F07/F11: confirmación, multipart y bloqueo en servidor.",CR-004,Guardar cambia el dato; errores visibles; cierre funciona y toda mutación normal se rechaza cerrado.,En curso
 CR-009,E1,P1,"Fechas, dinero y móvil actual · Frontend","F12/F13: date-only, signos, decimales, acciones sin recorte.",CR-007,Fecha y pérdida correctas; 320/390 px presentan todas las acciones.,En curso
 CR-010,E1,P1,Diagnóstico y parches · Desarrollo,"F15: retirar diagnósticos expuestos, seeder seguro y advisories aplicables.",CR-001,Sin cuenta de ejemplo automática insegura ni endpoint diagnóstico abierto; lockfiles verificados.,Verificado
-CR-011,E2,P1,Mapa de tareas y navegación · Diseño/Producto,"Control, hoja, alta guiada y cierre; nomenclatura y jerarquía.",CR-003,"Mapa de pantallas, acciones primarias y estados de dominio coherentes.",En curso
+CR-011,E2,P1,Mapa de tareas y navegación · Diseño/Producto,"Control, hoja, alta guiada y cierre; nomenclatura y jerarquía.",CR-003,"Mapa de pantallas, acciones primarias y estados de dominio coherentes.",Verificado
 CR-012,E2,P1,Tokens y componentes · Diseño/Frontend,"Color, type, densidad, tablas, formularios, mensajes, overlays.",CR-011,Catálogo revisable en claro/oscuro; contraste y foco medidos en estados usados.,En curso
 CR-013,E2,P1,Pantallas y móvil · Diseño,Control/detalle/hoja/gastos/documentos/revisión y vacíos/errores.,CR-012,Prototipo permite recorrer tareas principales a 390/1024 y revisar 320 px.,En curso
 CR-014,E3,P1,Acciones y AccessContext · Backend,"Requests, políticas, acciones y consultas de lectura.","CR-004,CR-005,CR-007",Controladores delegan cálculo; contexto autorizado llega a reports/documents/jobs.,En curso
@@ -20,7 +20,7 @@ CR-018,E3,P1,Ejecuciones y snapshots · Backend,"cost_runs, allocations, cierre 
 CR-019,E3,P1,Auditoría y comparación · Backend/QA,Actor/antes/después; comparador antiguo/nuevo y backfill.,CR-018,Diferencias clasificadas y conciliadas; migración reentrante sin inventar datos.,Verificado
 CR-020,E3,P1,DTOs y TypeScript · Full stack,"Resumen, dinero, resultado y tipos de mutación.","CR-014,CR-016",Chequeo de tipos detecta campos faltantes; serializer comparte totales con exportaciones.,Verificado
 CR-021,E3,P1,Lecturas y consultas · Backend,"F14: agregados, scopes, paginación y contexto una vez.",CR-020,Query count no crece por accessor/registro en control/analítica; perfil con datasets conocidos.,En curso
-CR-022,E4,P1,Layout financiero · Frontend,"Chrome, contexto empresa, tema, densidad y navegación.","CR-012,CR-020","Desktop/móvil, foco y URLs correctos; contexto permanece visible.",En curso
+CR-022,E4,P1,Layout financiero · Frontend,"Chrome, contexto empresa, tema, densidad y navegación.","CR-012,CR-020","Desktop/móvil, foco y URLs correctos; contexto permanece visible.",Verificado
 CR-023,E4,P1,Control de importaciones · Full stack,"Búsqueda/filtros, scope de métricas, tabla/lista y pendientes.","CR-022,CR-021",Totales del filtro completo; pendiente abre su tarea; estados vacíos/errores recuperables.,En curso
 CR-024,E4,P1,Detalle y resumen · Frontend,"Dividir Show.vue, tabs válidas, cobertura y composición.","CR-022,CR-018",Resumen inicial útil; conteos reactivos; proyección etiquetada y eventos limpios.,En curso
 CR-025,E4,P1,Hoja editable · Full stack,"Celda/selección, guardado por fila y vista móvil.","CR-024,CR-017","Teclado, validación y conflicto por fila; no confundir borrador con total guardado.",Verificado

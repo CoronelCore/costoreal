@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ExpenseCategoryRequest;
 use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ExpenseCategoryController extends Controller
@@ -23,15 +23,9 @@ class ExpenseCategoryController extends Controller
         return Inertia::render('Categories/Create');
     }
 
-    private function rules(Request $request, ?ExpenseCategory $category = null): array
+    public function store(ExpenseCategoryRequest $request)
     {
-        return ['nombre' => ['required', 'string', 'max:255', Rule::unique('expense_categories')->where('user_id', $request->user()->id)->ignore($category?->id)],
-            'icono' => 'required|string|max:50', 'color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/']];
-    }
-
-    public function store(Request $request)
-    {
-        ExpenseCategory::create([...$request->validate($this->rules($request)), 'user_id' => $request->user()->id]);
+        ExpenseCategory::create([...$request->validated(), 'user_id' => $request->user()->id]);
 
         return to_route('categories.index')->with('success', 'Categoría personal creada');
     }
@@ -44,10 +38,9 @@ class ExpenseCategoryController extends Controller
         return Inertia::render('Categories/Edit', ['category' => $category]);
     }
 
-    public function update(Request $request, ExpenseCategory $category)
+    public function update(ExpenseCategoryRequest $request, ExpenseCategory $category)
     {
-        $this->authorize('update', $category);
-        $category->update($request->validate($this->rules($request, $category)));
+        $category->update($request->validated());
 
         return to_route('categories.index')->with('success', 'Categoría actualizada');
     }
