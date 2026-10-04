@@ -195,6 +195,7 @@ export interface ImportShowProps {
     categories: NamedRecord[];
     costRuns: CostRunSummary[];
     latestCostRun: CostRunSummary | null;
+    legacyBaseline: import('./reconciliation').LegacyBaseline | null;
     history: Pagination<AuditEventSummary>;
     scenarios: Pagination<ScenarioSummary>;
     lastPricingBatch: PricingBatch | null;

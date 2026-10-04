@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue';
 import axios from 'axios';
+import ReconciliationPanel from './ReconciliationPanel.vue';
+import type { LegacyBaseline } from '@/Types/reconciliation';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
 import { useRoute } from '@/Composables/useRoute';
 import type { ImportDetail, Pagination, AuditEventSummary, CostRunSummary } from '@/Types/financial';
 import type { AuditComparison, AuditValue } from '@/Types/advanced';
-const props = defineProps<{ trip: ImportDetail; history: Pagination<AuditEventSummary>; runs: CostRunSummary[] }>();
+const props = defineProps<{ trip: ImportDetail; history: Pagination<AuditEventSummary>; runs: CostRunSummary[]; baseline: LegacyBaseline | null }>();
 const route = useRoute();
 const listing = ref(props.history);
 const expanded = ref<number | null>(null);
@@ -14,7 +16,7 @@ const busy = ref(false);
 const error = ref('');
 let controller: AbortController | undefined;
 let sequence = 0;
-const labels: Record<string,string> = { update:'Actualización del lote', products_import:'Productos importados por lote', product_create:'Producto agregado', product_update:'Producto actualizado', product_delete:'Producto eliminado', expense_create:'Gasto agregado', expense_update:'Gasto actualizado', expense_delete:'Gasto eliminado', scenario_apply:'Escenario aplicado', price_target:'Precios por objetivo', price_update:'Precio de venta actualizado', document_upload:'Documento adjunto', document_trash:'Documento a papelera', document_restore:'Documento restaurado', company_assignment:'Empresa asignada', configuration:'Configuración y revaluación', close:'Cierre de importación', reopen:'Reapertura de importación', trip_trash:'Importación a papelera', trip_restore:'Importación restaurada' };
+const labels: Record<string,string> = { update:'Actualización del lote', products_import:'Productos importados por lote', product_create:'Producto agregado', product_update:'Producto actualizado', product_delete:'Producto eliminado', expense_create:'Gasto agregado', expense_update:'Gasto actualizado', expense_delete:'Gasto eliminado', scenario_apply:'Escenario aplicado', price_target:'Precios por objetivo', price_update:'Precio de venta actualizado', document_upload:'Documento adjunto', document_trash:'Documento a papelera', document_restore:'Documento restaurado', company_assignment:'Empresa asignada', cost_reconcile:'Conciliación de costos', configuration:'Configuración y revaluación', close:'Cierre de importación', reopen:'Reapertura de importación', trip_trash:'Importación a papelera', trip_restore:'Importación restaurada' };
 const fields: Record<string,string> = { nombre:'Nombre', descripcion:'Descripción', company_id:'Empresa · identificador', estado:'Estado', fecha_inicio:'Fecha de inicio', fecha_fin:'Fecha de fin', moneda_trabajo:'Moneda de trabajo', tipo_cambio:'Tasa de referencia', costo_total:'Costo del lote · CLP', deleted_at:'Fecha en papelera', cantidad:'Cantidad', moneda:'Moneda original', costo_unitario:'Costo unitario original', rate_mode:'Tipo de conversión', applied_rate:'Tasa aplicada', rate_source:'Fuente de la tasa', rate_date:'Fecha de la tasa', weight:'Peso total · kg', volume:'Volumen total · m³', subtotal_clp:'Compra · CLP', gastos_prorrateados_clp:'Gastos asignados · CLP', costo_final_total_clp:'Costo final total · CLP', costo_final_unitario_clp:'Costo final unitario · CLP', precio_venta:'Precio unitario de venta · CLP', document_id:'Documento · identificador', concepto:'Concepto', expense_category_id:'Categoría · identificador', monto:'Monto original', monto_clp:'Monto convertido · CLP', allocation_method:'Regla de reparto', target_product_id:'Producto destino · identificador', filename:'Archivo', mime:'Tipo de archivo', size:'Tamaño · bytes', kind:'Uso del documento' };
 const states: Record<string,string> = { activo:'En curso',finalizado:'Cerrada',archivado:'Archivada',estimated:'Estimado',paid:'Pagado',value:'Valor de compra',units:'Unidades',weight:'Peso',volume:'Volumen',direct:'Producto directo' };
 const moneyFields = new Set(['costo_total','subtotal_clp','gastos_prorrateados_clp','costo_final_total_clp','costo_final_unitario_clp','precio_venta','monto_clp']);
@@ -46,6 +48,8 @@ const page = async (number: number) => {
 };
 </script>
 <template>
+    <ReconciliationPanel :trip="trip" />
+    <section v-if="baseline" class="f-panel"><div class="f-panel-heading"><h2>Copia heredada conservada</h2><span class="f-hint">Revisión {{ baseline.revision }}</span></div><div class="f-panel-body"><p class="f-hint">Importes originales anteriores a su primer cambio o conciliación. El algoritmo y la procedencia histórica de las tasas permanecen sin verificar.</p><div class="f-actions" style="margin-top:12px"><a :href="`${route('trips.export.pdf',trip.id)}?baseline=${baseline.id}`" class="f-button">PDF de los importes originales</a><a :href="`${route('trips.export.excel',trip.id)}?baseline=${baseline.id}`" class="f-button">Excel de los importes originales</a></div></div></section>
     <section class="f-panel"><div class="f-panel-heading"><h2>Revisiones conservadas</h2><span class="f-hint">Últimas 50 ejecuciones de costeo</span></div><div class="f-panel-body"><div v-for="run in runs" :key="run.id" class="f-breakdown-row" style="flex-wrap:wrap;align-items:center"><div><strong>Revisión {{ run.revision }} · {{ labels[run.reason] || run.reason }}</strong><p class="f-hint">{{ date(run.created_at) }} · {{ run.algorithm }}</p></div><div class="f-actions"><a :href="`${route('trips.export.pdf',trip.id)}?run=${run.id}`" class="f-button">PDF de esta revisión</a><a :href="`${route('trips.export.excel',trip.id)}?run=${run.id}`" class="f-button">Excel de esta revisión</a></div></div><p class="f-hint" style="margin-top:12px">La papelera y la restauración registran cambios de estado sin generar un nuevo cálculo. Los cierres anteriores conservan sus reportes.</p><p v-if="!runs.length" class="f-hint">Aún no hay una ejecución registrada. Los datos heredados conservan su procedencia sin verificar.</p></div></section>
     <section class="f-panel"><div class="f-panel-heading"><h2>Registro de cambios</h2><span class="f-hint">{{ listing?.total || 0 }} eventos · comparación bajo demanda</span></div><div class="f-panel-body">
         <div v-if="error" class="f-notice f-notice-error" role="alert">{{ error }}</div>

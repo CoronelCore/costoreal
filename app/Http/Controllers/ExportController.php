@@ -15,8 +15,8 @@ class ExportController extends Controller
     public function exportPdf(Request $request, Trip $trip)
     {
         $this->authorize('view', $trip);
-        $request->validate(['run' => 'nullable|integer|min:1']);
-        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null);
+        $request->validate(['run' => 'nullable|integer|min:1|prohibits:baseline', 'baseline' => 'nullable|integer|min:1|prohibits:run']);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null);
 
         $summary = FinancialSummaryData::fromTrip($trip);
 
@@ -27,8 +27,8 @@ class ExportController extends Controller
     public function exportExcel(Request $request, Trip $trip)
     {
         $this->authorize('view', $trip);
-        $request->validate(['run' => 'nullable|integer|min:1']);
-        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null);
+        $request->validate(['run' => 'nullable|integer|min:1|prohibits:baseline', 'baseline' => 'nullable|integer|min:1|prohibits:run']);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null);
 
         return Excel::download(new TripExport($trip), 'importacion-'.$trip->id.'-'.now()->format('Y-m-d').'.xlsx');
     }

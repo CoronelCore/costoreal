@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TripRequest;
 use App\Models\ExpenseCategory;
+use App\Models\LegacyCostBaseline;
 use App\Models\Trip;
 use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\MutateTrip;
@@ -92,6 +93,7 @@ class TripController extends Controller
             'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get()->map(fn ($d) => ImportationData::document($d)),
             'history' => fn () => app(AuditController::class)->listing($trip, 'history_page'),
             'costRuns' => $runs, 'latestCostRun' => $runs->first(),
+            'legacyBaseline' => LegacyCostBaseline::where('trip_id', $trip->id)->first(['id', 'revision', 'created_at']),
             'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get(['id', 'nombre'])]);
     }
 
@@ -134,7 +136,7 @@ class TripController extends Controller
     {
         $this->authorize('reopen', $trip);
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', ability: 'reopen');
+        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', ability: 'reopen', recalculate: false);
 
         return to_route('trips.show', $trip)->with('success', 'Importación reabierta; el cierre anterior permanece en el historial');
     }

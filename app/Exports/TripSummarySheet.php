@@ -40,7 +40,8 @@ class TripSummarySheet extends SafeValueBinder implements FromArray, WithColumnF
             ['Margen sobre ventas', $projection['complete'] && $projection['margin'] !== null ? (float) (string) BigDecimal::of($projection['margin'])->dividedBy(100, 4, RoundingMode::HALF_UP) : null],
             ['Estado de la proyección', $projection['complete'] ? 'Completa' : 'Pendiente: faltan precios'],
             ['Ingreso de líneas con precio CLP', (float) $projection['covered_revenue']],
-            ['Utilidad de líneas con precio CLP', (float) $projection['covered_profit']]];
+            ['Utilidad de líneas con precio CLP', (float) $projection['covered_profit']],
+            ['Procedencia del reporte', $this->trip->report_provenance ?? 'Revisión de costeo o importes actuales']];
     }
 
     public function title(): string

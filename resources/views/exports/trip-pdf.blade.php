@@ -5,6 +5,7 @@ body{font-family:'DejaVu Sans',sans-serif;color:#17263b;font-size:11px;line-heig
 </style></head><body>
 <div class="brand">Costo Real</div><h1>{{ $trip->nombre }}</h1>
 <p class="sub">{{ $trip->company?->nombre ?? 'Sin empresa asignada' }} · {{ $trip->estado }} · Generado {{ now()->format('d/m/Y H:i') }}</p>
+@if($trip->report_provenance)<p class="sub">{{ $trip->report_provenance }}</p>@endif
 <p>{{ $trip->descripcion }}</p><p>Inicio: {{ $trip->fecha_inicio?->format('d/m/Y') ?? 'Sin fecha' }} · Fin: {{ $trip->fecha_fin?->format('d/m/Y') ?? 'Sin fecha' }}</p>
 <p>Tasa de referencia: {{ \App\Modules\Reporting\DecimalFormatter::format($trip->tipo_cambio, 8) }} CLP / {{ $trip->moneda_trabajo }}</p>
 <h2>Resumen financiero · CLP</h2><table><tbody>

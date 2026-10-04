@@ -16,7 +16,7 @@ Una operación pagada conserva su tasa aplicada, fecha y fuente. No se sustituye
 
 Ejemplo: USD 100 de compra + USD 10 de gasto estimado, referencia inicial 900: 90.000 + 9.000 = 99.000 CLP. Al cambiar a 1.000: 100.000 + 10.000 = 110.000 CLP. El antiguo resultado 109.000 mezclaba una compra revaluada y un gasto sin revaluar. Si el gasto se pagó a 900 y se registra esa tasa histórica, 109.000 sí es el resultado correcto y explicable.
 
-Los registros heredados tienen fuente `legacy-unverified` y modo estimado como compatibilidad con el esquema original. Esa clasificación no demuestra que un gasto realmente se haya pagado. No se inventa una fecha, comprobante ni fuente histórica. La migración de estructuras no recalcula silenciosamente las compras existentes; el comparador y la conciliación de datos heredados constituyen una entrega separada.
+Los registros heredados tienen fuente `legacy-unverified` y modo estimado como compatibilidad con el esquema original. Esa clasificación no demuestra que un gasto realmente se haya pagado. No se inventa una fecha, comprobante ni fuente histórica. La migración de estructuras no recalcula silenciosamente las compras existentes; el historial permite comparar los importes realmente guardados y conciliar diferencias de forma explícita, conservando los originales.
 
 ## Gastos y reparto
 
@@ -34,7 +34,7 @@ El precio de venta es unitario y se expresa en CLP. Un precio ausente significa 
 
 Margen sobre venta = (ingreso − costo) / ingreso. Recargo sobre costo es una magnitud distinta. Las comisiones, redondeo comercial y propuestas por objetivo se entregan con casos de aceptación propios; no se aplican de forma automática a precios existentes.
 
-Cerrar exige productos, tasas conocidas y gasto sin asignar igual a cero. Los precios pendientes y los comprobantes ausentes son advertencias. Un cierre bloquea las mutaciones normales y conserva una ejecución con entradas, resultado, reparto, actor y versión. Reabrir conserva esa ejecución y crea una nueva revisión. Los reportes históricos se reconstruyen desde el snapshot solicitado y no desde los precios o tasas actuales.
+Cerrar exige productos, tasas conocidas y gasto sin asignar igual a cero. Los precios pendientes y los comprobantes ausentes son advertencias. Un cierre bloquea las mutaciones normales y conserva una ejecución con entradas, resultado, reparto, actor y versión. Reabrir conserva esa ejecución y crea una nueva revisión de estado sin recalcular importes. Si el cierre es heredado y no tiene ejecución registrada, conserva una copia identificada como heredada antes de reabrir. Los reportes históricos se reconstruyen desde el snapshot solicitado y no desde los precios o tasas actuales.
 
 La revisión esperada es obligatoria en todas las mutaciones de una importación existente. Permite rechazar escrituras desde una pestaña obsoleta antes de modificar datos. Crear una importación nueva no exige una revisión anterior.
 
@@ -69,3 +69,14 @@ Las nuevas ejecuciones registran por gasto y producto la base usada, la base del
 El desglose se consulta bajo demanda y devuelve 20 repartos por página. Sus nombres, cantidades, importes y tasas proceden de la revisión conservada, aunque el producto o gasto actual haya cambiado o se haya retirado. La página inicial no carga el JSON completo de cost_runs ni sus allocations.
 
 Después de migrar, costoreal:cost-read-backfill prepara índices de lectura para ejecuciones anteriores. Es reentrante y acepta --limit para procesarlas por etapas; no recalcula ni reescribe input, result, snapshot, input_hash, revisiones o asignaciones originales. Las revisiones sin detalle de redondeo lo indican explícitamente; no se inventa una trazabilidad histórica.
+
+
+## Comparación y conciliación de datos heredados
+
+En Historial, «Comparar costos guardados» usa cantidades, montos y tasas actuales para calcular la propuesta, pero el valor «Guardado» procede de los campos financieros originales. Conservar la comparación guarda evidencia sin aplicar costos ni cambiar la revisión. Los importes de origen quedan disponibles en los reportes de la copia heredada, con su algoritmo y procedencia histórica declarados sin verificar.
+
+Cada diferencia requiere revisión. Conversión, reparto, total y costo unitario son categorías de revisión; no prueban la causa de un importe antiguo. Se etiqueta como redondeo CLP únicamente cuando redondear el importe original a cero decimales HALF_UP demuestra igualdad con el resultado nuevo. Un total guardado que no coincide con compra + gastos asignados se declara inconsistente. Monedas sin tasa, evidencia de pago ausente o reglas imposibles bloquean la propuesta; no se sustituyen por valores inventados.
+
+Aplicar exige una importación activa y la revisión/huella vigentes, incluyendo los importes guardados y la política de comparación. El usuario marca todas las diferencias; no hay aceptación automática por tolerancia. Un cierre heredado se reabre sin revaluar y exige una comparación nueva sobre esa revisión para conciliar. La aplicación conserva precio de venta y procedencia de tasas, crea una nueva ejecución de costeo y registra autor/antes/después de forma atómica. Repetir una aplicación conservada no repite cambios.
+
+El comando costoreal:legacy-cost-review acepta --limit y --after-id. Sirve para preparar comparaciones por lotes y conservar su checkpoint; puede repetirse sin reescribir el origen. No aplica correcciones monetarias. La copia heredada se conserva también antes de la primera mutación normal que recalcula una importación sin ejecuciones registradas.

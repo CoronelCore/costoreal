@@ -5,6 +5,7 @@ namespace App\Modules\Importations\Actions;
 use App\Models\AuditEvent;
 use App\Models\Trip;
 use App\Modules\Costing\Actions\RecordCostRun;
+use App\Modules\Costing\Reconciliation\PreserveLegacyCosts;
 use App\Modules\Shared\TransactionRunner;
 use App\Services\ProrrateoService;
 use Illuminate\Support\Facades\Gate;
@@ -12,11 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 final class MutateTrip
 {
-    public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder, private TransactionRunner $transaction) {}
+    public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder, private TransactionRunner $transaction, private PreserveLegacyCosts $legacy) {}
 
-    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null): mixed
+    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null, bool $recalculate = true): mixed
     {
-        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify) {
+        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify, $recalculate) {
             $current = Trip::whereKey($trip->id)->lockForUpdate()->firstOrFail();
             Gate::authorize($ability, $current);
             if ($expectedRevision === null) {
@@ -33,16 +34,19 @@ final class MutateTrip
                 throw ValidationException::withMessages(['conflict' => 'La revisión cambió. Recarga antes de volver a guardar.']);
             }
             $before = $current->load(['products', 'expenses', 'documents'])->toArray();
+            $this->legacy->execute($current);
             $result = $mutation($current);
-            $cost = $this->costing->calcularProrrateo($current);
-            if ($verify) {
+            $cost = $recalculate ? $this->costing->calcularProrrateo($current) : null;
+            if ($verify && $cost) {
                 $verify($current, $cost);
             }
             $current->revision = $nextRevision;
             $current->syncOriginalAttribute('revision');
             $current->updated_at = Trip::whereKey($current->id)->value('updated_at');
             $current->syncOriginalAttribute('updated_at');
-            $this->recorder->execute($current, $cost, $action);
+            if ($cost) {
+                $this->recorder->execute($current, $cost, $action);
+            }
             AuditEvent::create(['trip_id' => $current->id, 'actor_id' => auth()->id(), 'action' => $action, 'revision' => $current->revision,
                 'before' => $before, 'after' => $current->toArray(), 'created_at' => now()]);
 

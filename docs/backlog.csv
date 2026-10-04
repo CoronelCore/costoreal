@@ -17,7 +17,7 @@ CR-015,E3,P1,Money y tasas · Backend,"Tipos decimales, Currency, Rate y redonde
 CR-016,E3,P1,Motor de reparto por valor · Backend,"Entradas puras, residuales estables y CostResult.",CR-015,"Determinismo e invariantes con 0, grandes montos, fracciones y reordenamiento.",Verificado
 CR-017,E3,P1,Atomicidad y conflictos · Backend,"Transacción, versión esperada y bloqueo según DB.","CR-014,CR-016","Error intermedio revierte todo; dos pestañas generan conflicto legible, sin pérdida.",Verificado
 CR-018,E3,P1,Ejecuciones y snapshots · Backend,"cost_runs, allocations, cierre y reapertura versionados.","CR-017,CR-008",Reporte histórico usa su snapshot; reapertura conserva revisión previa.,Verificado
-CR-019,E3,P1,Auditoría y comparación · Backend/QA,Actor/antes/después; comparador antiguo/nuevo y backfill.,CR-018,Diferencias clasificadas y conciliadas; migración reentrante sin inventar datos.,En curso
+CR-019,E3,P1,Auditoría y comparación · Backend/QA,Actor/antes/después; comparador antiguo/nuevo y backfill.,CR-018,Diferencias clasificadas y conciliadas; migración reentrante sin inventar datos.,Verificado
 CR-020,E3,P1,DTOs y TypeScript · Full stack,"Resumen, dinero, resultado y tipos de mutación.","CR-014,CR-016",Chequeo de tipos detecta campos faltantes; serializer comparte totales con exportaciones.,Verificado
 CR-021,E3,P1,Lecturas y consultas · Backend,"F14: agregados, scopes, paginación y contexto una vez.",CR-020,Query count no crece por accessor/registro en control/analítica; perfil con datasets conocidos.,En curso
 CR-022,E4,P1,Layout financiero · Frontend,"Chrome, contexto empresa, tema, densidad y navegación.","CR-012,CR-020","Desktop/móvil, foco y URLs correctos; contexto permanece visible.",En curso

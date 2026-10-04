@@ -43,7 +43,7 @@ const confirm = () => { busy.value = true; confirmation.value?.action(); };
         <PricePanel v-else-if="activeTab === 'precio-venta'" :trip="trip" :projection="projection" :last-batch="lastPricingBatch" />
         <ReviewPanel v-else-if="activeTab === 'revision'" :trip="trip" :stats="estadisticas" :projection="projection" @close="askClose" @tab="setTab" />
         <ScenariosPanel v-else-if="activeTab === 'escenarios'" :trip="trip" :scenarios="scenarios" />
-        <HistoryPanel v-else-if="activeTab === 'historial'" :trip="trip" :history="history" :runs="costRuns" />
+        <HistoryPanel v-else-if="activeTab === 'historial'" :trip="trip" :history="history" :runs="costRuns" :baseline="legacyBaseline" />
         <section v-else class="f-panel"><div class="f-panel-body"><h2>Configuración de la importación</h2><p class="f-hint">Moneda original {{ trip.moneda_trabajo }} · tasa de referencia {{ trip.tipo_cambio }} CLP / {{ trip.moneda_trabajo }}</p><Link v-if="trip.estado === 'activo'" :href="route('trips.edit',trip.id)" class="f-button" style="margin-top:16px">Editar configuración</Link></div></section>
         <Modal :show="!!confirmation" :title="confirmation?.title" @close="!busy && (confirmation = null)"><p class="text-gray-700 dark:text-slate-200">{{ confirmation?.message }}</p><template #footer><div class="f-actions"><button class="f-button" @click="confirmation = null" :disabled="busy">Cancelar</button><button class="f-button f-button-primary" @click="confirm" :disabled="busy">{{ busy ? 'Guardando…' : 'Confirmar' }}</button></div></template></Modal>
     </FinancialLayout>
