@@ -28,11 +28,24 @@ class WriteAllocationsTest extends TestCase
             $buffer->add($row);
         }
         $sequence = $buffer->finish();
-        foreach (['execute', 'writePortable'] as $method) {
+        foreach (['execute', 'legacyJsonb', 'writePortable'] as $method) {
             $run = CostRun::create(['trip_id' => $trip->id, 'revision' => 1, 'algorithm' => 'transport-fixture',
                 'reason' => 'codec-test', 'actor_id' => $trip->user_id, 'input' => [], 'result' => [], 'snapshot' => [],
                 'input_hash' => hash('sha256', 'fixture'), 'created_at' => now()]);
-            app(WriteAllocations::class)->{$method}($run->id, $sequence);
+            $manager = DB::getFacadeRoot();
+            if ($method === 'legacyJsonb') {
+                $proxy = \Mockery::mock($manager);
+                DB::swap($proxy);
+                $proxy->shouldReceive('selectOne')
+                    ->with("select sqlite_version() as version, typeof(jsonb('[]')) as kind")
+                    ->once()->andReturn((object) ['version' => '3.50.0', 'kind' => 'blob']);
+            }
+            try {
+                $writer = $method === 'legacyJsonb' ? 'execute' : $method;
+                app(WriteAllocations::class)->{$writer}($run->id, $sequence);
+            } finally {
+                DB::swap($manager);
+            }
             $stored = DB::table('cost_allocations')->where('cost_run_id', $run->id)->orderBy('id')->get();
             $actual = $stored->map(fn ($row) => ['expense_id' => $row->expense_id, 'product_id' => $row->product_id,
                 'amount' => $row->amount, 'method' => $row->method,

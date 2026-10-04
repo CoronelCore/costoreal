@@ -17,11 +17,15 @@ final class WriteAllocations
         if (! count($allocations)) {
             return;
         }
-        if (DB::getDriverName() === 'sqlite' && $allocations instanceof AllocationSequence && $this->jsonbAvailable()) {
+        if (DB::getDriverName() === 'sqlite' && $allocations instanceof AllocationSequence && ($jsonbVersion = $this->jsonbVersion()) !== null) {
+            // New SQLite versions expose binary rows directly, avoiding per-row JSON conversion.
+            $binaryRows = version_compare($jsonbVersion, '3.51.0', '>=');
+            $materialization = $binaryRows ? 'not materialized' : 'materialized';
+            $items = $binaryRows ? 'select value as data from jsonb_each(?)' : 'select jsonb(value) as data from json_each(?)';
             foreach ($allocations->jsonBatches() as $json) {
-                DB::insert(<<<'SQL'
+                DB::insert(<<<SQL
                     insert into "cost_allocations" ("cost_run_id", "expense_id", "product_id", "amount", "method", "trace")
-                    with items as materialized (select jsonb(value) as data from json_each(?))
+                    with items as {$materialization} ({$items})
                     select ?, jsonb_extract(data, '$.expense_id'), jsonb_extract(data, '$.product_id'),
                         jsonb_extract(data, '$.amount'), jsonb_extract(data, '$.method'), json_extract(data, '$.trace')
                     from items
@@ -51,16 +55,18 @@ final class WriteAllocations
         }
     }
 
-    private function jsonbAvailable(): bool
+    private function jsonbVersion(): ?string
     {
         try {
-            return DB::selectOne("select typeof(jsonb('[]')) as kind")?->kind === 'blob';
+            $support = DB::selectOne("select sqlite_version() as version, typeof(jsonb('[]')) as kind");
+
+            return $support?->kind === 'blob' ? $support->version : null;
         } catch (QueryException $error) {
             if (! str_contains($error->getPrevious()?->getMessage() ?? '', 'no such function: jsonb')) {
                 throw $error;
             }
 
-            return false;
+            return null;
         }
     }
 }

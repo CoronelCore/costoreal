@@ -9,6 +9,8 @@ use DomainException;
 /** Pure deterministic calculation. Monetary inputs are decimal strings. */
 final class CostEngine
 {
+    private const ALLOCATION_PLAN_LIMIT = 16;
+
     public function calculate(array $lines, array $expenses): CostResult
     {
         usort($lines, fn ($a, $b) => strnatcmp((string) $a['id'], (string) $b['id']));
@@ -70,7 +72,7 @@ final class CostEngine
             $cacheKey = json_encode([$basisKey, (string) $amount], JSON_THROW_ON_ERROR);
             if (count($lines) <= 1000) {
                 if (! isset($allocationCache[$cacheKey])) {
-                    if (count($allocationCache) === 4) {
+                    if (count($allocationCache) === self::ALLOCATION_PLAN_LIMIT) {
                         array_shift($allocationCache);
                     }
                     $allocationCache[$cacheKey] = iterator_to_array($this->allocate($amount, $basisCache[$basisKey]));

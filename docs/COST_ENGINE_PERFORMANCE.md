@@ -6,7 +6,7 @@ El algoritmo sigue siendo `largest-remainder-clp-v1`. Los resultados, orden natu
 
 AllocationBuffer comprime bloques de 256 asignaciones JSON con zlib y entrega una AllocationSequence inmutable, iterable, contable y con acceso por índice. La iteración expande un solo bloque; puede repetirse. No usa archivos, DB ni I/O en el dominio. Conserva también repartos de cero. La representación total crece con el número de asignaciones comprimidas; no promete memoria constante para cualquier volumen ilimitado.
 
-AllocationBasis comparte bases de reparto entre gastos, con una caché limitada a cuatro bases. CostEngine reutiliza hasta cuatro planes idénticos de base/importe dentro de un cálculo de hasta 1.000 líneas, conservando la identidad y traza de cada gasto. Por encima de ese tamaño usa el recorrido anterior. La división usa enteros escalados solo cuando pesos, suma y cada multiplicación caben en PHP_INT_MAX. Los casos restantes usan Brick\Math con precisión arbitraria. Las escalas decimales de las trazas permanecen idénticas. DecimalSum acumula valores exactos y evita crear un objeto decimal por cada suma común; no incorpora floats.
+AllocationBasis comparte bases de reparto entre gastos, con una caché limitada a cuatro bases. CostEngine reutiliza hasta dieciséis planes idénticos de base/importe dentro de un cálculo de hasta 1.000 líneas, conservando la identidad y traza de cada gasto. Por encima de ese tamaño usa el recorrido anterior. La división usa enteros escalados solo cuando pesos, suma y cada multiplicación caben en PHP_INT_MAX. Los casos restantes usan Brick\Math con precisión arbitraria. Las escalas decimales de las trazas permanecen idénticas. DecimalSum acumula valores exactos y evita crear un objeto decimal por cada suma común; no incorpora floats.
 
 CostResult::summary() expone únicamente cifras. `storageData()` añade líneas y `storage_version=2`, `allocation_source=cost_allocations`, `allocation_count`. `toArray()` conserva el contrato completo anterior para consumidores explícitos y pruebas pequeñas: materializa todas las asignaciones y no debe usarse en rutas de gran volumen. Importación de productos y comparación de costos usan summary().
 
@@ -76,3 +76,23 @@ El modo varied no obtiene la mejora del caché de planes: preview 1.550 ms, guar
 CR-040 sigue abierto. No se eleva el presupuesto de 2.500 ms: el máximo sigue excediéndolo. Quedan perfil HTTP por ruta con scopes reales, optimización restante y estados visibles durante operaciones largas. Checkpoint privado work/backups/cost-write-checkpoint; sin migraciones ni cambios de dependencias.
 
 Validación final de esta entrega: 265 pruebas PHP / 5.093 aserciones; siete nuevas regresiones sobre batching JSON, planes repetidos, scopes/invalidez, codec exacto y pretend. Pint pasa. El test máximo HTTP conserva dos versiones y un millón de trazas a memory_limit=128M; no es un perfil de latencia HTTP.
+
+
+## Revisión puntual del guardado y cierre · 4 de octubre de 2026
+
+La escritura usa jsonb_each en SQLite >= 3.51 para recorrer valores binarios directamente, con un CTE no materializado. Evita convertir cada fila a texto y volver a analizarla. SQLite con JSONB anterior mantiene la ruta materializada; los demás drivers y versiones sin JSONB mantienen el escritor portable. La detección consulta versión y capacidad a la vez, sin consultas adicionales por lote. JSONB sigue siendo solo transporte: trace persistida, schema y atomicidad conservan su formato y comportamiento. [Referencia de SQLite sobre jsonb_each](https://www.sqlite.org/json1.html#jeach).
+
+El caché local de planes pasa de cuatro a dieciséis entradas, limitado a cálculos de hasta 1.000 líneas. Las claves siguen incluyendo base y monto completos, con expulsión acotada e identidad/traza propias por gasto. No se cambia la aritmética ni se comparten resultados entre solicitudes.
+
+Comprobación HTTP puntual, serial y con DB sintéticas nuevas: tres muestras medidas por ruta/modo, además de dos pares de calentamiento; 1.000 líneas y 500 gastos. No se informa p95 con este tamaño de muestra. Comparación orientativa con las medianas del perfil previo de veinte muestras del mismo runtime:
+
+| Caso | Ruta | Mediana anterior ms | Mediana puntual ms |
+|---|---|---:|---:|
+| Importes iguales | Guardar gasto | 3714.49 | 3200.57 |
+| Importes iguales | Cerrar | 3912.065 | 3369.48 |
+| Trece importes alternos | Guardar gasto | 4412.395 | 3275.96 |
+| Trece importes alternos | Cerrar | 4590.975 | 3473.47 |
+
+Consultas constantes: 148 al guardar y 141 al cerrar; heap PHP máximo 30 MiB / 42 MiB según modo, bajo memory_limit=128M. Todas las respuestas concilian totales y conteos completos por gasto/versión, con integridad/FK y primera versión inmutable. El presupuesto máximo de 2.500 ms todavía se excede: no se modifica ni se presenta como resuelto. Esta mejora reduce la espera un 14–26 % en las muestras locales; no garantiza esa latencia en otras máquinas.
+
+Validación acotada: diez pruebas existentes del codec, persistencia y rollback (289 aserciones), incluyendo la ruta JSONB antigua y portable, tipos/build y Pint. La prueba de planes expulsados incorpora treinta importes distintos para superar el nuevo límite. El editor de precio recibe foco al abrir y retorna al disparador al cancelar, pulsar Escape o completar el guardado; comprobados apertura de dos líneas, Cancelar y Escape en la sesión QA, sin guardar cambios. Los datos de dominio de personal/QA y sus comprobaciones de integridad siguen intactos. Evidencia local: outputs/verificacion-ajustes-costoreal.json.

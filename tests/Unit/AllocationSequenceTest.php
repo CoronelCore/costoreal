@@ -40,7 +40,7 @@ class AllocationSequenceTest extends TestCase
             ['id' => 2, 'quantity' => 1, 'unit_amount' => '55.01', 'rate' => '900.12345678', 'weight' => '2.5000', 'volume' => '0.50000000']];
         $expenses = [];
         foreach (range(1, 30) as $i) {
-            $expenses[] = ['id' => $i, 'amount_clp' => $i % 2 ? '101' : '9000000000000000000000',
+            $expenses[] = ['id' => $i, 'amount_clp' => $i % 2 ? (string) (101 + $i) : '90000000000000000000'.$i,
                 'method' => ['value', 'units', 'weight', 'volume', 'direct'][$i % 5], 'target_id' => $i % 2 ? 10 : 2];
         }
         $this->assertSame((new ReferenceCostEngine)->calculate($lines, $expenses)->toArray(),
