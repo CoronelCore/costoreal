@@ -63,8 +63,8 @@ const deleteCompany = (company) => {
                 <div class="card-body">
                     <!-- Company Icon and Name -->
                     <div class="flex items-start gap-4 mb-4">
-                        <div class="relative flex-shrink-0">
-                            <div class="p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 shadow-sm">
+                        <div class="relative shrink-0">
+                            <div class="p-3 rounded-xl bg-linear-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 shadow-xs">
                                 <CompanyIcon
                                     :icon="company.icono"
                                     :color="company.color"
@@ -73,7 +73,7 @@ const deleteCompany = (company) => {
                             </div>
                             <!-- Color dot indicator -->
                             <div
-                                class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow-sm"
+                                class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow-xs"
                                 :style="{ backgroundColor: company.color }"
                             />
                         </div>

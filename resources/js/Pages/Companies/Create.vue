@@ -148,7 +148,7 @@ const submit = () => {
                                             id="color-picker"
                                             v-model="form.color"
                                             type="color"
-                                            class="h-14 w-14 rounded-xl border-2 border-gray-300 dark:border-slate-600 cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                                            class="h-14 w-14 rounded-xl border-2 border-gray-300 dark:border-slate-600 cursor-pointer shadow-xs hover:shadow-md transition-shadow"
                                         />
                                         <div class="absolute -top-1 -right-1 w-4 h-4 bg-primary-500 rounded-full border-2 border-white dark:border-slate-800 animate-pulse"></div>
                                     </div>
@@ -253,9 +253,9 @@ const submit = () => {
                         </h2>
 
                         <!-- Preview Card with selected icon + color -->
-                        <div class="relative p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-600">
+                        <div class="relative p-6 bg-linear-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-600">
                             <div class="flex items-start gap-4 mb-4">
-                                <div class="relative flex-shrink-0">
+                                <div class="relative shrink-0">
                                     <div class="p-4 rounded-xl bg-white dark:bg-slate-800 shadow-lg">
                                         <CompanyIcon
                                             :icon="form.icono"
@@ -265,7 +265,7 @@ const submit = () => {
                                     </div>
                                     <!-- Color dot indicator -->
                                     <div
-                                        class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-800 shadow-sm"
+                                        class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-800 shadow-xs"
                                         :style="{ backgroundColor: form.color }"
                                     />
                                 </div>
@@ -291,7 +291,7 @@ const submit = () => {
 
                             <!-- Preview stats -->
                             <div class="flex items-center gap-2 pt-4 border-t border-gray-300 dark:border-slate-600">
-                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 shadow-sm">
+                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 shadow-xs">
                                     <TruckIcon class="h-4 w-4" :style="{ color: form.color }" />
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white">0</span>
                                     <span class="text-xs text-gray-600 dark:text-slate-400">importaciones</span>
@@ -304,7 +304,7 @@ const submit = () => {
                             <div class="flex items-center gap-2 text-sm">
                                 <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: form.color }"></div>
                                 <span class="font-medium text-gray-700 dark:text-slate-300">Color seleccionado:</span>
-                                <code class="px-2 py-1 bg-white dark:bg-slate-800 rounded text-xs font-mono">{{ form.color }}</code>
+                                <code class="px-2 py-1 bg-white dark:bg-slate-800 rounded-sm text-xs font-mono">{{ form.color }}</code>
                             </div>
                         </div>
                     </Card>

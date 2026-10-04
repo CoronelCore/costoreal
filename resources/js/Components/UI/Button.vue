@@ -34,15 +34,23 @@ const props = defineProps({
     }
 });
 
+// Literal classes let Tailwind detect every supported variant in production.
+const variants = {
+    primary: 'btn-primary', secondary: 'btn-secondary', danger: 'btn-danger', ghost: 'btn-ghost',
+    success: 'bg-success-600 text-white enabled:hover:bg-success-700',
+    warning: 'bg-warning-100 text-warning-900 enabled:hover:bg-warning-200',
+    info: 'bg-info-600 text-white enabled:hover:bg-info-700', link: 'btn-ghost underline underline-offset-4',
+};
+const sizes = { xs: 'px-3 py-1.5 text-xs', sm: 'btn-sm', md: '', lg: 'btn-lg', xl: 'px-8 py-4 text-lg' };
 const buttonClasses = computed(() => {
     const classes = ['btn'];
     
     // Variant
-    classes.push(`btn-${props.variant}`);
+    classes.push(variants[props.variant] || variants.primary);
 
     // Size
     if (props.size !== 'md') {
-        classes.push(`btn-${props.size}`);
+        classes.push(sizes[props.size] || '');
     }
 
     // Block

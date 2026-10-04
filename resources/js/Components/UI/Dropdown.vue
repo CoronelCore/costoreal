@@ -52,7 +52,7 @@ const alignmentClasses = computed(() => {
         >
             <MenuItems
                 :class="[widthClass, alignmentClasses]"
-                class="absolute z-50 mt-2 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 focus:outline-none overflow-hidden"
+                class="absolute z-50 mt-2 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 focus:outline-hidden overflow-hidden"
             >
                 <div :class="contentClasses" class="rounded-xl">
                     <slot />

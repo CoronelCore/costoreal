@@ -22,7 +22,7 @@ const currentYear = new Date().getFullYear();
         <div class="absolute top-4 right-4 z-10">
             <button
                 @click="toggleTheme"
-                class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/50 transition-all duration-300 backdrop-blur-sm shadow-md"
+                class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-white/50 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800/50 transition-all duration-300 backdrop-blur-xs shadow-md"
                 type="button"
                 title="Cambiar tema"
             >
@@ -36,7 +36,7 @@ const currentYear = new Date().getFullYear();
             <!-- Logo -->
             <div class="mb-8 text-center">
                 <Link href="/" class="inline-flex flex-col items-center gap-3 group">
-                    <div class="bg-gradient-to-br from-primary-500 to-primary-600 p-4 rounded-2xl shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-105">
+                    <div class="bg-linear-to-br from-primary-500 to-primary-600 p-4 rounded-2xl shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-105">
                         <CurrencyDollarIcon class="h-12 w-12 text-white animate-coin-flip" />
                     </div>
                     <h1 class="text-3xl font-bold text-gradient-primary">

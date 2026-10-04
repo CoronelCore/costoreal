@@ -93,12 +93,12 @@ const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products
         <!-- Warning Alert -->
         <Alert v-if="hasAssociatedData" type="warning" class="max-w-3xl mb-6">
             <div class="flex items-start gap-2">
-                <ExclamationTriangleIcon class="h-5 w-5 flex-shrink-0" />
+                <ExclamationTriangleIcon class="h-5 w-5 shrink-0" />
                 <div class="text-sm">
                     <p class="font-medium mb-1">Esta importación tiene datos asociados</p>
                     <p>
                         Se encontraron {{ trip.expenses?.length || 0 }} gastos y {{ trip.products?.length || 0 }} productos.
-                        Al eliminar esta importación, todos estos datos se perderán permanentemente.
+                        Mover a la papelera conserva estos datos y su historial para recuperarlos.
                     </p>
                 </div>
             </div>
@@ -243,7 +243,7 @@ const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products
                 <div class="card-body">
                     <Alert type="warning" class="mb-4">
                         <div class="flex items-start gap-2">
-                            <ExclamationTriangleIcon class="h-5 w-5 flex-shrink-0" />
+                            <ExclamationTriangleIcon class="h-5 w-5 shrink-0" />
                             <div class="text-sm">
                                 <p class="font-medium mb-1">Importante: Recalculo Automático</p>
                                 <p>Si modificas el tipo de cambio, todos los cálculos de prorrateo se recalcularán automáticamente. Esto afectará los costos finales de todos los productos.</p>
@@ -297,7 +297,7 @@ const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products
             </Card>
 
             <!-- Actions -->
-            <div class="flex items-center justify-between animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-in-up" style="animation-delay: 0.2s;">
                 <Button
                     variant="danger"
                     type="button"
@@ -307,7 +307,7 @@ const hasAssociatedData = props.trip.expenses?.length > 0 || props.trip.products
                     Mover a la papelera
                 </Button>
 
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-center gap-3">
                     <Button
                         variant="ghost"
                         type="button"

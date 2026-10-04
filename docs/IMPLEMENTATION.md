@@ -4,6 +4,8 @@ Objetivo: ejecutar el plan completo del 3 de octubre de 2026. Uso personal prepa
 
 Las tareas se cierran por su criterio de aceptación. Los estados parciales identifican el trabajo que falta; las extensiones conservan sus activadores.
 
+Estado actual: 27 verificadas, 13 en curso, 2 pendientes y 5 extensiones condicionales. La tabla resume el estado vigente; las secciones siguientes conservan los checkpoints históricos. El plan completo sigue activo.
+
 | Tarea | Estado | Evidencia / pendiente |
 |---|---|---|
 | CR-001 · Entorno y CI mínimo · Desarrollo | Verificado | Instalación limpia y setup repetido preservan clave; PHP 8.5/Node 24, CI configurada. CI remota aún no ejecutada. |
@@ -14,8 +16,8 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-006 · Conversión coherente · Backend | Verificado | RateTest y VersionedCostingTest: tasas/monedas explícitas, pago histórico estable; ejemplo estimado 110.000. |
 | CR-007 · Contrato de reportes · Backend/QA | Verificado | ExcelContractTest verifica XLSX numérico y texto literal; CoreIntegrityTest y reportes históricos validan campos, nulos y PDF. |
 | CR-008 · Edición y cierre básico · Full stack | En curso | Edición real por Enter, multipart probado, cierre bloquea servidor. Falta smoke visual completo. |
-| CR-009 · Fechas, dinero y móvil actual · Frontend | En curso | Dinero exacto/date-only probados; 390 px sin overflow. Falta recorrido 320 px. |
-| CR-010 · Diagnóstico y parches · Desarrollo | En curso | Diagnósticos retirados, seeder seguro, Composer sin advisories. Npm conserva cinco altos de Tailwind 3 hasta migración. |
+| CR-009 · Fechas, dinero y móvil actual · Frontend | En curso | Dinero exacto/date-only probados; matriz de 24 pantallas sin overflow global en 320/390/1024/1280 tras corregir configuración. Falta recorrer todos los estados/acciones y nombres largos junto con CR-030. |
+| CR-010 · Diagnóstico y parches · Desarrollo | Verificado | Diagnósticos y página Test retirados; DevTools desactivado; seeder sin cuentas. SecureSetupTest/InertiaProtocolTest pasan. Lockfiles actuales: cero advisories Composer/npm. |
 | CR-011 · Mapa de tareas y navegación · Diseño/Producto | En curso | Navegación financiera y alta guiada de cuatro pasos implementadas; falta auditar estados/foco en toda la navegación. |
 | CR-012 · Tokens y componentes · Diseño/Frontend | En curso | Tokens claro/oscuro y densidades implementados. Faltan mediciones completas de contraste y foco. |
 | CR-013 · Pantallas y móvil · Diseño | En curso | Control/detalle/hoja/gastos/documentos/revisión implementados. Falta QA en todas las anchuras. |
@@ -33,18 +35,18 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-025 · Hoja editable · Full stack | Verificado | Edición por fila; tasas pagadas/fuente/fecha, peso/volumen; comparación de conflicto de tres versiones, resolución por campo y guardado posterior explícito. Pruebas API y frontend; Enter/Escape y error que conserva inputs verificados a 320 px. |
 | CR-026 · Desglose de costo · Frontend | Verificado | Lectura autorizada por producto y revisión, 20 gastos/página; importes y tasas históricos. Residuo exacto, parte entera y prioridad; UI desktop/320 px, Escape y foco probados. Legado conserva importe y declara ausencia de trace. |
 | CR-027 · Formularios de gastos · Full stack | En curso | Formulario estimado/pagado y metadata; multipart con/sin archivo probado. Falta QA de preservación de errores. |
-| CR-028 · Documentos privados · Backend/Frontend | En curso | Privacidad, metadatos, download/preview, papelera y restauración probados. Falta migración de archivos públicos heredados y política final de retención. |
+| CR-028 · Documentos privados · Backend/Frontend | Verificado | Privacidad, metadata, preview/descarga, papelera/restauración y auditoría; migración de archivos públicos heredados verificada con SHA/manifiestos/reintentos. Política en docs/RETENTION.md. |
 | CR-029 · Alta y revisión guiadas · Full stack | Verificado | Borrador temprano de cuatro pasos, recuperación de contexto/producto/gasto, reintentos y CAS; alta rápida abre la hoja. Cierre verifica en servidor tasas, reparto y coincidencia de importes; discrepancias exigen conciliación. Reapertura exige motivo, conserva costos/cierre y lo muestra con actor/revisión. Veinte pruebas backend específicas, tres de cola frontend y recorridos reales prueban los dos finales. |
-| CR-030 · QA visual y accesible · Diseño/QA | En curso | Evidencia desktop/390 px. Falta 320/1024, zoom, contraste, ambos temas y keyboard completo. |
+| CR-030 · QA visual y accesible · Diseño/QA | En curso | Migración CSS comparada en 24 pantallas, claro/oscuro, 320/390/1024/1280; foco de Modal corregido. Faltan zoom, contraste completo, nombres largos y estados/teclado globales; formularios antiguos deben adoptar diseño financiero. |
 | CR-031 · Pegado y CSV · Full stack | Verificado | Mapeo, vista previa por fila, política todo/nada, 100 filas conciliadas, reintento sin duplicados; 1.000 filas con 98 consultas. Flujo de pegado guardado en UI QA. |
 | CR-032 · Reglas avanzadas de reparto · Full stack | Verificado | Valor/unidades/peso/volumen/directo, metadata requerida y reparto exacto probados. Explicación por producto conserva base, fracción racional, prioridad y adjudicación residual. |
 | CR-033 · Precio por objetivo · Full stack | Verificado | Margen 20 % → 37.500 y recargo 5 % → 31.500; comisión/redondeo, preview puro, aplicación atómica por revisión. Flujo real QA a 320/1024 px. |
 | CR-034 · Escenarios y revaluación · Full stack | Verificado | Preview puro, conservación separada e idempotente; promoción atómica por revisión, pagos preservados y precios/reglas alternativos. Diez pruebas y flujo UI real: 450.000 → 520.000, revisión 5 → 6; comparación original conservada. |
 | CR-035 · Analítica renovada · Full stack | Verificado | Período/estado y empresa autorizados; inversión/proyección/cobertura concilian con reportes. Tablas equivalentes paginadas, lectura exacta y seis consultas con 1/200 importaciones; QA de temas, seis anchuras, errores/foco y empresa. Volumen máximo frío 4,6 s: presupuesto y optimización posterior siguen en CR-040. |
-| CR-036 · Historial y recuperación · Full stack | En curso | Papelera/restauración de importaciones con CAS, auditoría, costos/pagos/cierres/snapshots/documentos conservados; recorrido QA móvil real. Retención automática desactivada. Falta completar la política global y archivos heredados junto con CR-028. |
-| CR-037 · Runtime y Laravel 13 · Desarrollo | En curso | PHP 8.3/Node 24 certificados en setup limpio. Laravel 13 pendiente. |
+| CR-036 · Historial y recuperación · Full stack | Verificado | Historial autorizado paginado con 62 ejecuciones en QA; recuperación de importaciones/documentos conserva costos, snapshots y revisiones. Cuenta con expedientes protegida; sin purga automática. |
+| CR-037 · Runtime y Laravel 13 · Desarrollo | Verificado | PHP 8.5.8/Laravel 13.34.0, Excel 4/PhpSpreadsheet 5, PHPUnit 12; setup limpio/repetido, CSRF real y descargas verificados. Recuperación en docs/FRAMEWORK_UPGRADE.md. |
 | CR-038 · Inertia y tooling · Desarrollo | Verificado | Adaptadores Laravel 3.5.1/Vue 3.8.0; flash nativo fuera de history y preservado en reload 409; 7 pruebas de protocolo, tipos y navegador real: login/errores/multipart/borrador/pestañas/atrás/adelante. |
-| CR-039 · Tailwind y limpieza · Frontend | Pendiente | — |
+| CR-039 · Tailwind y limpieza · Frontend | Verificado | Tailwind 4.3.3 con plugin Vite; 24 pantallas × 2 temas × 4 anchuras comparadas antes/después. Tokens aislados, 320 px corregido, PDF preservado, 45 Blade sin uso retiradas; QA global continúa en CR-030. |
 | CR-040 · Rendimiento y observación · Desarrollo/QA | En curso | Control 1/200 y escritura 1.000 líneas (64 consultas, 412 ms local) medidos. Faltan presupuestos por ruta y observación. |
 | CR-041 · Ensayo de release y restauración · Desarrollo/QA | Pendiente | — |
 | CR-042 · Aceptación con usuario · Producto/Diseño/QA | Pendiente | — |
@@ -54,7 +56,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-046 · Ventas e inventario · Producto/Backend | Condicional | Activador: existencias/ventas reales; reglas de valoración y devoluciones. |
 | CR-047 · API e integración · Backend | Condicional | Activador: sistema externo identificado; contrato, outbox, ids externos. |
 
-## Evidencia del checkpoint
+## Evidencia del checkpoint inicial
 
 - 118 pruebas PHP / 1.737 aserciones; formato Pint pasa.
 - Cinco tests frontend de dinero/date-only y resolución de conflictos y build pasan con Node 24 en este checkpoint.
@@ -231,3 +233,15 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Servicios 8000/8010 actualizados, sesiones anteriores vigentes y total QA 930.012 igual. Veintiuna tablas originales personal/QA idénticas, copias restauradas con todas sus tablas iguales, integrity=ok y FK=0; archivos originales iguales. No migraciones originales ni escrituras financieras. Temporal 8011 detenido y emulación retirada.
 - Checkpoint local contiene código/vendor/build anteriores, entorno privado, DB y storage. Procedimiento en docs/INERTIA_UPGRADE.md y prueba en outputs/verificacion-inertia3-costoreal.json. El ensayo integral de rollback continúa en CR-041.
 - El plan sigue activo: Tailwind, QA global estructural/visual y accesibilidad, rendimiento máximo, release/recuperación integral y aceptación. Las cinco extensiones conservan sus activadores.
+
+
+## Tailwind 4 y limpieza visual · 4 de octubre de 2026
+
+- CR-039 y CR-010 verificados. Tailwind y plugin Vite 4.3.3; configuración CSS con @theme/@utility y variante oscura explícita. Retirados PostCSS/autoprefixer y Alpine directos; lockfile coherente y npm ci reproducible. Composer y npm audit actuales devuelven cero advisories, sin audit fix --force.
+- Comparación técnica sobre copias separadas de DB/discos: 21 pantallas autenticadas y acceso/registro/recuperación, dos temas y 320/390/1024/1280 px, 192 observaciones únicas por versión. Inspección de capturas y geometría/tipografía/tokens. Las únicas dos observaciones con overflow anterior eran configuración a 320 px (337 px), en ambos temas. Selectores de ancho acotado y acciones que se ajustan lo corrigen; versión final sin overflow global en esta matriz.
+- La comparación detectó que tokens antiguos sobrescribían las variables de radios, fuentes y sombras de Tailwind 4. Se aislaron 42 tokens con prefijo cr, preservando las utilidades estándar y los tokens financieros. Variantes Button/Badge/Alert usan clases literales detectables en producción. CSS generado total 112.553 → 99.905 bytes (11,2 % menos); no se extrapola a latencia del sistema.
+- Eliminadas 45 plantillas Blade y tres clases de vistas sin consumidores activos, la página Test y dos configuraciones antiguas. Se conservan app.blade.php y exports/trip-pdf.blade.php; el PDF está byte a byte igual. Retiradas 32 reglas/utilidades CSS sin llamadas confirmadas. FinancialLayout, formularios Vue y overlays siguen activos.
+- Escape en Modal volvía a BODY incluso con apertura mediante teclado nativo. El componente ahora conserva el disparador y lo enfoca tras finalizar la transición; si dejó de existir no intenta enfocarlo. Probado en vista previa privada a 320 px, cancelación recuperable y servicio QA activo. No se confirmaron eliminaciones ni se cambiaron datos para comprobar esos diálogos.
+- Validación final: 214 pruebas PHP / 3.409 aserciones, 17 frontend, tipos/build/Pint y Composer validate/platform pasan. PDF real contiene inversión 530.012 y utilidad 32.489; Excel B15 es numérico 530.012. CI remota no ejecutada. Uso local de navegadores modernos comprobado; mínimos oficiales y límites en docs/TAILWIND_UPGRADE.md.
+- Servicios personal/QA activos con sesiones anteriores válidas y QA 930.012 conservado. Veintiuna tablas originales iguales; todas las tablas de las copias restauradas iguales, integrity=ok/FK=0; entorno y lista/hash de archivos originales iguales. Checkpoint 8041429 con código/vendor/build/DB/storage/entorno; el ensayo integral de release sigue en CR-041.
+- Evidencia en outputs/verificacion-tailwind4-costoreal.json, comparacion-tailwind4-costoreal.json y captura del Control actualizado. Esta comparación no cierra CR-030 ni sustituye aceptación humana: quedan armonización financiera de acceso/empresas/categorías/configuración, salida de sesión móvil, títulos, zoom/contraste/nombres largos y estados completos. También siguen arquitectura de lecturas, rendimiento máximo, release y aceptación final.

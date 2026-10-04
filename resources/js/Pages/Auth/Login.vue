@@ -117,7 +117,7 @@ const submit = () => {
                     v-model="form.remember"
                     type="checkbox"
                     name="remember"
-                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-800 cursor-pointer transition-all duration-200"
+                    class="h-4 w-4 rounded-sm border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-800 cursor-pointer transition-all duration-200"
                 >
                 <label for="remember" class="ml-2 block text-sm text-gray-700 dark:text-slate-300 cursor-pointer select-none">
                     Recordarme

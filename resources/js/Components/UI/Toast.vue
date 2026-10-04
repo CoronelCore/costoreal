@@ -60,7 +60,7 @@ const getIconColorClasses = (type) => {
             >
                 <div class="flex items-start gap-3">
                     <!-- Icon -->
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <component
                             :is="getIcon(toast.type)"
                             :class="getIconColorClasses(toast.type)"
@@ -76,10 +76,10 @@ const getIconColorClasses = (type) => {
                     </div>
 
                     <!-- Close Button -->
-                    <div class="flex-shrink-0">
+                    <div class="shrink-0">
                         <button
                             type="button"
-                            class="inline-flex rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                            class="inline-flex rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/5 focus:outline-hidden focus:ring-2 focus:ring-offset-2 transition-colors"
                             @click="remove(toast.id)"
                         >
                             <span class="sr-only">Dismiss</span>

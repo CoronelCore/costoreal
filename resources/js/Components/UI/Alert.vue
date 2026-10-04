@@ -23,12 +23,12 @@ const emit = defineEmits(['dismiss']);
 const alertClasses = computed(() => {
     // Map 'error' to 'danger' to match CSS classes
     const typeMap = {
-        'error': 'danger',
-        'success': 'success',
-        'warning': 'warning',
-        'info': 'info'
+        'error': 'alert-danger',
+        'success': 'alert-success',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
     };
-    return `alert alert-${typeMap[props.type] || props.type}`;
+    return `alert ${typeMap[props.type] || typeMap.info}`;
 });
 
 const icon = computed(() => {
@@ -47,7 +47,7 @@ const dismiss = () => {
 
 <template>
     <div :class="alertClasses">
-        <component :is="icon" class="h-5 w-5 flex-shrink-0" />
+        <component :is="icon" class="h-5 w-5 shrink-0" />
 
         <div class="flex-1">
             <p v-if="title" class="font-semibold mb-1">{{ title }}</p>
@@ -59,7 +59,7 @@ const dismiss = () => {
         <button
             v-if="dismissible"
             type="button"
-            class="flex-shrink-0 rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            class="shrink-0 rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             @click="dismiss"
         >
             <XMarkIcon class="h-4 w-4" />

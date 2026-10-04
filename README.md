@@ -4,7 +4,7 @@ Control personal de importaciones: compra, conversión de moneda, gastos, repart
 
 ## Entorno actual
 
-PHP 8.5 con mbstring, pdo_sqlite, sqlite3, gd, zip y las extensiones exigidas por Composer. Composer 2. Node 24 LTS y npm. Laravel 13, Excel 4 / PhpSpreadsheet 5 y PHPUnit 12. SQLite para uso local. Los lockfiles forman parte del repositorio.
+PHP 8.5 con mbstring, pdo_sqlite, sqlite3, gd, zip y las extensiones exigidas por Composer. Composer 2. Node 24 LTS y npm. Laravel 13, Inertia 3, Tailwind 4, Excel 4 / PhpSpreadsheet 5 y PHPUnit 12. SQLite para uso local. Los lockfiles forman parte del repositorio.
 
 En este equipo, PHP 8.5 está en `/opt/homebrew/opt/php@8.5/bin/php`. Antes de usar Composer en este checkout:
 
@@ -53,10 +53,10 @@ Las pruebas usan SQLite en memoria y archivos falsos; la concurrencia se verific
 - `app/Modules/Pricing`: proyección que distingue precios pendientes y pérdidas, y cálculo de precio por margen/recargo con comisión opcional.
 - `resources/js/Components/Importations`: resumen, hoja, gastos, documentos, precios, revisión e historial.
 
-Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Laravel 13 y PHP 8.5 ya forman parte del entorno actual. Inertia v3 ya está alineado y verificado; su contrato y recuperación se documentan en `docs/INERTIA_UPGRADE.md`. La migración de CSS conserva su validación visual independiente.
+Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Laravel 13 y PHP 8.5 ya forman parte del entorno actual. Inertia v3 ya está alineado y verificado; su contrato y recuperación se documentan en `docs/INERTIA_UPGRADE.md`. Tailwind 4.3.3 usa su plugin Vite y configuración CSS; la comparación de la migración y sus límites se documentan en `docs/TAILWIND_UPGRADE.md`. El diseño global y la accesibilidad siguen en revisión.
 
 ## Funciones avanzadas actuales
 
 En la hoja de productos, «Pegar / importar CSV» permite mapear columnas, revisar cada fila e importar todo el lote sin duplicar reintentos. Acepta hasta 1.000 filas, texto UTF-8 y punto decimal. En Precios, «Precio por objetivo» compara precios por margen o recargo, con comisión opcional y redondeo hacia arriba. La vista previa no escribe costos; aplicar requiere la revisión vigente. Consulta la política para las fórmulas y la diferencia entre utilidad del resumen y utilidad tras comisión.
 
-SQLite limita la espera de bloqueos mediante `DB_BUSY_TIMEOUT` (1.000 ms por defecto); la acción de mutación usa una revisión condicional y reintentos acotados. Las rutas heredadas aún aceptan una versión omitida mientras se completa la migración de sus clientes.
+SQLite limita la espera de bloqueos mediante `DB_BUSY_TIMEOUT` (1.000 ms por defecto); la acción de mutación usa una revisión condicional y reintentos acotados. Toda mutación de una importación existente exige la revisión esperada; omitirla se rechaza antes de escribir.

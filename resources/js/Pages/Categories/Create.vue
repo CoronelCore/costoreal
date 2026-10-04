@@ -195,7 +195,7 @@ const submit = () => {
                                         :icon="form.icono"
                                         :color="form.color"
                                         size="lg"
-                                        class="!h-12 !w-12"
+                                        class="h-12! w-12!"
                                     />
                                 </div>
                                 <div>

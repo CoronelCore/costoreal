@@ -78,7 +78,7 @@ const deleteCategory = (category) => {
                     <!-- Icon and Name -->
                     <div class="flex items-start gap-4 mb-4">
                         <div
-                            class="flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center transition-transform hover:scale-110"
+                            class="shrink-0 w-14 h-14 rounded-lg flex items-center justify-center transition-transform hover:scale-110"
                             :style="{ backgroundColor: category.color + '20' }"
                         >
                             <CategoryIcon
@@ -113,7 +113,7 @@ const deleteCategory = (category) => {
                     <!-- Warning if has expenses -->
                     <div v-if="category.expenses_count > 0" class="mb-4">
                         <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                            <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                            <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                             <p class="text-xs text-amber-800 dark:text-amber-200">
                                 Tiene gastos asociados
                             </p>

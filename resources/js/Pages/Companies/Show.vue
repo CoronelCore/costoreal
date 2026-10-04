@@ -90,14 +90,14 @@ const deleteCompany = () => {
         <!-- Header with Gradient Background -->
         <div class="card overflow-hidden mb-8">
             <!-- Gradient Header -->
-            <div class="relative bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 p-8">
+            <div class="relative bg-linear-to-br from-primary-500 via-primary-600 to-primary-700 p-8">
                 <!-- Decorative pattern overlay -->
                 <div class="absolute inset-0 bg-grid-white/10"></div>
 
                 <div class="relative flex items-start justify-between">
                     <div class="flex items-start gap-6">
                         <!-- Large Company Icon -->
-                        <div class="flex-shrink-0 p-6 rounded-2xl bg-white/10 backdrop-blur-sm shadow-xl border border-white/20">
+                        <div class="shrink-0 p-6 rounded-2xl bg-white/10 backdrop-blur-xs shadow-xl border border-white/20">
                             <CompanyIcon
                                 :icon="company.icono"
                                 :color="company.color"

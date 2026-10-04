@@ -36,7 +36,7 @@ const gradientClasses = computed(() => {
     const gradients = {
         primary: 'bg-gradient-primary',
         success: 'bg-gradient-success',
-        warning: 'bg-gradient-to-br from-warning-400 to-warning-600',
+        warning: 'bg-linear-to-br from-warning-400 to-warning-600',
         danger: 'bg-gradient-danger'
     };
     return gradients[props.variant];
@@ -46,8 +46,8 @@ const textGradientClasses = computed(() => {
     const textGradients = {
         primary: 'text-gradient-primary',
         success: 'text-gradient-success',
-        warning: 'bg-gradient-to-br from-warning-500 to-warning-700 bg-clip-text text-transparent',
-        danger: 'bg-gradient-to-br from-danger-500 to-danger-700 bg-clip-text text-transparent'
+        warning: 'bg-linear-to-br from-warning-500 to-warning-700 bg-clip-text text-transparent',
+        danger: 'bg-linear-to-br from-danger-500 to-danger-700 bg-clip-text text-transparent'
     };
     return textGradients[props.variant];
 });

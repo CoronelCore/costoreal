@@ -5,13 +5,12 @@ const props = defineProps({
     variant: {
         type: String,
         default: 'gray',
-        validator: (value) => ['success', 'warning', 'danger', 'info', 'gray'].includes(value)
+        validator: (value) => ['primary', 'success', 'warning', 'danger', 'info', 'gray'].includes(value)
     }
 });
 
-const badgeClasses = computed(() => {
-    return `badge badge-${props.variant}`;
-});
+const variants = { primary: 'badge-primary', success: 'badge-success', warning: 'badge-warning', danger: 'badge-danger', info: 'badge-info', gray: 'badge-gray' };
+const badgeClasses = computed(() => `badge ${variants[props.variant] || variants.gray}`);
 </script>
 
 <template>

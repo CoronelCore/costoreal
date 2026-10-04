@@ -18,7 +18,7 @@ const props = defineProps({
             <thead>
                 <tr>
                     <th v-for="col in columns" :key="`header-${col}`">
-                        <div class="shimmer h-4 w-24 rounded"></div>
+                        <div class="shimmer h-4 w-24 rounded-sm"></div>
                     </th>
                 </tr>
             </thead>
@@ -27,7 +27,7 @@ const props = defineProps({
             <tbody>
                 <tr v-for="row in rows" :key="`row-${row}`">
                     <td v-for="col in columns" :key="`cell-${row}-${col}`">
-                        <div class="shimmer h-5 rounded" :style="{ width: getRandomWidth() }"></div>
+                        <div class="shimmer h-5 rounded-sm" :style="{ width: getRandomWidth() }"></div>
                     </td>
                 </tr>
             </tbody>

@@ -110,7 +110,7 @@ const deleteCategory = () => {
         <!-- Alert if has expenses -->
         <Alert v-if="category.expenses_count > 0" type="warning" class="mb-6">
             <div class="flex items-start gap-2">
-                <ExclamationTriangleIcon class="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" />
                 <div class="text-sm">
                     <p class="font-medium mb-1">Esta categoría tiene {{ category.expenses_count }} gastos asociados</p>
                     <p>No puedes eliminar esta categoría mientras tenga gastos registrados. Reasigna los gastos a otra categoría primero.</p>
@@ -243,7 +243,7 @@ const deleteCategory = () => {
                                         :icon="form.icono"
                                         :color="form.color"
                                         size="lg"
-                                        class="!h-12 !w-12"
+                                        class="h-12! w-12!"
                                     />
                                 </div>
                                 <div>

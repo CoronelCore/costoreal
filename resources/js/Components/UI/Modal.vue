@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick, watch } from 'vue';
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 
@@ -24,6 +24,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'closed']);
+let returnFocus = null;
+watch(() => props.show, (visible) => {
+    if (visible) {
+        const active = document.activeElement;
+        returnFocus = active instanceof HTMLElement && active !== document.body ? active : null;
+    }
+}, { flush: 'sync', immediate: true });
+
+const finishClose = async () => {
+    await nextTick();
+    if (props.show) return;
+    if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+    returnFocus = null;
+    emit('closed');
+};
 
 const close = () => {
     if (props.closeable) {
@@ -45,7 +60,7 @@ const maxWidthClass = computed(() => {
 </script>
 
 <template>
-    <TransitionRoot :show="show" as="template" @after-leave="emit('closed')">
+    <TransitionRoot :show="show" as="template" @after-leave="finishClose">
         <Dialog as="div" class="financial-overlay relative z-50" @close="close">
             <!-- Backdrop -->
             <TransitionChild
