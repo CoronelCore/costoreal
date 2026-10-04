@@ -36,7 +36,7 @@ Margen sobre venta = (ingreso − costo) / ingreso. Recargo sobre costo es una m
 
 Cerrar exige productos, tasas conocidas y gasto sin asignar igual a cero. Los precios pendientes y los comprobantes ausentes son advertencias. Un cierre bloquea las mutaciones normales y conserva una ejecución con entradas, resultado, reparto, actor y versión. Reabrir conserva esa ejecución y crea una nueva revisión. Los reportes históricos se reconstruyen desde el snapshot solicitado y no desde los precios o tasas actuales.
 
-La versión esperada permite rechazar escrituras desde una pestaña obsoleta. Los formularios renovados la envían; la obligatoriedad en todos los clientes heredados se completa al migrar las pantallas y sus contratos.
+La revisión esperada es obligatoria en todas las mutaciones de una importación existente. Permite rechazar escrituras desde una pestaña obsoleta antes de modificar datos. Crear una importación nueva no exige una revisión anterior.
 
 ## Precio por objetivo
 
@@ -60,4 +60,12 @@ El precio se calcula a partir del costo exacto de la línea dividido por su cant
 
 ## Concurrencia local
 
-La acción de mutación reclama la siguiente revisión mediante una actualización condicional dentro de la transacción, antes de escribir hijos o costos. En SQLite se reintentan bloqueos transitorios desde una transacción externa limpia, con espera acotada; una revisión obsoleta o un bloqueo persistente generan un conflicto legible y ningún cambio parcial. Una prueba con dos procesos independientes verifica una sola revisión, un solo snapshot y un solo evento de auditoría. La versión esperada sigue siendo opcional en rutas heredadas durante el puente de migración; completar su obligatoriedad y los clientes restantes continúa pendiente.
+La acción de mutación reclama la siguiente revisión mediante una actualización condicional dentro de la transacción, antes de escribir hijos o costos. En SQLite se reintentan bloqueos transitorios desde una transacción externa limpia, con espera acotada; una revisión obsoleta o un bloqueo persistente generan un conflicto legible y ningún cambio parcial. Una prueba con dos procesos independientes verifica una sola revisión, un solo snapshot y un solo evento de auditoría. Toda mutación de una importación existente exige revisión esperada. La asignación de empresa por lote exige la revisión de cada importación y revierte el lote completo ante un conflicto.
+
+## Trazabilidad del reparto y lectura histórica
+
+Las nuevas ejecuciones registran por gasto y producto la base usada, la base del lote, la parte entera, la fracción restante como numerador/denominador exactos, el orden de prioridad, el total de pesos residuales y la adjudicación de cero o un peso. La regla financiera y el identificador largest-remainder-clp-v1 permanecen iguales: esta información explica el resultado sin cambiarlo.
+
+El desglose se consulta bajo demanda y devuelve 20 repartos por página. Sus nombres, cantidades, importes y tasas proceden de la revisión conservada, aunque el producto o gasto actual haya cambiado o se haya retirado. La página inicial no carga el JSON completo de cost_runs ni sus allocations.
+
+Después de migrar, costoreal:cost-read-backfill prepara índices de lectura para ejecuciones anteriores. Es reentrante y acepta --limit para procesarlas por etapas; no recalcula ni reescribe input, result, snapshot, input_hash, revisiones o asignaciones originales. Las revisiones sin detalle de redondeo lo indican explícitamente; no se inventa una trazabilidad histórica.

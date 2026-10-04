@@ -56,10 +56,12 @@ final class CostEngine
                 }
                 $weights[$line['id']] = BigDecimal::of($value);
             }
-            foreach ($this->allocate($amount, $weights) as $id => $value) {
+            foreach ($this->allocate($amount, $weights) as $id => $allocation) {
+                $value = $allocation['amount'];
                 $computed[$id]['assigned'] = (string) BigDecimal::of($computed[$id]['assigned'])->plus($value);
                 $assigned = $assigned->plus($value);
-                $allocations[] = ['expense_id' => $expense['id'], 'product_id' => $id, 'amount' => (string) $value, 'method' => $method];
+                $allocations[] = ['expense_id' => $expense['id'], 'product_id' => $id, 'amount' => (string) $value, 'method' => $method,
+                    'trace' => $allocation['trace']];
             }
         }
         foreach ($computed as &$line) {
@@ -91,10 +93,16 @@ final class CostEngine
         $ids = array_keys($weights);
         usort($ids, fn ($a, $b) => $remainders[$b]->compareTo($remainders[$a]) ?: strnatcmp((string) $a, (string) $b));
         $residual = $amount->minus($assigned)->toInt();
-        for ($i = 0; $i < $residual; $i++) {
-            $shares[$ids[$i]] = $shares[$ids[$i]]->plus(1);
+        $rank = array_flip($ids);
+        $result = [];
+        foreach ($shares as $id => $floor) {
+            $award = $rank[$id] < $residual ? 1 : 0;
+            $result[$id] = ['amount' => $floor->plus($award), 'trace' => [
+                'version' => 1, 'expense_amount' => (string) $amount, 'basis' => (string) $weights[$id], 'basis_total' => (string) $sum,
+                'floor' => (string) $floor, 'remainder_numerator' => (string) $remainders[$id], 'remainder_denominator' => (string) $sum,
+                'priority' => $rank[$id] + 1, 'residual_pool' => $residual, 'residual_award' => $award]];
         }
 
-        return $shares;
+        return $result;
     }
 }

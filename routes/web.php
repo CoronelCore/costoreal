@@ -3,6 +3,7 @@
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CostBreakdownController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
@@ -72,6 +73,8 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::post('trips/{trip}/scenarios/{scenario}/apply', [ScenarioController::class, 'apply'])->name('trips.scenarios.apply');
     Route::get('trips/{trip}/audit-events', [AuditController::class, 'index'])->name('trips.audit.index');
     Route::get('trips/{trip}/audit-events/{auditEvent}', [AuditController::class, 'show'])->name('trips.audit.show');
+    Route::get('trips/{trip}/cost-runs/{runId}/products/{productId}', [CostBreakdownController::class, 'show'])
+        ->whereNumber(['runId', 'productId'])->name('trips.cost-breakdown.show');
 
     // Nested routes for expenses and products
     Route::post('trips/{trip}/expenses', [ExpenseController::class, 'store'])->name('trips.expenses.store');

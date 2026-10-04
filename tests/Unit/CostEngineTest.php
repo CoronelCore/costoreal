@@ -104,4 +104,25 @@ final class CostEngineTest extends TestCase
         $this->expectException(DomainException::class);
         Money::of('10', 'CLP')->plus(Money::of('10', 'USD'));
     }
+
+    public function test_trace_explains_exact_fractions_stable_ties_and_the_residual_award(): void
+    {
+        $r = (new CostEngine)->calculate([$this->line(10), $this->line(2), $this->line(1)], [['id' => 7, 'amount_clp' => '2']]);
+        $this->assertSame([1, 2, 3], array_column(array_column($r->allocations, 'trace'), 'priority'));
+        $this->assertSame([1, 1, 0], array_column(array_column($r->allocations, 'trace'), 'residual_award'));
+        foreach ($r->allocations as $allocation) {
+            $trace = $allocation['trace'];
+            $this->assertSame('0', $trace['floor']);
+            $this->assertSame('2', $trace['remainder_numerator']);
+            $this->assertSame('3', $trace['remainder_denominator']);
+            $this->assertSame(2, $trace['residual_pool']);
+            $this->assertSame($allocation['amount'], (string) BigDecimal::of($trace['floor'])->plus($trace['residual_award']));
+        }
+        $r = (new CostEngine)->calculate([$this->line(1) + ['weight' => '1.25'], $this->line(2) + ['weight' => '3.75']], [['id' => 1, 'amount_clp' => '3', 'method' => 'weight']]);
+        $this->assertSame('1.25', $r->allocations[0]['trace']['basis']);
+        $this->assertSame('5.00', $r->allocations[0]['trace']['basis_total']);
+        $this->assertSame('3.75', $r->allocations[0]['trace']['remainder_numerator']);
+        $this->assertSame('1', $r->allocations[0]['amount']);
+        $this->assertSame('2', $r->allocations[1]['amount']);
+    }
 }

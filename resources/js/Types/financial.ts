@@ -109,6 +109,19 @@ export interface Allocation {
     product_id: number;
     amount: Decimal;
     method: AllocationMethod;
+    trace?: AllocationTrace;
+}
+export interface AllocationTrace {
+    version: 1; expense_amount: Decimal; basis: Decimal; basis_total: Decimal; floor: Decimal;
+    remainder_numerator: Decimal; remainder_denominator: Decimal; priority: number; residual_pool: number; residual_award: 0 | 1;
+}
+export interface CostLineDetail extends CostLine {
+    name: string; currency: Currency; rate_mode: RateMode; rate: Decimal | null; rate_source: string; rate_date: string | null;
+}
+export interface CostAllocationDetail extends Omit<Allocation, 'trace'> { name: string; trace: AllocationTrace | null }
+export interface CostBreakdown {
+    current_revision: number; run: CostRunSummary; line: CostLineDetail;
+    totals: Omit<CostResult, 'lines' | 'allocations'>; allocations: Pagination<CostAllocationDetail>;
 }
 export interface CostResult {
     currency: 'CLP';
@@ -181,7 +194,7 @@ export interface ImportShowProps {
     projection: SalesProjection;
     categories: NamedRecord[];
     costRuns: CostRunSummary[];
-    costBreakdown: CostResult | null;
+    latestCostRun: CostRunSummary | null;
     history: Pagination<AuditEventSummary>;
     scenarios: Pagination<ScenarioSummary>;
     lastPricingBatch: PricingBatch | null;

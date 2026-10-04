@@ -23,7 +23,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'closed']);
 
 const close = () => {
     if (props.closeable) {
@@ -45,7 +45,7 @@ const maxWidthClass = computed(() => {
 </script>
 
 <template>
-    <TransitionRoot :show="show" as="template">
+    <TransitionRoot :show="show" as="template" @after-leave="emit('closed')">
         <Dialog as="div" class="financial-overlay relative z-50" @close="close">
             <!-- Backdrop -->
             <TransitionChild

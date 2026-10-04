@@ -37,7 +37,7 @@ const confirm = () => { busy.value = true; confirmation.value?.action(); };
         <nav class="f-tabs" aria-label="Secciones de la importación"><button v-for="tab in tabs" :key="tab.id" :class="{active:activeTab === tab.id}" :aria-current="activeTab === tab.id ? 'page' : undefined" @click="setTab(tab.id)">{{ tab.label }} <span v-if="tab.count !== undefined" class="f-hint">{{ tab.count }}</span></button></nav>
         <div class="f-actions" style="justify-content:flex-end;margin-bottom:16px"><button class="f-button" @click="askTrash" :disabled="busy">Mover a la papelera</button></div>
         <ImportSummary v-if="activeTab === 'resumen'" :trip="trip" :stats="estadisticas" :projection="projection" @tab="setTab" />
-        <ProductSheet v-else-if="activeTab === 'productos'" :trip="trip" :breakdown="costBreakdown" @delete="item => askDelete('products',item)" />
+        <ProductSheet v-else-if="activeTab === 'productos'" :trip="trip" :latest-run="latestCostRun" @delete="item => askDelete('products',item)" />
         <ExpensePanel v-else-if="activeTab === 'gastos'" :trip="trip" :categories="categories" @delete="item => askDelete('expenses',item)" />
         <DocumentPanel v-else-if="activeTab === 'documentos'" :trip="trip" :trashed="trashedDocuments" />
         <PricePanel v-else-if="activeTab === 'precio-venta'" :trip="trip" :projection="projection" :last-batch="lastPricingBatch" />
