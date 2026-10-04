@@ -4,9 +4,10 @@ namespace App\Exports;
 
 use App\Models\Trip;
 use App\Modules\Reporting\FinancialSummaryData;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class TripExport implements WithMultipleSheets
+class TripExport implements Export, WithMultipleSheets
 {
     protected $trip;
 

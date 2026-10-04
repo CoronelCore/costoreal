@@ -2,15 +2,17 @@
 
 Control personal de importaciones: compra, conversión de moneda, gastos, reparto exacto, precio proyectado, revisiones y reportes. Preparado para crecer mediante módulos internos de acceso, importaciones, costeo, precios, documentos y reportes.
 
-## Entorno puente
+## Entorno actual
 
-PHP 8.3 con mbstring, pdo_sqlite, sqlite3, gd, zip y las extensiones exigidas por Composer. Composer 2. Node 24 LTS y npm. SQLite para uso local. Los lockfiles forman parte del repositorio.
+PHP 8.5 con mbstring, pdo_sqlite, sqlite3, gd, zip y las extensiones exigidas por Composer. Composer 2. Node 24 LTS y npm. Laravel 13, Excel 4 / PhpSpreadsheet 5 y PHPUnit 12. SQLite para uso local. Los lockfiles forman parte del repositorio.
 
-En este equipo, PHP 8.3 está en `/opt/homebrew/opt/php@8.3/bin/php`. Antes de usar Composer en este checkout:
+En este equipo, PHP 8.5 está en `/opt/homebrew/opt/php@8.5/bin/php`. Antes de usar Composer en este checkout:
 
 ```sh
-export PATH="/opt/homebrew/opt/php@8.3/bin:$PATH"
+export PATH="/opt/homebrew/opt/php@8.5/bin:$PATH"
 ```
+
+El ejecutable `bin/php` selecciona PHP 8.5 en Homebrew o en tu PATH; `COSTOREAL_PHP_BIN` permite indicar otra instalación 8.5 y rechaza una versión incompatible. Usa `bin/php artisan ...` para evitar ejecutar el checkout con otro PHP. Los servicios de este equipo usan ese runtime.
 
 Instalación de un checkout limpio:
 
@@ -36,7 +38,7 @@ composer audit
 npm audit
 ```
 
-CI ejecuta formato, pruebas PHP, pruebas de presentación decimal y fechas, y build sobre PHP 8.3 / Node 24. Una configuración de CI no demuestra por sí misma que haya corrido en GitHub.
+CI ejecuta formato, pruebas PHP, pruebas de presentación decimal y fechas, y build sobre PHP 8.5 / Node 24. PHPUnit limita la suite completa a 256 MB y recoge objetos periódicamente entre pruebas de exportación; ese ajuste no cambia el límite del servicio HTTP. Una configuración de CI no demuestra por sí misma que haya corrido en GitHub.
 
 Las pruebas usan SQLite en memoria y archivos falsos; la concurrencia se verifica con dos procesos y una base temporal independiente. La prueba visual usa una base independiente fuera del checkout, con datos claramente sintéticos; no llena las importaciones personales con ejemplos.
 
@@ -51,7 +53,7 @@ Las pruebas usan SQLite en memoria y archivos falsos; la concurrencia se verific
 - `app/Modules/Pricing`: proyección que distingue precios pendientes y pérdidas, y cálculo de precio por margen/recargo con comisión opcional.
 - `resources/js/Components/Importations`: resumen, hoja, gastos, documentos, precios, revisión e historial.
 
-Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Las actualizaciones mayores de framework, adaptadores y CSS se validan en entregas independientes del entorno puente.
+Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Laravel 13 y PHP 8.5 ya forman parte del entorno actual. Las actualizaciones de Inertia y CSS se validan en entregas independientes.
 
 ## Funciones avanzadas actuales
 

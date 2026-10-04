@@ -1,44 +1,18 @@
-#!/bin/bash
+#!/bin/sh
+set -eu
 
-echo "═══════════════════════════════════════════════════════════"
-echo "  Arreglo Rápido - Problema de Empresas en Servidor"
-echo "═══════════════════════════════════════════════════════════"
-echo ""
-
-echo "📦 Paso 1: Actualizando autoload de Composer..."
-composer dump-autoload --optimize
-
-if [ $? -ne 0 ]; then
-    echo "❌ Error al ejecutar composer dump-autoload"
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$repo_root"
+composer_cli=$(command -v composer || true)
+if [ -z "$composer_cli" ]; then
+    echo 'Instala Composer 2 antes de regenerar los archivos del servicio.' >&2
     exit 1
 fi
 
-echo "✅ Autoload actualizado"
-echo ""
+bin/php "$composer_cli" dump-autoload --optimize
+bin/php artisan optimize:clear
+bin/php artisan config:cache
+bin/php artisan route:cache
+bin/php artisan view:cache
 
-echo "🧹 Paso 2: Limpiando todos los cachés de Laravel..."
-
-php artisan config:clear
-php artisan cache:clear
-php artisan view:clear
-php artisan route:clear
-php artisan optimize:clear
-
-echo "✅ Cachés limpiados"
-echo ""
-
-echo "🔄 Paso 3: Optimizando para producción..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-echo "✅ Optimización completa"
-echo ""
-
-echo "═══════════════════════════════════════════════════════════"
-echo "  ¡Listo! Ahora recarga tu navegador"
-echo "═══════════════════════════════════════════════════════════"
-echo ""
-echo "🌐 Visita: https://costoreal.kruje.cl/"
-echo "   Presiona: Ctrl + Shift + R (recarga forzada)"
-echo ""
+echo 'Autoload y cachés regenerados con PHP 8.5. Reinicia los workers de ese servicio.'

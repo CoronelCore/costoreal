@@ -20,6 +20,9 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
+    // Keep existing session payloads readable during the framework upgrade.
+    'serialization' => 'php',
+
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

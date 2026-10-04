@@ -49,7 +49,7 @@ class TripSummarySheet extends SafeValueBinder implements FromArray, WithColumnF
         return 'Resumen';
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): array
     {
         return [1 => ['font' => ['bold' => true, 'size' => 16]], 11 => ['font' => ['bold' => true]], 15 => ['font' => ['bold' => true]],
             18 => ['font' => ['bold' => true]], 'B9' => ['numberFormat' => ['formatCode' => '0.00000000']],

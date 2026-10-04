@@ -54,7 +54,7 @@ class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumn
         return 'Productos';
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): array
     {
         return [1 => ['font' => ['bold' => true]]];
     }

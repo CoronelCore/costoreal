@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+php_cli="${COSTOREAL_PHP_BIN:-}"
+if [ -z "$php_cli" ]; then
+    if [ -x /opt/homebrew/opt/php@8.5/bin/php ]; then
+        php_cli=/opt/homebrew/opt/php@8.5/bin/php
+    else
+        php_cli=$(command -v php || true)
+    fi
+fi
+if [ -z "$php_cli" ] || [ ! -x "$php_cli" ]; then
+    echo 'Instala PHP 8.5 o configura COSTOREAL_PHP_BIN con su ruta.' >&2
+    exit 1
+fi
+if ! "$php_cli" -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'; then
+    echo 'Costo Real requiere PHP 8.5. Revisa COSTOREAL_PHP_BIN y tu PATH.' >&2
+    exit 1
+fi
+exec "$php_cli" "$@"
