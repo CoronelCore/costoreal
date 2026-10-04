@@ -138,3 +138,5 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - UI QA original: producto pagado mantiene tasa 950.12345678, fuente/fecha y gasto asignado 27.808. La revisión 10 indica que su detalle residual no fue registrado. Se conservan las revisiones y costos originales; la demostración nueva solo existe en work/cost-read-ui.sqlite.
 - Ocho pruebas de lectura/seguridad/backfill/atomicidad/no asignación y una del trace exacto. Typecheck, build y nueve tests frontend pasan. Costeo de 1.000 líneas: 72 consultas, 453 ms en el recorrido local de esta entrega; la duración depende del equipo, no es un SLA.
 - CR-026/032 verificados; CR-019 continúa con comparación de costos heredados, CR-021/040 con los perfiles y presupuestos restantes. La matriz completa de accesibilidad/temas/zoom permanece en CR-030.
+
+- Checkpoint `8738060`: archivo Git limpio, setup/build/types, 136 pruebas PHP (2.005 aserciones), nueve frontend y Pint pasan en instalación nueva. Presupuestos de lectura de prueba: 20/500 gastos → 8/8 consultas y 7.270/8.718 bytes. Copias migradas personal/QA restauradas y comparadas en nueve tablas; la base personal continúa sin fixtures.
