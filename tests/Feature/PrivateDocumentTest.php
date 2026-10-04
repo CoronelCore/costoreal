@@ -59,6 +59,59 @@ class PrivateDocumentTest extends TestCase
         Storage::disk('local')->assertExists($d->storage_path);
     }
 
+    public function test_invalid_expense_edit_preserves_amount_revision_receipt_and_private_files(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $trip = $this->trip($user);
+        $this->actingAs($user)->post("/trips/{$trip->id}/expenses", [
+            'expected_revision' => 1, 'concepto' => 'Flete conservado', 'moneda' => 'USD',
+            'monto' => '20.25', 'comprobante' => UploadedFile::fake()->image('original.png'),
+        ])->assertSessionHasNoErrors();
+        $expense = $trip->expenses()->firstOrFail();
+        $before = $expense->getAttributes();
+        $revision = $trip->fresh()->revision;
+        $files = Storage::disk('local')->allFiles();
+        $this->postJson("/trips/{$trip->id}/expenses/{$expense->id}", [
+            '_method' => 'put', 'expected_revision' => $revision, 'concepto' => 'Borrador inválido',
+            'moneda' => 'USD', 'monto' => '-1', 'eliminar_comprobante' => true,
+            'comprobante' => UploadedFile::fake()->createWithContent('invalid.txt', 'No es un comprobante admitido'),
+        ])->assertUnprocessable()->assertJsonValidationErrors(['monto', 'comprobante'])
+            ->assertJsonPath('errors.monto.0', 'El monto no puede ser negativo.')
+            ->assertJsonPath('errors.comprobante.0', 'El comprobante debe ser PDF, JPEG, PNG o WebP.');
+        $this->assertSame($before, $expense->fresh()->getAttributes());
+        $this->assertSame($revision, $trip->fresh()->revision);
+        $this->assertSame($files, Storage::disk('local')->allFiles());
+        $this->assertSame(1, $trip->documents()->count());
+    }
+
+    public function test_edit_without_upload_retains_receipt_and_unlink_keeps_document_available(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $trip = $this->trip($user);
+        $this->actingAs($user)->post("/trips/{$trip->id}/expenses", [
+            'expected_revision' => 1, 'concepto' => 'Flete', 'moneda' => 'USD',
+            'monto' => '20', 'comprobante' => UploadedFile::fake()->image('receipt.png'),
+        ])->assertSessionHasNoErrors();
+        $expense = $trip->expenses()->firstOrFail();
+        $document = $trip->documents()->firstOrFail();
+        $fields = ['_method' => 'put', 'expected_revision' => $trip->fresh()->revision,
+            'concepto' => 'Flete corregido sin archivo nuevo', 'moneda' => 'USD', 'monto' => '21.25'];
+        $this->post("/trips/{$trip->id}/expenses/{$expense->id}", $fields)->assertSessionHasNoErrors();
+        $this->assertSame($document->id, $expense->fresh()->document_id);
+        $this->assertSame('Flete corregido sin archivo nuevo', $expense->fresh()->concepto);
+        $this->assertEquals(19125, $expense->fresh()->monto_clp);
+        $this->post("/trips/{$trip->id}/expenses/{$expense->id}", [
+            ...$fields, 'expected_revision' => $trip->fresh()->revision, 'eliminar_comprobante' => true,
+        ])->assertSessionHasNoErrors();
+        $this->assertNull($expense->fresh()->document_id);
+        $this->assertNull($expense->fresh()->comprobante);
+        $this->assertSame(1, $trip->documents()->count());
+        Storage::disk('local')->assertExists($document->storage_path);
+        $this->get("/trips/{$trip->id}/documents/{$document->id}")->assertOk();
+    }
+
     public function test_conflict_discards_staged_file_and_foreign_upload_never_writes(): void
     {
         Storage::fake('local');

@@ -1199,3 +1199,8 @@
         min-height: 44px;
     }
 }
+
+/* Keep optional hints from stretching neighboring expense controls. */
+.f-expense-grid > .f-field {
+    align-self: start;
+}

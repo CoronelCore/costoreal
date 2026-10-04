@@ -13,7 +13,7 @@ import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { useRoute } from '@/Composables/useRoute';
 import { inputValue } from '@/Utils/input';
 import type { ImportDetail, ProductData, ProductDraft, ProductMutation, ProductRevision, MutationReceipt, ValidationFailure, CostRunSummary } from '@/Types/financial';
-import { requestErrors } from '@/Utils/validation';
+import { requestErrors, formFieldErrors } from '@/Utils/validation';
 import type { ProductEditorDraft } from '@/Types/creation';
 import type { ConflictChoices } from '@/Utils/productConflict';
 const props = defineProps<{ trip: ImportDetail; latestRun: CostRunSummary | null; embedded?: boolean; draftState?: ProductEditorDraft | null }>();
@@ -115,7 +115,7 @@ const add = async () => {
     try {
         await axios.post<MutationReceipt>(route('trips.products.store',props.trip.id),form.data(),{headers:{Accept:'application/json'}});
         form.reset(); adding.value = false; router.reload();
-    } catch(failure) { Object.assign(form.errors,requestErrors(failure,'save','No se pudo guardar el producto. Tu borrador se conserva.')); }
+    } catch(failure) { Object.assign(form.errors,formFieldErrors(requestErrors(failure,'save','No se pudo guardar el producto. Tu borrador se conserva.'))); }
     finally { embedSaving.value = false; }
 };
 if (props.draftState) {

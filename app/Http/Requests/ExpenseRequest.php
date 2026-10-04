@@ -11,6 +11,18 @@ class ExpenseRequest extends CostedLineRequest
         return $this->user()->can('update', $this->route('trip'));
     }
 
+    public function messages(): array
+    {
+        return [...parent::messages(),
+            'expense_category_id.exists' => 'Selecciona una categoría de tu espacio de trabajo.',
+            'allocation_method.in' => 'Selecciona una regla de reparto admitida.',
+            'target_product_id.required_if' => 'Selecciona el producto que recibe este gasto.',
+            'target_product_id.exists' => 'Selecciona un producto de esta importación.',
+            'comprobante.file' => 'Selecciona un archivo válido como comprobante.',
+            'comprobante.mimes' => 'El comprobante debe ser PDF, JPEG, PNG o WebP.',
+            'comprobante.max' => 'El comprobante no puede superar 10 MB.'];
+    }
+
     public function rules(): array
     {
         return [...$this->metadataRules(), 'expense_category_id' => ['nullable', Rule::exists('expense_categories', 'id')->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $this->user()->id))],

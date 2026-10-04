@@ -28,7 +28,7 @@ Dirección vigente: uso personal preparado para crecer; interfaz financiera clar
 
 - **Borrador:** progreso de alta independiente del costo definitivo; revisión propia y reintento idempotente. Un editor pendiente debe guardarse o cancelarse antes de terminar.
 - **En curso:** estado interno `activo`; permite cambios con `expected_revision` y recálculo atómico. La pantalla indica revisión e importes guardados.
-- **Cerrada:** estado interno `cerrado`; mutaciones normales bloqueadas en servidor. Conserva un snapshot; reabrir con motivo permite una nueva revisión sin reemplazar el cierre.
+- **Cerrada:** estado interno `finalizado`; mutaciones normales bloqueadas en servidor. Conserva un snapshot; reabrir con motivo permite una nueva revisión sin reemplazar el cierre.
 - **Archivada:** estado heredado `archivado`, disponible como filtro/lectura. La configuración no ofrece un cambio libre de estado.
 - **Papelera:** eliminación recuperable de la importación; excluida de indicadores habituales. Retención y retiro de archivos se rigen por `RETENTION.md`.
 - **Estimado / pagado:** procedencia de conversión; al cambiar la referencia solo se revalúan estimaciones. Los pagos conservan importe/tasa registrados.

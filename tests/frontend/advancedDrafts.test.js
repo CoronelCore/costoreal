@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bulkRequest, bulkMultipart, pricingRequest, scenarioProductChange, scenarioExpenseChange, cloneScenarioInput, scenarioRequest } from '../../resources/js/Utils/advancedDrafts.ts';
-import { validationErrors, requestErrors } from '../../resources/js/Utils/validation.ts';
+import { validationErrors, requestErrors, formFieldErrors } from '../../resources/js/Utils/validation.ts';
 
 test('file previews keep their file, column mapping and decimal text after the editor changes', async () => {
     const settings = { delimiter: ';', has_header: true, default_currency: 'USD', mapping: { nombre: 0, cantidad: 1, moneda: null, costo_unitario: 2, weight: 3, volume: null } };
@@ -61,4 +61,11 @@ test('validation boundaries reject malformed errors and keep actionable server m
     assert.deepEqual(requestErrors({ isAxiosError: true, response: { data: { errors: { conflict: ['Revisión obsoleta'] } } } }, 'import', 'Error de conexión'), { conflict: ['Revisión obsoleta'] });
     assert.deepEqual(requestErrors(new Error('offline'), 'import', 'Error de conexión'), { import: 'Error de conexión' });
     assert.deepEqual(validationErrors(null), {});
+});
+
+test('JSON and Inertia field errors render the same message without array notation', () => {
+    const text = 'Selecciona el producto que recibe este gasto.';
+    const json = requestErrors({ isAxiosError: true, response: { data: { errors: { target_product_id: [text], conflict: ['La revisión cambió.', 'Recarga antes de guardar.'] } } } }, 'save', 'Error de conexión');
+    assert.deepEqual(formFieldErrors(json), { target_product_id: text, conflict: 'La revisión cambió. Recarga antes de guardar.' });
+    assert.deepEqual(formFieldErrors({ target_product_id: text }), { target_product_id: text });
 });
