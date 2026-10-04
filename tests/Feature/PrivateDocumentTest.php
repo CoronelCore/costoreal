@@ -97,4 +97,28 @@ class PrivateDocumentTest extends TestCase
         $this->assertSame([], Storage::disk('local')->allFiles());
         $this->assertSame(0, Document::count());
     }
+
+    public function test_document_lifecycle_preserves_legacy_money_and_audits_real_document_changes_without_new_cost_runs(): void
+    {
+        Storage::fake('local');
+        $u = User::factory()->create();
+        $t = $this->trip($u);
+        $p = $t->products()->create(['nombre' => 'Importe heredado', 'moneda' => 'USD', 'cantidad' => 1, 'costo_unitario' => '100', 'subtotal_clp' => '99000', 'gastos_prorrateados_clp' => '0', 'costo_final_total_clp' => '99000', 'costo_final_unitario_clp' => '99000']);
+        $before = $p->fresh()->getAttributes();
+        $this->actingAs($u)->post("/trips/{$t->id}/documents", ['file' => UploadedFile::fake()->image('receipt.png'), 'expected_revision' => 1])->assertSessionHasNoErrors();
+        $doc = $t->documents()->firstOrFail();
+        $this->delete("/trips/{$t->id}/documents/{$doc->id}", ['expected_revision' => 2])->assertSessionHasNoErrors();
+        $this->post("/trips/{$t->id}/documents/{$doc->id}/restore", ['expected_revision' => 3])->assertSessionHasNoErrors();
+        $this->assertSame($before, $p->fresh()->getAttributes());
+        $this->assertSame(4, $t->fresh()->revision);
+        $this->assertSame(0, $t->costRuns()->count());
+        $events = $t->auditEvents()->orderBy('id')->get();
+        $this->assertSame([1, 0, 1], $events->map(fn ($e) => $e->summary['after']['documents'])->all());
+        $this->assertSame([0, 1, 0], $events->map(fn ($e) => $e->summary['before']['documents'])->all());
+        foreach ($events as $event) {
+            $this->assertSame('99000.00', $event->summary['before']['cost']);
+            $this->assertSame('99000.00', $event->summary['after']['cost']);
+        }
+        Storage::disk('local')->assertExists($doc->storage_path);
+    }
 }

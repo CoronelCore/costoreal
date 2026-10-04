@@ -37,6 +37,9 @@ final class MutateTrip
             $this->legacy->execute($current);
             $result = $mutation($current);
             $cost = $recalculate ? $this->costing->calcularProrrateo($current) : null;
+            if (! $recalculate) {
+                $current->load(['products', 'expenses', 'documents']);
+            }
             if ($verify && $cost) {
                 $verify($current, $cost);
             }

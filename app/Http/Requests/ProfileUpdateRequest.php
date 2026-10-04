@@ -28,4 +28,12 @@ class ProfileUpdateRequest extends FormRequest
             ],
         ];
     }
+
+    public function messages(): array
+    {
+        return ['name.required' => 'Ingresa tu nombre.', 'name.max' => 'El nombre admite hasta :max caracteres.',
+            'email.required' => 'Ingresa tu correo electrónico.', 'email.email' => 'Ingresa un correo electrónico válido.',
+            'email.lowercase' => 'Escribe el correo en minúsculas.', 'email.unique' => 'Este correo ya está asociado a otra cuenta.',
+            'email.max' => 'El correo admite hasta :max caracteres.'];
+    }
 }

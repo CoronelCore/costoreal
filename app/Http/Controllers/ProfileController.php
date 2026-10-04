@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Modules\Accounts\DeleteAccount;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,9 @@ class ProfileController extends Controller
     {
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'emailVerified' => $request->user()->email_verified_at !== null,
             'status' => session('status'),
+            'accountDeletion' => app(DeleteAccount::class)->readiness($request->user()),
         ]);
     }
 
@@ -51,9 +54,9 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        app(DeleteAccount::class)->execute($user);
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

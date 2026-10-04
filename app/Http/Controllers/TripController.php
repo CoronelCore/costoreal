@@ -87,13 +87,13 @@ class TripController extends Controller
         $batch = DB::table('pricing_batches')->where('trip_id', $trip->id)->latest('id')->first();
         $lastBatch = $batch ? ['revision' => (int) $batch->revision, 'policy' => PricingData::policy(json_decode($batch->policy, true, flags: JSON_THROW_ON_ERROR)),
             'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
-        $runs = $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->limit(50)->get();
+        $latestRun = $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->first();
 
         return Inertia::render('Trips/Show', ['initialTab' => $request->input('section'), 'trip' => ImportationData::detail($trip, $summary), 'lastPricingBatch' => $lastBatch, 'projection' => $summary->projection, 'estadisticas' => $summary->statistics,
             'scenarios' => fn () => app(ScenarioController::class)->listing($trip, 'scenario_page'),
             'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get()->map(fn ($d) => ImportationData::document($d)),
             'history' => fn () => app(AuditController::class)->listing($trip, 'history_page'),
-            'costRuns' => $runs, 'latestCostRun' => $runs->first(),
+            'latestCostRun' => $latestRun,
             'legacyBaseline' => LegacyCostBaseline::where('trip_id', $trip->id)->first(['id', 'revision', 'created_at']),
             'categories' => ExpenseCategory::visibleTo($request->user()->id)->orderBy('nombre')->get(['id', 'nombre'])]);
     }

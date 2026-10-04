@@ -32,18 +32,20 @@ final class ImportationData
 
     public static function detail(Trip $trip, FinancialSummaryData $summary): array
     {
+        $duplicates = $trip->documents->countBy('sha256');
+
         return [...self::configuration($trip), 'company' => self::company($trip),
             'costo_total' => $summary->statistics['costo_total'],
             'products' => $trip->products->map(fn ($p) => ProductData::fromModel($p))->all(),
             'expenses' => $trip->expenses->map(fn ($e) => self::expense($e))->all(),
-            'documents' => $trip->documents->map(fn ($d) => self::document($d))->all()];
+            'documents' => $trip->documents->map(fn ($d) => self::document($d, $duplicates[$d->sha256] ?? 1))->all()];
     }
 
-    public static function document(Document $document): array
+    public static function document(Document $document, int $sameContentCount = 1): array
     {
         return ['id' => (int) $document->id, 'filename' => $document->filename,
             'mime' => $document->mime, 'size' => (int) $document->size,
-            'kind' => $document->kind, 'download_url' => $document->download_url];
+            'kind' => $document->kind, 'same_content_count' => $sameContentCount, 'download_url' => $document->download_url];
     }
 
     private static function expense(Expense $expense): array

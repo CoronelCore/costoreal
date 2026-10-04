@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue';
 import axios from 'axios';
+import CostRunHistoryPanel from './CostRunHistoryPanel.vue';
 import ReconciliationPanel from './ReconciliationPanel.vue';
 import type { LegacyBaseline } from '@/Types/reconciliation';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
 import { useRoute } from '@/Composables/useRoute';
-import type { ImportDetail, Pagination, AuditEventSummary, CostRunSummary } from '@/Types/financial';
+import type { ImportDetail, Pagination, AuditEventSummary } from '@/Types/financial';
 import type { AuditComparison, AuditValue } from '@/Types/advanced';
-const props = defineProps<{ trip: ImportDetail; history: Pagination<AuditEventSummary>; runs: CostRunSummary[]; baseline: LegacyBaseline | null }>();
+const props = defineProps<{ trip: ImportDetail; history: Pagination<AuditEventSummary>; baseline: LegacyBaseline | null }>();
 const route = useRoute();
 const listing = ref(props.history);
 const expanded = ref<number | null>(null);
@@ -50,7 +51,7 @@ const page = async (number: number) => {
 <template>
     <ReconciliationPanel :trip="trip" />
     <section v-if="baseline" class="f-panel"><div class="f-panel-heading"><h2>Copia heredada conservada</h2><span class="f-hint">Revisión {{ baseline.revision }}</span></div><div class="f-panel-body"><p class="f-hint">Importes originales anteriores a su primer cambio o conciliación. El algoritmo y la procedencia histórica de las tasas permanecen sin verificar.</p><div class="f-actions" style="margin-top:12px"><a :href="`${route('trips.export.pdf',trip.id)}?baseline=${baseline.id}`" class="f-button">PDF de los importes originales</a><a :href="`${route('trips.export.excel',trip.id)}?baseline=${baseline.id}`" class="f-button">Excel de los importes originales</a></div></div></section>
-    <section class="f-panel"><div class="f-panel-heading"><h2>Revisiones conservadas</h2><span class="f-hint">Últimas 50 ejecuciones de costeo</span></div><div class="f-panel-body"><div v-for="run in runs" :key="run.id" class="f-breakdown-row" style="flex-wrap:wrap;align-items:center"><div><strong>Revisión {{ run.revision }} · {{ labels[run.reason] || run.reason }}</strong><p class="f-hint">{{ date(run.created_at) }} · {{ run.algorithm }}</p></div><div class="f-actions"><a :href="`${route('trips.export.pdf',trip.id)}?run=${run.id}`" class="f-button">PDF de esta revisión</a><a :href="`${route('trips.export.excel',trip.id)}?run=${run.id}`" class="f-button">Excel de esta revisión</a></div></div><p class="f-hint" style="margin-top:12px">La papelera y la restauración registran cambios de estado sin generar un nuevo cálculo. Los cierres anteriores conservan sus reportes.</p><p v-if="!runs.length" class="f-hint">Aún no hay una ejecución registrada. Los datos heredados conservan su procedencia sin verificar.</p></div></section>
+    <CostRunHistoryPanel :trip="trip" />
     <section class="f-panel"><div class="f-panel-heading"><h2>Registro de cambios</h2><span class="f-hint">{{ listing?.total || 0 }} eventos · comparación bajo demanda</span></div><div class="f-panel-body">
         <div v-if="error" class="f-notice f-notice-error" role="alert">{{ error }}</div>
         <article v-for="event in listing?.data || []" :key="event.id" class="audit-event"><button class="f-breakdown-row" style="width:100%;text-align:left;border:0;padding:0;flex-wrap:wrap" :aria-expanded="expanded === event.id" :aria-controls="`audit-${event.id}`" @click="toggle(event)"><span><strong>{{ labels[event.action] || event.action }}</strong><span class="f-table-subtitle">{{ event.actor?.name || 'Proceso del sistema' }} · {{ date(event.created_at) }}</span></span><span class="f-hint">Revisión {{ event.revision }} {{ expanded === event.id ? '−' : '+' }}</span></button>

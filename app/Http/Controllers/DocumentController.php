@@ -17,7 +17,7 @@ class DocumentController extends Controller
         $request->validate(['file' => 'required|file|mimes:jpeg,png,webp,pdf|max:10240', 'expected_revision' => 'required|integer|min:1']);
         $stage = $storage->stage($request->file('file'));
         try {
-            $mutation->execute($trip, fn ($current) => $storage->attach($stage, $current, 'other'), 'document_upload');
+            $mutation->execute($trip, fn ($current) => $storage->attach($stage, $current, 'other'), 'document_upload', recalculate: false);
         } catch (\Throwable $e) {
             $storage->discard($stage);
             throw $e;
@@ -41,7 +41,7 @@ class DocumentController extends Controller
     public function destroy(Request $request, Trip $trip, Document $document, MutateTrip $mutation)
     {
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $mutation->execute($trip, fn ($current) => $current->documents()->findOrFail($document->id)->delete(), 'document_trash');
+        $mutation->execute($trip, fn ($current) => $current->documents()->findOrFail($document->id)->delete(), 'document_trash', recalculate: false);
 
         return to_route('trips.show', $trip)->with('success', 'Documento movido a la papelera; puedes restaurarlo');
     }
@@ -49,7 +49,7 @@ class DocumentController extends Controller
     public function restore(Request $request, Trip $trip, Document $document, MutateTrip $mutation)
     {
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $mutation->execute($trip, fn ($current) => $current->documents()->onlyTrashed()->findOrFail($document->id)->restore(), 'document_restore');
+        $mutation->execute($trip, fn ($current) => $current->documents()->onlyTrashed()->findOrFail($document->id)->restore(), 'document_restore', recalculate: false);
 
         return to_route('trips.show', $trip)->with('success', 'Documento restaurado');
     }

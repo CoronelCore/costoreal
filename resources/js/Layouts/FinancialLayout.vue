@@ -35,7 +35,7 @@ const nav = [
 ];
 const company = computed(() => page.props.company);
 const switchCompany = (event: Event) => router.post(route('company.switch', inputValue(event) || 'all'), {}, { preserveState: false });
-const errors = computed(() => Object.values(page.props.errors || {}));
+const errors = computed(() => Object.values(page.props.errors || {}).flatMap((value: unknown) => typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.values(value).filter((message): message is string => typeof message === 'string') : []));
 const flash = computed(() => page.props.flash || {});
 </script>
 <template>

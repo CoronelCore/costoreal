@@ -25,7 +25,7 @@ class ScenarioRetryTest extends TestCase
         $this->delete("/trips/{$trip->id}/documents/{$document->id}", ['expected_revision' => 2])->assertSessionHasNoErrors();
         $attempts = 0;
         DB::listen(function ($query) use (&$attempts) {
-            if (str_contains($query->sql, 'insert into "cost_runs"') && ++$attempts === 1) {
+            if (str_contains($query->sql, 'insert into "audit_events"') && ++$attempts === 1) {
                 throw new \RuntimeException('database is locked');
             }
         });
@@ -33,7 +33,7 @@ class ScenarioRetryTest extends TestCase
         $this->assertSame(2, $attempts);
         $this->assertSame(4, $trip->fresh()->revision);
         $this->assertNotSoftDeleted('documents', ['id' => $document->id]);
-        $this->assertSame(1, $trip->costRuns()->where('reason', 'document_restore')->count());
+        $this->assertSame(0, $trip->costRuns()->count());
         $this->assertSame(1, $trip->auditEvents()->where('action', 'document_restore')->count());
         $this->assertSame(1, $trip->auditEvents()->latest('id')->first()->summary['after']['documents']);
         Storage::disk('local')->assertExists($document->storage_path);

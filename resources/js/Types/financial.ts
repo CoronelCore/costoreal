@@ -47,6 +47,7 @@ export interface DocumentData {
     size: number;
     kind: 'receipt' | 'product_image' | 'other';
     download_url: string;
+    same_content_count: number;
 }
 export interface ImportConfiguration extends NamedRecord {
     revision: number;
@@ -194,7 +195,6 @@ export interface ImportShowProps {
     estadisticas: FinancialStatistics;
     projection: SalesProjection;
     categories: NamedRecord[];
-    costRuns: CostRunSummary[];
     latestCostRun: CostRunSummary | null;
     legacyBaseline: import('./reconciliation').LegacyBaseline | null;
     history: Pagination<AuditEventSummary>;
@@ -220,3 +220,5 @@ export interface ExpenseMutation extends RevisionMutation {
 export interface DocumentMutation extends RevisionMutation { file: File | null }
 
 export interface ImportReview { revision: number; state: ImportState; can_close: boolean; blocks: string[]; warnings: string[]; stored_total: Decimal | null; calculated_total: Decimal | null; differences_count: number; document_policy: 'optional' }
+
+export interface CostRunHistory extends Pagination<CostRunSummary> { anchor: number | null; reason: 'close' | null; revision: number | null }
