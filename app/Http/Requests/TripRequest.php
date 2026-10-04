@@ -24,6 +24,14 @@ class TripRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['estado.in' => 'Usa la acción de cierre o reapertura para cambiar el estado.'];
+        return ['estado.in' => 'Usa la acción de cierre o reapertura para cambiar el estado.',
+            'nombre.required' => 'Indica un nombre para reconocer esta importación.', 'nombre.max' => 'El nombre admite hasta 255 caracteres.',
+            'descripcion.max' => 'La descripción admite hasta 5.000 caracteres.', 'company_id.exists' => 'Elige una empresa de tu espacio de trabajo.',
+            'fecha_inicio.date_format' => 'Indica una fecha de inicio válida.', 'fecha_fin.date_format' => 'Indica una fecha de fin válida.',
+            'fecha_fin.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
+            'moneda_trabajo.required' => 'Selecciona la moneda de trabajo.', 'moneda_trabajo.in' => 'Selecciona una moneda admitida.',
+            'tipo_cambio.required' => 'Indica la tasa de referencia para convertir a CLP.', 'tipo_cambio.numeric' => 'La tasa debe ser un número decimal con punto.',
+            'tipo_cambio.gt' => 'La tasa debe ser mayor que cero.', 'tipo_cambio.max' => 'La tasa no puede superar 1.000.000 CLP.',
+            'tipo_cambio.decimal' => 'La tasa admite hasta ocho decimales.', 'expected_revision.required' => 'Falta la revisión de origen. Recarga antes de guardar.'];
     }
 }

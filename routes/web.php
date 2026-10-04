@@ -9,6 +9,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -32,6 +33,11 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');
+    Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');
+    Route::post('import-drafts/{draft}/launch', [ImportDraftController::class, 'launch'])->whereUuid('draft')->name('import-drafts.launch');
+    Route::post('import-drafts/{draft}/finish', [ImportDraftController::class, 'finish'])->whereUuid('draft')->name('import-drafts.finish');
 
     // Trip routes
     Route::get('trips/trash', [TripRecoveryController::class, 'index'])->name('trips.trash');

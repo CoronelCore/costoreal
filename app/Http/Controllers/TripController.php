@@ -7,6 +7,8 @@ use App\Models\ExpenseCategory;
 use App\Models\LegacyCostBaseline;
 use App\Models\Trip;
 use App\Modules\Access\AccessContext;
+use App\Modules\Importations\Actions\CloseImportation;
+use App\Modules\Importations\Actions\CreateImportation;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Importations\Actions\RecoverTrip;
 use App\Modules\Importations\Data\ImportationData;
@@ -60,9 +62,7 @@ class TripController extends Controller
 
     public function create(Request $request)
     {
-        $context = AccessContext::forRequest($request);
-
-        return Inertia::render('Trips/Create', ['companies' => $context->companies(), 'selectedCompanyId' => $context->activeCompany()?->id]);
+        return app(ImportDraftController::class)->create($request);
     }
 
     public function store(TripRequest $request)
@@ -71,7 +71,7 @@ class TripController extends Controller
         if (! $request->exists('company_id')) {
             $data['company_id'] = AccessContext::forRequest($request)->activeCompany()?->id;
         }
-        $trip = Trip::create([...$data, 'user_id' => $request->user()->id, 'moneda_base' => 'CLP', 'estado' => 'activo']);
+        $trip = app(CreateImportation::class)->execute($request->user(), $data);
 
         return to_route('trips.show', $trip)->with('success', 'Importación creada');
     }
@@ -123,11 +123,7 @@ class TripController extends Controller
     {
         $this->authorize('close', $trip);
         $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'finalizado']), 'close', ability: 'close', verify: function ($current, $result) {
-            if (! $result->lines || $result->unassigned !== '0') {
-                throw ValidationException::withMessages(['cierre' => 'Agrega productos y distribuye todos los gastos antes de cerrar.']);
-            }
-        });
+        app(CloseImportation::class)->execute($trip, $request->integer('expected_revision'));
 
         return to_route('trips.show', $trip)->with('success', 'Importación cerrada; revisión conservada');
     }

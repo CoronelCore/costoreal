@@ -45,7 +45,7 @@ class ProductController extends Controller
             throw $e;
         }
 
-        return to_route('trips.show', $trip)->with('success', 'Producto agregado');
+        return $request->expectsJson() ? response()->json(['revision' => $trip->fresh()->revision]) : to_route('trips.show', $trip)->with('success', 'Producto agregado');
     }
 
     public function update(ProductRequest $request, Trip $trip, Product $product)
@@ -83,11 +83,11 @@ class ProductController extends Controller
         return to_route('trips.show', $trip)->with('success', 'Precio de venta guardado');
     }
 
-    public function destroy(Trip $trip, Product $product)
+    public function destroy(Request $request, Trip $trip, Product $product)
     {
         $this->authorize('update', $trip);
         $this->mutation->execute($trip, fn ($current) => $current->products()->findOrFail($product->id)->delete(), 'product_delete');
 
-        return to_route('trips.show', $trip)->with('success', 'Producto eliminado; sus documentos se conservan');
+        return $request->expectsJson() ? response()->json(['revision' => $trip->fresh()->revision]) : to_route('trips.show', $trip)->with('success', 'Producto eliminado; sus documentos se conservan');
     }
 }

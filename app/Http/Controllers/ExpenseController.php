@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Models\Trip;
 use App\Modules\Documents\StoreDocument;
 use App\Modules\Importations\Actions\MutateTrip;
+use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
@@ -29,7 +30,7 @@ class ExpenseController extends Controller
             throw $e;
         }
 
-        return to_route('trips.show', $trip)->with('success', 'Gasto agregado');
+        return $request->expectsJson() ? response()->json(['revision' => $trip->fresh()->revision]) : to_route('trips.show', $trip)->with('success', 'Gasto agregado');
     }
 
     public function update(ExpenseRequest $request, Trip $trip, Expense $expense)
@@ -52,15 +53,15 @@ class ExpenseController extends Controller
             throw $e;
         }
 
-        return to_route('trips.show', $trip)->with('success', 'Gasto actualizado');
+        return $request->expectsJson() ? response()->json(['revision' => $trip->fresh()->revision]) : to_route('trips.show', $trip)->with('success', 'Gasto actualizado');
     }
 
-    public function destroy(Trip $trip, Expense $expense)
+    public function destroy(Request $request, Trip $trip, Expense $expense)
     {
         $this->authorize('update', $trip);
         $this->mutation->execute($trip, fn ($current) => $current->expenses()->findOrFail($expense->id)->delete(), 'expense_delete');
 
         // Attachments remain recoverable in the trip's document library.
-        return to_route('trips.show', $trip)->with('success', 'Gasto eliminado; sus documentos se conservan');
+        return $request->expectsJson() ? response()->json(['revision' => $trip->fresh()->revision]) : to_route('trips.show', $trip)->with('success', 'Gasto eliminado; sus documentos se conservan');
     }
 }
