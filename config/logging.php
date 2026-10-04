@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -51,6 +52,16 @@ return [
     */
 
     'channels' => [
+        'performance' => [
+            'driver' => 'daily',
+            'path' => env('COSTOREAL_PERFORMANCE_LOG_PATH', storage_path('logs/performance.log')),
+            'level' => 'info',
+            'days' => 7,
+            'permission' => 0600,
+            'locking' => true,
+            'formatter' => JsonFormatter::class,
+            'replace_placeholders' => false,
+        ],
 
         'stack' => [
             'driver' => 'stack',

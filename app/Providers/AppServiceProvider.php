@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Modules\Observability\RequestMetrics;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(RequestMetrics::class);
     }
 
     /**
@@ -19,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Resolve current request scope inside the listener; do not retain a previous worker request.
+        DB::listen(fn (QueryExecuted $query) => app(RequestMetrics::class)->query($query->time));
     }
 }
