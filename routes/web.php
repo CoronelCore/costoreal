@@ -6,7 +6,9 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +53,12 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('trips/{trip}/documents/{document}', [DocumentController::class, 'show'])->name('trips.documents.show');
     Route::delete('trips/{trip}/documents/{document}', [DocumentController::class, 'destroy'])->name('trips.documents.destroy');
     Route::post('trips/{trip}/documents/{document}/restore', [DocumentController::class, 'restore'])->withTrashed()->name('trips.documents.restore');
+
+    Route::post('trips/{trip}/pricing/preview', [PricingController::class, 'preview'])->name('trips.pricing.preview');
+    Route::post('trips/{trip}/pricing/apply', [PricingController::class, 'apply'])->name('trips.pricing.apply');
+
+    Route::post('trips/{trip}/products/import/preview', [ProductImportController::class, 'preview'])->name('trips.products.import.preview');
+    Route::post('trips/{trip}/products/import/apply', [ProductImportController::class, 'apply'])->name('trips.products.import.apply');
 
     // Nested routes for expenses and products
     Route::post('trips/{trip}/expenses', [ExpenseController::class, 'store'])->name('trips.expenses.store');

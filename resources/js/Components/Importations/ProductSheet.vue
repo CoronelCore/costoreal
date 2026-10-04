@@ -3,6 +3,7 @@ import { computed, inject, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { formatMoney } from '@/Utils/format';
 import Modal from '@/Components/UI/Modal.vue';
+import BulkProductImport from './BulkProductImport.vue';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline';
 const props = defineProps({ trip: Object, breakdown: Object });
 const emit = defineEmits(['delete']);
@@ -22,6 +23,7 @@ const save = product => edit.put(route('trips.products.update', [props.trip.id, 
 const add = () => form.transform(data => ({ ...data, expected_revision: props.trip.revision })).post(route('trips.products.store', props.trip.id), { preserveScroll: true, onSuccess: () => { form.reset(); adding.value = false; } });
 </script>
 <template>
+    <BulkProductImport v-if="editable" :trip="trip" />
     <section class="f-panel"><div class="f-panel-heading"><div><h2>Hoja de productos</h2><p class="f-hint">{{ trip.products.length }} líneas · revisión {{ trip.revision }} · totales guardados</p></div><button v-if="editable" class="f-button f-button-primary" @click="adding = !adding"><PlusIcon /> Agregar producto</button></div>
         <form v-if="adding" class="f-panel-body f-form-grid" @submit.prevent="add"><div class="f-field"><label for="product-name">Producto</label><input id="product-name" class="f-input" v-model="form.nombre" required maxlength="255" /><span class="f-field-error">{{ form.errors.nombre }}</span></div><div class="f-field"><label for="product-currency">Moneda original</label><select id="product-currency" class="f-input" v-model="form.moneda"><option :value="trip.moneda_trabajo">{{ trip.moneda_trabajo }}</option><option value="CLP">CLP</option></select></div><div class="f-field"><label for="product-quantity">Cantidad</label><input id="product-quantity" class="f-input" type="number" v-model="form.cantidad" min="1" max="1000000" step="1" required /><span class="f-field-error">{{ form.errors.cantidad }}</span></div><div class="f-field"><label for="product-cost">Costo unitario original · {{ form.moneda }}</label><input id="product-cost" class="f-input" type="number" v-model="form.costo_unitario" min="0" step="0.01" required /><span class="f-field-error">{{ form.errors.costo_unitario }}</span></div><div class="f-field"><label for="product-weight">Peso total de la línea · kg (opcional)</label><input id="product-weight" class="f-input" type="number" v-model="form.weight" min="0" step="0.00000001" /></div><div class="f-field"><label for="product-volume">Volumen total de la línea · m³ (opcional)</label><input id="product-volume" class="f-input" type="number" v-model="form.volume" min="0" step="0.00000001" /></div><p class="f-hint">El borrador no modifica los totales hasta que guardes.</p><div class="f-actions"><button type="button" class="f-button" @click="adding = false">Cancelar</button><button type="submit" class="f-button f-button-primary" :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar producto' }}</button></div></form>
         <template v-if="trip.products.length">

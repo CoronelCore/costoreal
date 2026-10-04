@@ -25,19 +25,9 @@ class ProrrateoService
         return DB::transaction(function () use ($trip) {
             $products = $trip->products()->orderBy('id')->get();
             $expenses = $trip->expenses()->orderBy('id')->get();
+            $result = $this->preview($trip->setRelation('products', $products)->setRelation('expenses', $expenses));
             foreach ($expenses as $expense) {
                 $expense->monto_clp = $this->convertirACLP($expense->monto, $expense->moneda, $trip, $expense);
-            }
-            try {
-                $result = $this->engine->calculate(
-                    $products->map(fn ($p) => ['id' => $p->id, 'quantity' => $p->cantidad, 'unit_amount' => $p->costo_unitario, 'rate' => $this->getTipoCambio($p->moneda, $trip, $p), 'weight' => $p->weight, 'volume' => $p->volume])->all(),
-                    $expenses->map(fn ($e) => ['id' => $e->id, 'amount_clp' => $e->monto_clp, 'method' => $e->allocation_method, 'target_id' => $e->target_product_id])->all()
-                );
-            } catch (\DomainException $e) {
-                throw ValidationException::withMessages(['allocation_method' => $e->getMessage()]);
-            }
-            if (BigDecimal::of($result->purchase)->plus($result->expenses)->isGreaterThan('9000000000000000')) {
-                throw ValidationException::withMessages(['monto' => 'El total supera el límite certificado de 9.000.000.000.000.000 CLP.']);
             }
             $byId = $products->keyBy('id');
             foreach ($result->lines as $line) {
@@ -56,6 +46,25 @@ class ProrrateoService
 
             return $result;
         });
+    }
+
+    /** Same domain calculation for previews, without updating models or database rows. */
+    public function preview(Trip $trip): CostResult
+    {
+        $trip->loadMissing(['products', 'expenses']);
+        try {
+            $result = $this->engine->calculate(
+                $trip->products->map(fn ($p) => ['id' => $p->id, 'quantity' => $p->cantidad, 'unit_amount' => $p->costo_unitario, 'rate' => $this->getTipoCambio($p->moneda, $trip, $p), 'weight' => $p->weight, 'volume' => $p->volume])->all(),
+                $trip->expenses->map(fn ($e) => ['id' => $e->id, 'amount_clp' => $this->convertirACLP($e->monto, $e->moneda, $trip, $e), 'method' => $e->allocation_method, 'target_id' => $e->target_product_id])->all()
+            );
+        } catch (\DomainException $e) {
+            throw ValidationException::withMessages(['allocation_method' => $e->getMessage()]);
+        }
+        if (BigDecimal::of($result->total)->isGreaterThan('9000000000000000')) {
+            throw ValidationException::withMessages(['monto' => 'El total supera el límite certificado de 9.000.000.000.000.000 CLP.']);
+        }
+
+        return $result;
     }
 
     public function convertirACLP(string|int|float $monto, string $moneda, Trip $trip, ?Model $record = null): string

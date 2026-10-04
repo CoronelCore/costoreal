@@ -4,7 +4,7 @@ import { formatMoney } from '@/Utils/format';
 defineProps({ trip: Object, history: Array, runs: Array });
 const route = inject('route');
 const expanded = ref(null);
-const labels = { update: 'Actualización del lote', product_create: 'Producto agregado', product_update: 'Producto actualizado', product_delete: 'Producto eliminado', expense_create: 'Gasto agregado', expense_update: 'Gasto actualizado', expense_delete: 'Gasto eliminado', price_update: 'Precio de venta actualizado', document_upload: 'Documento adjunto', document_trash: 'Documento a papelera', document_restore: 'Documento restaurado', company_assignment: 'Empresa asignada', configuration: 'Configuración y revaluación', close: 'Cierre de importación', reopen: 'Reapertura de importación' };
+const labels = { update: 'Actualización del lote', products_import: 'Productos importados por lote', product_create: 'Producto agregado', product_update: 'Producto actualizado', product_delete: 'Producto eliminado', expense_create: 'Gasto agregado', expense_update: 'Gasto actualizado', expense_delete: 'Gasto eliminado', price_target: 'Precios por objetivo', price_update: 'Precio de venta actualizado', document_upload: 'Documento adjunto', document_trash: 'Documento a papelera', document_restore: 'Documento restaurado', company_assignment: 'Empresa asignada', configuration: 'Configuración y revaluación', close: 'Cierre de importación', reopen: 'Reapertura de importación' };
 const date = value => new Date(value).toLocaleString('es-CL');
 </script>
 <template>

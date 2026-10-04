@@ -8,6 +8,8 @@ use App\Modules\Importations\Actions\MutateTrip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class CompanyController extends Controller
@@ -164,17 +166,21 @@ class CompanyController extends Controller
         $this->authorize('update', $company);
 
         $validated = $request->validate([
-            'trip_ids' => 'required|array',
-            'trip_ids.*' => 'required|integer|distinct|exists:trips,id',
+            'trip_ids' => 'required|array|min:1|max:500',
+            'trip_ids.*' => ['required', 'integer', 'distinct', Rule::exists('trips', 'id')->whereNull('deleted_at')],
+            'expected_revisions' => 'nullable|array', 'expected_revisions.*' => 'required|integer|min:1',
         ]);
 
+        if (isset($validated['expected_revisions']) && (count($validated['expected_revisions']) !== count($validated['trip_ids']) || array_diff($validated['trip_ids'], array_keys($validated['expected_revisions'])))) {
+            throw ValidationException::withMessages(['expected_revisions' => 'Incluye la revisión de cada importación seleccionada.']);
+        }
         DB::transaction(function () use ($validated, $company) {
-            $trips = Trip::whereIn('id', $validated['trip_ids'])->lockForUpdate()->get();
+            $trips = Trip::whereIn('id', $validated['trip_ids'])->orderBy('id')->lockForUpdate()->get();
             foreach ($trips as $trip) {
                 $this->authorize('update', $trip);
             }
             foreach ($trips as $trip) {
-                $trip->update(['company_id' => $company->id]);
+                $this->mutation->execute($trip, fn ($current) => $current->update(['company_id' => $company->id]), 'company_assignment', expectedRevision: $validated['expected_revisions'][$trip->id] ?? null);
             }
         });
 

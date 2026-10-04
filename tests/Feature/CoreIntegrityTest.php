@@ -182,4 +182,32 @@ class CoreIntegrityTest extends TestCase
         $this->assertLessThanOrEqual($one + 2, $twenty);
         fwrite(STDOUT, "\nConsultas analítica: 1 importación = $one; 20 importaciones = $twenty\n");
     }
+
+    public function test_company_batch_conflict_rolls_back_every_revision_and_snapshot(): void
+    {
+        $owner = User::factory()->create();
+        $company = Company::create(['user_id' => $owner->id, 'nombre' => 'Propia', 'color' => '#123456']);
+        $first = $this->tripFor($owner);
+        $second = $this->tripFor($owner);
+        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$first->id, $second->id], 'expected_revisions' => [$first->id => 1, $second->id => 99]])->assertSessionHasErrors('conflict');
+        $this->assertNull($first->fresh()->company_id);
+        $this->assertSame(1, $first->fresh()->revision);
+        $this->assertSame(0, $first->costRuns()->count());
+        $this->assertSame(0, $first->auditEvents()->count());
+        $this->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$first->id], 'expected_revisions' => [$first->id => 1]])->assertSessionHasNoErrors();
+        $this->assertSame(2, $first->fresh()->revision);
+        $this->assertSame('company_assignment', $first->costRuns()->firstOrFail()->reason);
+        $this->assertSame('Propia', $first->costRuns()->first()->snapshot['company']['nombre']);
+    }
+
+    public function test_trashed_trip_is_not_silently_skipped_in_company_assignment(): void
+    {
+        $owner = User::factory()->create();
+        $company = Company::create(['user_id' => $owner->id, 'nombre' => 'Propia', 'color' => '#123456']);
+        $first = $this->tripFor($owner);
+        $trashed = $this->tripFor($owner);
+        $trashed->delete();
+        $this->actingAs($owner)->post("/companies/{$company->id}/assign-trips", ['trip_ids' => [$first->id, $trashed->id]])->assertSessionHasErrors('trip_ids.1');
+        $this->assertNull($first->fresh()->company_id);
+    }
 }

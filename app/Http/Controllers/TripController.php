@@ -80,7 +80,11 @@ class TripController extends Controller
 
         $stats = $this->prorrateoService->obtenerEstadisticas($trip);
 
-        return Inertia::render('Trips/Show', ['trip' => $trip, 'projection' => app(Projection::class)->summarize($trip->products, $stats['gastos_sin_asignar_clp']), 'estadisticas' => $stats,
+        $batch = DB::table('pricing_batches')->where('trip_id', $trip->id)->latest('id')->first();
+        $lastBatch = $batch ? ['revision' => (int) $batch->revision, 'policy' => json_decode($batch->policy, true, flags: JSON_THROW_ON_ERROR),
+            'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
+
+        return Inertia::render('Trips/Show', ['trip' => $trip, 'lastPricingBatch' => $lastBatch, 'projection' => app(Projection::class)->summarize($trip->products, $stats['gastos_sin_asignar_clp']), 'estadisticas' => $stats,
             'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get(),
             'history' => $trip->auditEvents()->with('actor:id,name')->latest('id')->limit(50)->get(),
             'costRuns' => $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->limit(50)->get(),

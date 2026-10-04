@@ -38,7 +38,7 @@ npm audit
 
 CI ejecuta formato, pruebas PHP, pruebas de presentación decimal y fechas, y build sobre PHP 8.3 / Node 24. Una configuración de CI no demuestra por sí misma que haya corrido en GitHub.
 
-Las pruebas usan SQLite en memoria y archivos falsos. La prueba visual usa una base independiente fuera del checkout, con datos claramente sintéticos; no llena las importaciones personales con ejemplos.
+Las pruebas usan SQLite en memoria y archivos falsos; la concurrencia se verifica con dos procesos y una base temporal independiente. La prueba visual usa una base independiente fuera del checkout, con datos claramente sintéticos; no llena las importaciones personales con ejemplos.
 
 ## Arquitectura y decisiones
 
@@ -48,7 +48,13 @@ Las pruebas usan SQLite en memoria y archivos falsos. La prueba visual usa una b
 - `app/Modules/Costing/Actions/RecordCostRun`: snapshots y asignaciones conservadas.
 - `app/Modules/Reporting/ReportTrip`: reconstrucción de reportes históricos.
 - `app/Modules/Documents`: almacenamiento privado, metadatos y staging con limpieza en rollback.
-- `app/Modules/Pricing`: proyección que distingue precios pendientes y pérdidas.
+- `app/Modules/Pricing`: proyección que distingue precios pendientes y pérdidas, y cálculo de precio por margen/recargo con comisión opcional.
 - `resources/js/Components/Importations`: resumen, hoja, gastos, documentos, precios, revisión e historial.
 
 Consulta `docs/COSTING_POLICY.md` para precisión, tasas y cierre; `docs/IMPLEMENTATION.md` y `docs/backlog.csv` para la ejecución del plan. Las actualizaciones mayores de framework, adaptadores y CSS se validan en entregas independientes del entorno puente.
+
+## Funciones avanzadas actuales
+
+En la hoja de productos, «Pegar / importar CSV» permite mapear columnas, revisar cada fila e importar todo el lote sin duplicar reintentos. Acepta hasta 1.000 filas, texto UTF-8 y punto decimal. En Precios, «Precio por objetivo» compara precios por margen o recargo, con comisión opcional y redondeo hacia arriba. La vista previa no escribe costos; aplicar requiere la revisión vigente. Consulta la política para las fórmulas y la diferencia entre utilidad del resumen y utilidad tras comisión.
+
+SQLite limita la espera de bloqueos mediante `DB_BUSY_TIMEOUT` (1.000 ms por defecto); la acción de mutación usa una revisión condicional y reintentos acotados. Las rutas heredadas aún aceptan una versión omitida mientras se completa la migración de sus clientes.

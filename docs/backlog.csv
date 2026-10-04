@@ -1,6 +1,6 @@
 ﻿ID,Etapa,Prioridad,Tarea y responsable,Alcance,Dependencias,Criterio de aceptación,Estado
 CR-001,E0,P1,Entorno y CI mínimo · Desarrollo,"Runtime documentado, lockfiles, build, test y lint.",,Un checkout limpio inicia de forma reproducible y CI ejecuta las verificaciones disponibles.,Verificado
-CR-002,E0,P1,Fixtures y restauración · Desarrollo/QA,"Copias aisladas y ejemplos monetarios, nulos y monedas.",CR-001,Restaurar una copia y reconciliar conteos/totales; fixtures no contienen datos personales.,En curso
+CR-002,E0,P1,Fixtures y restauración · Desarrollo/QA,"Copias aisladas y ejemplos monetarios, nulos y monedas.",CR-001,Restaurar una copia y reconciliar conteos/totales; fixtures no contienen datos personales.,Verificado
 CR-003,E0,P1,Política de costeo · Producto/contabilidad,"Tasas estimadas/pagadas, capitalización, precisión, cierre.",,Decisiones registradas con ejemplos y tratamiento de datos heredados.,Verificado
 CR-004,E1,P0,Padre/hijo y empresa · Backend,"F01/F10: bindings, políticas y asignación por lote atómica.",CR-002,Combinaciones ajenas rechazan sin escrituras ni efectos sobre archivos; lote falla íntegro.,Verificado
 CR-005,E1,P0,Categorías y analítica · Backend,"F02/F03/F06: catálogo base protegido y categorías privadas, joins/fecha compatibles.",CR-002,Payload sin gastos ajenos; 100/200/300 retorna solo el total autorizado; SQLite responde.,Verificado
@@ -29,9 +29,9 @@ CR-027,E4,P1,Formularios de gastos · Full stack,"Tasa estimada/pagada, archivos
 CR-028,E4,P1,Documentos privados · Backend/Frontend,"Modelo privado, ruta autorizada, metadata y retención.","CR-014,CR-027",Usuario ajeno no accede; eliminación coordinada; preview/descarga seguros.,En curso
 CR-029,E4,P1,Alta y revisión guiadas · Full stack,"Borrador persistido, pasos, bloqueos/advertencias y cierre.","CR-024,CR-027",Salir/volver recupera borrador; cierre/reapertura tienen efecto y explicación.,En curso
 CR-030,E4,P1,QA visual y accesible · Diseño/QA,"Anchuras, temas, zoom, keyboard, contraste y nombres largos.","CR-023,CR-024,CR-025,CR-027,CR-028,CR-029",Sin clipping global; acciones accesibles; estados y foco revisados en flujos reales.,En curso
-CR-031,E5,P1,Pegado y CSV · Full stack,"Mapeo columnas, preview, errores por fila e idempotencia.","CR-025,CR-017",Caso 100 filas conocido reconcilia; reintento no duplica; política de lote explícita.,Pendiente
+CR-031,E5,P1,Pegado y CSV · Full stack,"Mapeo columnas, preview, errores por fila e idempotencia.","CR-025,CR-017",Caso 100 filas conocido reconcilia; reintento no duplica; política de lote explícita.,Verificado
 CR-032,E5,P1,Reglas avanzadas de reparto · Full stack,Unidades/peso/volumen/directo; metadata necesaria.,"CR-016,CR-026",Sin datos faltantes para regla; reparto exacto y explicación por producto.,En curso
-CR-033,E5,P1,Precio por objetivo · Full stack,"Margen/recargo, comisiones acordadas y redondeo.","CR-025,CR-003",Casos 37.500/31.500 correctos; preview de lote y límites validados.,Pendiente
+CR-033,E5,P1,Precio por objetivo · Full stack,"Margen/recargo, comisiones acordadas y redondeo.","CR-025,CR-003",Casos 37.500/31.500 correctos; preview de lote y límites validados.,Verificado
 CR-034,E5,P1,Escenarios y revaluación · Full stack,Entradas alternativas separadas y promoción versionada.,"CR-032,CR-033,CR-018",Simular no escribe costos reales; aplicar exige versión vigente y muestra diferencias.,Pendiente
 CR-035,E5,P1,Analítica renovada · Full stack,"Filtros autorizados, proyección/cobertura y tablas equivalentes.","CR-021,CR-018,CR-024",Métricas concilian con detalle y período; gráfico tiene alternativa legible.,Pendiente
 CR-036,E5,P1,Historial y recuperación · Full stack,"Audit UI, restaurar importación/documento y retención.","CR-028,CR-019",Autor y cambios visibles; restauración respeta reglas y snapshots.,En curso

@@ -14,7 +14,7 @@ import { useTabs } from '@/Composables/useTabs';
 import { formatDateOnly } from '@/Utils/format';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, ArrowPathIcon, PencilIcon } from '@heroicons/vue/24/outline';
 const route = inject('route');
-const props = defineProps({ trip: Object, estadisticas: Object, projection: Object, categories: Array, history: Array, costRuns: Array, costBreakdown: Object, trashedDocuments: Array });
+const props = defineProps({ trip: Object, estadisticas: Object, projection: Object, categories: Array, history: Array, costRuns: Array, costBreakdown: Object, lastPricingBatch: Object, trashedDocuments: Array });
 const { activeTab, setTab } = useTabs(`trip-${props.trip.id}-tab`, 'resumen', ['resumen','productos','gastos','precio-venta','revision','historial','documentos','config']);
 const tabs = computed(() => [{id:'resumen',label:'Resumen'}, {id:'productos',label:'Hoja de productos',count:props.trip.products.length}, {id:'gastos',label:'Gastos',count:props.trip.expenses.length}, {id:'precio-venta',label:'Precios'}, {id:'documentos',label:'Documentos',count:props.trip.documents?.length || 0}, {id:'revision',label:'Revisión'}, {id:'historial',label:'Historial'}]);
 const confirmation = ref(null);
@@ -35,7 +35,7 @@ const confirm = () => { busy.value = true; confirmation.value.action(); };
         <ProductSheet v-else-if="activeTab === 'productos'" :trip="trip" :breakdown="costBreakdown" @delete="item => askDelete('products',item)" />
         <ExpensePanel v-else-if="activeTab === 'gastos'" :trip="trip" :categories="categories" @delete="item => askDelete('expenses',item)" />
         <DocumentPanel v-else-if="activeTab === 'documentos'" :trip="trip" :trashed="trashedDocuments" />
-        <PricePanel v-else-if="activeTab === 'precio-venta'" :trip="trip" :projection="projection" />
+        <PricePanel v-else-if="activeTab === 'precio-venta'" :trip="trip" :projection="projection" :last-batch="lastPricingBatch" />
         <ReviewPanel v-else-if="activeTab === 'revision'" :trip="trip" :stats="estadisticas" :projection="projection" @close="askClose" @tab="setTab" />
         <HistoryPanel v-else-if="activeTab === 'historial'" :trip="trip" :history="history" :runs="costRuns" />
         <section v-else class="f-panel"><div class="f-panel-body"><h2>Configuración de la importación</h2><p class="f-hint">Moneda original {{ trip.moneda_trabajo }} · tasa de referencia {{ trip.tipo_cambio }} CLP / {{ trip.moneda_trabajo }}</p><Link v-if="trip.estado === 'activo'" :href="route('trips.edit',trip.id)" class="f-button" style="margin-top:16px">Editar configuración</Link></div></section>

@@ -46,7 +46,7 @@ const maxWidthClass = computed(() => {
 
 <template>
     <TransitionRoot :show="show" as="template">
-        <Dialog as="div" class="relative z-50" @close="close">
+        <Dialog as="div" class="financial-overlay relative z-50" @close="close">
             <!-- Backdrop -->
             <TransitionChild
                 as="template"
@@ -61,7 +61,7 @@ const maxWidthClass = computed(() => {
             </TransitionChild>
 
             <!-- Modal Container -->
-            <div class="fixed inset-0 overflow-y-auto">
+            <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="flex min-h-full items-end justify-center sm:items-center p-0 sm:p-4">
                     <TransitionChild
                         as="template"

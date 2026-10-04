@@ -8,13 +8,14 @@ export const useThemeStore = defineStore('theme', () => {
     // Initialize from localStorage on store creation
     const initTheme = () => {
         // Check localStorage first
-        const stored = localStorage.getItem('theme');
+        let stored;
+        try { stored = window.localStorage.getItem('theme'); } catch { stored = null; }
 
         if (stored) {
             isDark.value = stored === 'dark';
         } else {
             // Fallback to system preference
-            isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            isDark.value = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
 
         // Apply the theme
@@ -23,6 +24,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     // Apply theme to DOM
     const applyTheme = () => {
+        if (typeof document === 'undefined') return;
         if (isDark.value) {
             document.documentElement.classList.add('dark');
         } else {
@@ -42,7 +44,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     // Watch for changes and persist + apply
     watch(isDark, (newValue) => {
-        localStorage.setItem('theme', newValue ? 'dark' : 'light');
+        try { window.localStorage.setItem('theme', newValue ? 'dark' : 'light'); } catch { /* Theme remains usable without persistent storage. */ }
         applyTheme();
     });
 

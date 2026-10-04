@@ -7,7 +7,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | Tarea | Estado | Evidencia / pendiente |
 |---|---|---|
 | CR-001 · Entorno y CI mínimo · Desarrollo | Verificado | Instalación limpia y setup repetido preservan clave; PHP 8.3/Node 24, CI configurada. CI remota aún no ejecutada. |
-| CR-002 · Fixtures y restauración · Desarrollo/QA | En curso | Fixture aislado sin datos personales y copia SQLite íntegra. Falta reconciliación completa DB/storage de release. |
+| CR-002 · Fixtures y restauración · Desarrollo/QA | Verificado | Copia personal y fixture QA con valores no cero restaurados: conteos/totales coinciden, integridad ok y cero violaciones FK. Ensayo DB/storage de release continúa en CR-041. |
 | CR-003 · Política de costeo · Producto/contabilidad | Verificado | docs/COSTING_POLICY.md con ejemplos, estimaciones/pagos, precisión y legado. |
 | CR-004 · Padre/hijo y empresa · Backend | Verificado | CoreIntegrityTest y PrivateDocumentTest: relaciones ajenas 404/403, cero escrituras/archivos y asignación de empresa atómica. |
 | CR-005 · Categorías y analítica · Backend | Verificado | CoreIntegrityTest: categorías base protegidas, agregados autorizados y analítica SQLite. |
@@ -22,7 +22,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-014 · Acciones y AccessContext · Backend | En curso | Requests/AccessContext/MutateTrip y reportes/documentos autorizados. Falta completar separación de lecturas. |
 | CR-015 · Money y tasas · Backend | Verificado | Money/Currency/Rate decimales, sin floats en dominio; RateTest y CostEngineTest. |
 | CR-016 · Motor de reparto por valor · Backend | Verificado | CostEngineTest: 100 casos deterministas, fracciones, valores grandes, residuales, cero y reglas avanzadas. |
-| CR-017 · Atomicidad y conflictos · Backend | En curso | Rollback de datos/versiones/archivos y conflicto de versión probado. Versión aún opcional para clientes heredados; falta concurrencia real SQLite. |
+| CR-017 · Atomicidad y conflictos · Backend | En curso | Rollback de datos/versiones/archivos y dos procesos SQLite reales probados, con CAS y reintento acotado. Versión aún opcional en rutas heredadas; falta obligatoriedad y comparación por fila. |
 | CR-018 · Ejecuciones y snapshots · Backend | Verificado | VersionedCostingTest: cierre/reapertura mantienen snapshot inmutable y reportes históricos. |
 | CR-019 · Auditoría y comparación · Backend/QA | En curso | Actor, antes/después e historial implementados. Falta comparador y backfill reentrante. |
 | CR-020 · DTOs y TypeScript · Full stack | Pendiente | — |
@@ -36,9 +36,9 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 | CR-028 · Documentos privados · Backend/Frontend | En curso | Privacidad, metadatos, download/preview, papelera y restauración probados. Falta migración de archivos públicos heredados y política final de retención. |
 | CR-029 · Alta y revisión guiadas · Full stack | En curso | Revisión/cierre/reapertura disponibles. Alta guiada y borrador recuperable pendientes. |
 | CR-030 · QA visual y accesible · Diseño/QA | En curso | Evidencia desktop/390 px. Falta 320/1024, zoom, contraste, ambos temas y keyboard completo. |
-| CR-031 · Pegado y CSV · Full stack | Pendiente | — |
+| CR-031 · Pegado y CSV · Full stack | Verificado | Mapeo, vista previa por fila, política todo/nada, 100 filas conciliadas, reintento sin duplicados; 1.000 filas con 98 consultas. Flujo de pegado guardado en UI QA. |
 | CR-032 · Reglas avanzadas de reparto · Full stack | En curso | Motor de unidades/peso/volumen/directo probado y formulario de gastos disponible. Falta metadata de productos existentes y trazabilidad completa. |
-| CR-033 · Precio por objetivo · Full stack | Pendiente | — |
+| CR-033 · Precio por objetivo · Full stack | Verificado | Margen 20 % → 37.500 y recargo 5 % → 31.500; comisión/redondeo, preview puro, aplicación atómica por revisión. Flujo real QA a 320/1024 px. |
 | CR-034 · Escenarios y revaluación · Full stack | Pendiente | — |
 | CR-035 · Analítica renovada · Full stack | Pendiente | — |
 | CR-036 · Historial y recuperación · Full stack | En curso | Historial y recuperación de documentos implementados. Falta papelera/restauración de importaciones. |
@@ -56,9 +56,17 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 
 ## Evidencia del checkpoint
 
-- 74 pruebas PHP / 1.142 aserciones; formato Pint pasa.
+- 93 pruebas PHP / 1.294 aserciones; formato Pint pasa.
 - Tests frontend de dinero/date-only y build reproducible con Node 24 en el checkpoint previo; se repetirán con los cambios actuales.
 - Capturas reales de Control desktop y Resumen a 390 px en outputs/.
 - La base personal no recibió fixtures; pruebas y demostración usan bases aisladas.
 - Composer sin advisories después de parches compatibles; cinco advisories altos npm pendientes de Tailwind 4.
 - No se ha desplegado ni ejecutado CI remota. Las migraciones locales estructurales no recalcularon datos heredados automáticamente.
+
+## Avance de funciones avanzadas
+
+- Precios por objetivo y pegado/CSV implementados con pruebas de servidor y recorridos reales en la base QA.
+- Navegación a 320 px: foco contenido, Escape devuelve al botón, anchura del documento 320 px. Precio por objetivo a 1024 px: documento 1024 px. No sustituye la matriz visual completa pendiente.
+- La capa del diálogo y los tokens de overlays se corrigieron después de detectarlos en la revisión visual.
+- Asignación de empresa por lote ahora conserva revisiones, snapshots y auditoría; una revisión obsoleta revierte el lote completo.
+- Pendientes principales: contratos de versiones obligatorias/DTO/TypeScript; escenarios; alta guiada; analítica; recuperación/retención; auditoría/backfill; majors de framework/Inertia/Tailwind; rendimiento y ensayo de release; aceptación final.
