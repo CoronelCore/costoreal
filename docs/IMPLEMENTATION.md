@@ -56,7 +56,7 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 
 ## Evidencia del checkpoint
 
-- 111 pruebas PHP / 1.621 aserciones; formato Pint pasa.
+- 112 pruebas PHP / 1.631 aserciones; formato Pint pasa.
 - Dos tests frontend de dinero/date-only y build pasan con Node 24 en este checkpoint.
 - Capturas reales de Control desktop y Resumen a 390 px en outputs/.
 - La base personal no recibió fixtures; pruebas y demostración usan bases aisladas.
@@ -79,3 +79,5 @@ Las tareas se cierran por su criterio de aceptación. Los estados parciales iden
 - Tras migrar, ejecutar `php artisan costoreal:audit-backfill`. Completa únicamente resúmenes ausentes; puede repetirse y no altera snapshots, entradas ni resultados de costeo.
 - QA: escenario aplicado a importación 1 (revisión 6/costo 520.000); importación 2 restaurada (revisión 4/costo 400.000). La base personal sigue sin importaciones y sin fixtures.
 - Evidencia visual: escenarios a 1024 px y papelera/restauración/historial a 320 px, sin overflow global. La matriz completa de accesibilidad sigue en CR-030.
+
+- Checkpoint `6ccd273`: instalación desde archivo Git limpia, setup/build/Pint, 112 pruebas PHP (1.631 aserciones) y dos frontend pasan. Nueva prueba cubre reintento tras rollback sin perder applied_revision del escenario. Copias personal y QA restauradas con conteos/totales iguales, integrity ok y FK=0.
