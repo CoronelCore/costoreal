@@ -12,7 +12,7 @@ class AuditController extends Controller
 {
     public function listing(Trip $trip, string $pageName = 'page')
     {
-        return $trip->auditEvents()->select('id', 'trip_id', 'actor_id', 'action', 'revision', 'summary', 'created_at')
+        return $trip->auditEvents()->select('id', 'trip_id', 'actor_id', 'action', 'revision', 'summary', 'reason', 'created_at')
             ->with('actor:id,name')->latest('id')->paginate(20, pageName: $pageName)->through(fn ($event) => AuditEventData::summary($event));
     }
 
@@ -31,7 +31,7 @@ class AuditController extends Controller
         $rows = $compare->build($auditEvent->before, $auditEvent->after);
         $page = $request->integer('page', 1);
 
-        return response()->json(['id' => $auditEvent->id, 'revision' => $auditEvent->revision, 'summary' => AuditEventData::states($auditEvent->summary),
+        return response()->json(['id' => $auditEvent->id, 'revision' => $auditEvent->revision, 'reason' => $auditEvent->reason, 'summary' => AuditEventData::states($auditEvent->summary),
             'data' => array_slice($rows, ($page - 1) * 20, 20), 'total' => count($rows), 'current_page' => $page,
             'last_page' => max(1, (int) ceil(count($rows) / 20))]);
     }

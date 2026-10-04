@@ -15,9 +15,9 @@ final class MutateTrip
 {
     public function __construct(private ProrrateoService $costing, private RecordCostRun $recorder, private TransactionRunner $transaction, private PreserveLegacyCosts $legacy) {}
 
-    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null, bool $recalculate = true): mixed
+    public function execute(Trip $trip, callable $mutation, string $action = 'update', ?int $expectedRevision = null, string $ability = 'update', ?callable $verify = null, bool $recalculate = true, ?string $reason = null): mixed
     {
-        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify, $recalculate) {
+        $operation = function () use ($trip, $mutation, $action, $expectedRevision, $ability, $verify, $recalculate, $reason) {
             $current = Trip::whereKey($trip->id)->lockForUpdate()->firstOrFail();
             Gate::authorize($ability, $current);
             if ($expectedRevision === null) {
@@ -48,7 +48,7 @@ final class MutateTrip
                 $this->recorder->execute($current, $cost, $action);
             }
             AuditEvent::create(['trip_id' => $current->id, 'actor_id' => auth()->id(), 'action' => $action, 'revision' => $current->revision,
-                'before' => $before, 'after' => $current->toArray(), 'created_at' => now()]);
+                'before' => $before, 'after' => $current->toArray(), 'reason' => $reason, 'created_at' => now()]);
 
             return $result;
         };

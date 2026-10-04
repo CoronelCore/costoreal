@@ -73,6 +73,6 @@ export interface AuditDifference {
     change: 'added' | 'removed' | 'updated'; fields: { field: string; before: AuditValue; after: AuditValue }[];
 }
 export interface AuditComparison {
-    id: number; revision: number; summary: AuditSummary | null;
+    id: number; revision: number; reason: string | null; summary: AuditSummary | null;
     data: AuditDifference[]; total: number; current_page: number; last_page: number;
 }

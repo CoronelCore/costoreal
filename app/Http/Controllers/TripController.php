@@ -79,6 +79,7 @@ class TripController extends Controller
     public function show(Request $request, Trip $trip)
     {
         $this->authorize('view', $trip);
+        $request->validate(['section' => 'nullable|in:resumen,productos,gastos,precio-venta,revision,historial,documentos,escenarios,config']);
         $trip->load(['expenses.category', 'products', 'company', 'documents']);
 
         $summary = FinancialSummaryData::fromTrip($trip);
@@ -88,7 +89,7 @@ class TripController extends Controller
             'lines_count' => count(json_decode($batch->result, true, flags: JSON_THROW_ON_ERROR)['lines'])] : null;
         $runs = $trip->costRuns()->select('id', 'revision', 'reason', 'algorithm', 'created_at')->latest('id')->limit(50)->get();
 
-        return Inertia::render('Trips/Show', ['trip' => ImportationData::detail($trip, $summary), 'lastPricingBatch' => $lastBatch, 'projection' => $summary->projection, 'estadisticas' => $summary->statistics,
+        return Inertia::render('Trips/Show', ['initialTab' => $request->input('section'), 'trip' => ImportationData::detail($trip, $summary), 'lastPricingBatch' => $lastBatch, 'projection' => $summary->projection, 'estadisticas' => $summary->statistics,
             'scenarios' => fn () => app(ScenarioController::class)->listing($trip, 'scenario_page'),
             'trashedDocuments' => $trip->documents()->onlyTrashed()->latest()->get()->map(fn ($d) => ImportationData::document($d)),
             'history' => fn () => app(AuditController::class)->listing($trip, 'history_page'),
@@ -131,10 +132,11 @@ class TripController extends Controller
     public function reopen(Request $request, Trip $trip)
     {
         $this->authorize('reopen', $trip);
-        $request->validate(['expected_revision' => 'required|integer|min:1']);
-        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', ability: 'reopen', recalculate: false);
+        $data = $request->validate(['expected_revision' => 'required|integer|min:1', 'reason' => 'required|string|min:3|max:1000'],
+            ['reason.required' => 'Explica por qué necesitas reabrir la importación.', 'reason.min' => 'El motivo debe contener al menos tres caracteres.', 'reason.max' => 'El motivo admite hasta 1.000 caracteres.']);
+        $this->mutation->execute($trip, fn ($current) => $current->update(['estado' => 'activo']), 'reopen', expectedRevision: (int) $data['expected_revision'], ability: 'reopen', recalculate: false, reason: $data['reason']);
 
-        return to_route('trips.show', $trip)->with('success', 'Importación reabierta; el cierre anterior permanece en el historial');
+        return to_route('trips.show', $trip)->with('success', 'Importación reabierta; motivo registrado y cierre anterior conservado');
     }
 
     public function destroy(Request $request, Trip $trip, RecoverTrip $recovery)

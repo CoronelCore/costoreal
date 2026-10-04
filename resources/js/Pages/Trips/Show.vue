@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref, nextTick } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import FinancialLayout from '@/Layouts/FinancialLayout.vue';
 import ImportSummary from '@/Components/Importations/ImportSummary.vue';
 import ProductSheet from '@/Components/Importations/ProductSheet.vue';
@@ -18,12 +18,14 @@ import { formatDateOnly } from '@/Utils/format';
 import { ArrowLeftIcon, ArrowDownTrayIcon, CheckIcon, ArrowPathIcon, PencilIcon } from '@heroicons/vue/24/outline';
 const route = useRoute();
 const props = defineProps<ImportShowProps>();
-const { activeTab, setTab } = useTabs(`trip-${props.trip.id}-tab`, 'resumen', ['resumen','productos','gastos','precio-venta','revision','historial','documentos','escenarios','config']);
+const { activeTab, setTab } = useTabs(`trip-${props.trip.id}-tab`, 'resumen', ['resumen','productos','gastos','precio-venta','revision','historial','documentos','escenarios','config'],props.initialTab ?? undefined);
 const tabs = computed(() => [{id:'resumen',label:'Resumen'}, {id:'productos',label:'Hoja de productos',count:props.trip.products.length}, {id:'gastos',label:'Gastos',count:props.trip.expenses.length}, {id:'precio-venta',label:'Precios'}, {id:'documentos',label:'Documentos',count:props.trip.documents?.length || 0}, {id:'escenarios',label:'Escenarios'}, {id:'revision',label:'Revisión'}, {id:'historial',label:'Historial'}]);
-const confirmation = ref<{ title: string; message: string; action: () => void } | null>(null);
+const confirmation = ref<{ title: string; message: string; kind?: 'reopen'; action: () => void } | null>(null);
 const busy = ref(false);
+const reopenReasonInput = ref<HTMLTextAreaElement | null>(null);
+const reopenForm = useForm({reason:'',expected_revision:props.trip.revision});
 const askClose = () => { confirmation.value = { title:'Cerrar importación', message:'Se conservará esta revisión con sus tasas y costos, y se bloqueará su edición. Puedes reabrirla después; el cierre original seguirá disponible.', action: () => router.patch(route('trips.close',props.trip.id), {expected_revision:props.trip.revision}, {preserveScroll:true,onFinish:finish}) }; };
-const askReopen = () => { confirmation.value = { title:'Reabrir importación', message:'Podrás editar una nueva revisión. Los reportes del cierre anterior seguirán disponibles en el historial.', action: () => router.patch(route('trips.reopen',props.trip.id), {expected_revision:props.trip.revision}, {preserveScroll:true,onFinish:finish}) }; };
+const askReopen = () => { reopenForm.reset(); reopenForm.clearErrors(); reopenForm.expected_revision = props.trip.revision; confirmation.value = { kind:'reopen',title:'Reabrir importación', message:'Se abrirá una nueva revisión para continuar trabajando. El cierre anterior y sus reportes permanecerán en el historial.', action: () => reopenForm.patch(route('trips.reopen',props.trip.id), {preserveScroll:true,onSuccess:finish,onFinish:()=>{busy.value = false; if (Object.keys(reopenForm.errors).length) void nextTick(()=>reopenReasonInput.value?.focus());}}) }; };
 const askTrash = () => { confirmation.value = { title:'Mover importación a la papelera', message:`«${props.trip.nombre}» saldrá del Control y la Analítica. Sus costos, documentos y revisiones se conservarán y podrás restaurarla desde la papelera.`, action: () => router.delete(route('trips.destroy',props.trip.id), {data:{expected_revision:props.trip.revision},onFinish:finish}) }; };
 const askDelete = (type: 'products' | 'expenses', item: { id: number; nombre?: string; concepto?: string }) => { confirmation.value = { title:type === 'products' ? 'Eliminar producto' : 'Eliminar gasto', message:`Se quitará «${item.nombre || item.concepto}» de esta revisión y se recalculará el reparto. Sus datos anteriores permanecen en el historial.`, action: () => router.delete(route(`trips.${type}.destroy`,[props.trip.id,item.id]), {data:{expected_revision:props.trip.revision},preserveScroll:true,onFinish:finish}) }; };
 const finish = () => { busy.value = false; confirmation.value = null; };
@@ -45,6 +47,6 @@ const confirm = () => { busy.value = true; confirmation.value?.action(); };
         <ScenariosPanel v-else-if="activeTab === 'escenarios'" :trip="trip" :scenarios="scenarios" />
         <HistoryPanel v-else-if="activeTab === 'historial'" :trip="trip" :history="history" :runs="costRuns" :baseline="legacyBaseline" />
         <section v-else class="f-panel"><div class="f-panel-body"><h2>Configuración de la importación</h2><p class="f-hint">Moneda original {{ trip.moneda_trabajo }} · tasa de referencia {{ trip.tipo_cambio }} CLP / {{ trip.moneda_trabajo }}</p><Link v-if="trip.estado === 'activo'" :href="route('trips.edit',trip.id)" class="f-button" style="margin-top:16px">Editar configuración</Link></div></section>
-        <Modal :show="!!confirmation" :title="confirmation?.title" @close="!busy && (confirmation = null)"><p class="text-gray-700 dark:text-slate-200">{{ confirmation?.message }}</p><template #footer><div class="f-actions"><button class="f-button" @click="confirmation = null" :disabled="busy">Cancelar</button><button class="f-button f-button-primary" @click="confirm" :disabled="busy">{{ busy ? 'Guardando…' : 'Confirmar' }}</button></div></template></Modal>
+        <Modal :show="!!confirmation" :title="confirmation?.title" @close="!busy && (confirmation = null)"><p class="text-gray-700 dark:text-slate-200">{{ confirmation?.message }}</p><div v-if="confirmation?.kind === 'reopen'" class="f-field" style="margin-top:18px"><label for="reopen-reason">Motivo de la reapertura *</label><textarea ref="reopenReasonInput" id="reopen-reason" class="f-input" v-model="reopenForm.reason" rows="4" maxlength="1000" :disabled="busy" :aria-invalid="!!reopenForm.errors.reason" aria-describedby="reopen-reason-help reopen-reason-error" placeholder="Ej. Incorporar el flete definitivo o corregir una cantidad"></textarea><p id="reopen-reason-help" class="f-hint">Se conservará junto a tu nombre y la nueva revisión.</p><p id="reopen-reason-error" class="f-field-error" role="alert">{{ reopenForm.errors.reason }}</p><p v-for="(message,key) in reopenForm.errors" v-show="key !== 'reason'" :key="key" class="f-field-error" role="alert">{{ message }}</p></div><template #footer><div class="f-actions"><button class="f-button" @click="confirmation = null" :disabled="busy">Cancelar</button><button class="f-button f-button-primary" @click="confirm" :disabled="busy">{{ busy ? 'Guardando…' : 'Confirmar' }}</button></div></template></Modal>
     </FinancialLayout>
 </template>

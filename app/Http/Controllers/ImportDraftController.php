@@ -122,7 +122,7 @@ class ImportDraftController extends Controller
             return $current;
         });
 
-        return $input['mode'] === 'quick' ? redirect()->to(route('trips.show', $current->trip_id).'#productos') : to_route('trips.create', ['draft' => $current->id])->with('success', 'Contexto guardado. Continúa con los productos; puedes retomar este borrador después.');
+        return $input['mode'] === 'quick' ? redirect()->to(route('trips.show', ['trip' => $current->trip_id, 'section' => 'productos']).'#productos') : to_route('trips.create', ['draft' => $current->id])->with('success', 'Contexto guardado. Continúa con los productos; puedes retomar este borrador después.');
     }
 
     public function finish(Request $request, ImportDraft $draft, CloseImportation $close)

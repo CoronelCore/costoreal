@@ -126,7 +126,7 @@ class CostReconciliationTest extends TestCase
         $trip = $this->legacy('finalizado');
         $saved = $this->save($trip);
         $this->apply($trip, $saved)->assertForbidden();
-        $this->patchJson("/trips/{$trip->id}/reopen", ['expected_revision' => 1])->assertRedirect();
+        $this->patchJson("/trips/{$trip->id}/reopen", ['reason' => 'Corregir una nueva operación documentada', 'expected_revision' => 1])->assertRedirect();
         $this->assertSame('activo', $trip->fresh()->estado);
         $this->assertSame('109000.00', $trip->products()->first()->costo_final_total_clp);
         $this->assertSame(0, $trip->costRuns()->count());

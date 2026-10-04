@@ -9,6 +9,7 @@ import ReviewPanel from '@/Components/Importations/ReviewPanel.vue';
 import Modal from '@/Components/UI/Modal.vue';
 import { useRoute } from '@/Composables/useRoute';
 import { creationContext, copyCreationPayload, captureDraftWrite } from '@/Utils/creationDraft';
+import { DraftSaveQueue } from '@/Utils/DraftSaveQueue';
 import { requestErrors, validationErrors } from '@/Utils/validation';
 import { formatMoney, formatDateOnly } from '@/Utils/format';
 import type { CreationProps, CreationDraft, CreationStep, CreationPayload, CreationContext, DraftWrite, ProductEditorDraft, ExpenseEditorDraft } from '@/Types/creation';
@@ -24,13 +25,15 @@ const context = useForm<CreationContext>(creationContext(payload.context,props.s
 const saving = ref(false);
 const actionBusy = ref(false);
 const error = ref('');
+const actionError = ref('');
 const conflict = ref(false);
 const stepHeading = ref<HTMLElement | null>(null);
 const confirmation = ref<{title:string;message:string;action:()=>void} | null>(null);
 let timer: ReturnType<typeof setTimeout> | undefined;
+let mounted = true;
 let pending: DraftWrite | null = null;
 const saved = ref(JSON.stringify({step:step.value,payload:copyCreationPayload(payload)}));
-let request: Promise<boolean> | null = null;
+const saveQueue = new DraftSaveQueue();
 const representation = () => JSON.stringify({step:step.value,payload:copyCreationPayload(payload)});
 const dirty = computed(()=>representation() !== saved.value);
 const hasEditor = computed(()=>!!payload.product || !!payload.expense);
@@ -39,36 +42,32 @@ const jump = async (next: CreationStep) => {
     if (actionBusy.value || (!props.trip && next !== 'contexto')) return;
     step.value = next; await nextTick(); stepHeading.value?.focus();
 };
-const autosave = async (): Promise<boolean> => {
-    if (request) return request;
+const autosave = (force = false): Promise<boolean> => saveQueue.run(async()=>{
     if (conflict.value) return false;
     clearTimeout(timer);
-    request = (async()=>{
-        saving.value = true; error.value = '';
-        try {
-            while (representation() !== saved.value || pending) {
-                pending ??= captureDraftWrite(clientId.value,draft.value?.revision ?? 0,step.value,payload,crypto.randomUUID());
-                const captured = JSON.stringify({step:pending.step,payload:pending.payload});
-                const firstSave = pending.expected_revision === 0;
-                const response = firstSave
-                    ? await axios.post<{draft:CreationDraft}>(route('import-drafts.store'),pending,{headers:{Accept:'application/json'}})
-                    : await axios.put<{draft:CreationDraft}>(route('import-drafts.update',pending.draft_id),pending,{headers:{Accept:'application/json'}});
-                draft.value = response.data.draft; saved.value = captured; pending = null;
-                if (firstSave) router.get(route('trips.create'),{draft:clientId.value},{only:['draft','drafts'],preserveState:true,preserveScroll:true,replace:true});
-            }
-            return true;
-        } catch(failure) {
-            const errors = requestErrors(failure,'draft','El borrador no se guardó en el servidor. Conservamos los campos en esta pantalla; reintenta al recuperar la conexión.');
-            error.value = Object.values(errors).flat().join(' '); conflict.value = !!errors.conflict || !!errors.write_key;
-            if (axios.isAxiosError(failure) && failure.response?.status === 422 && !conflict.value) pending = null;
-            return false;
-        } finally { saving.value = false; request = null; }
-    })();
-    return request;
-};
+    saving.value = true; error.value = '';
+    try {
+        while ((!draft.value && force) || representation() !== saved.value || pending) {
+            pending ??= captureDraftWrite(clientId.value,draft.value?.revision ?? 0,step.value,payload,crypto.randomUUID());
+            const captured = JSON.stringify({step:pending.step,payload:pending.payload});
+            const firstSave = pending.expected_revision === 0;
+            const response = firstSave
+                ? await axios.post<{draft:CreationDraft}>(route('import-drafts.store'),pending,{headers:{Accept:'application/json'}})
+                : await axios.put<{draft:CreationDraft}>(route('import-drafts.update',pending.draft_id),pending,{headers:{Accept:'application/json'}});
+            draft.value = response.data.draft; saved.value = captured; pending = null;
+            if (firstSave && mounted) await new Promise<void>(resolve=>router.get(route('trips.create'),{draft:clientId.value},{only:['draft','drafts'],preserveState:true,preserveScroll:true,replace:true,onFinish:()=>resolve()}));
+        }
+        return true;
+    } catch(failure) {
+        const errors = requestErrors(failure,'draft','El borrador no se guardó en el servidor. Conservamos los campos en esta pantalla; reintenta al recuperar la conexión.');
+        error.value = Object.values(errors).flat().join(' '); conflict.value = !!errors.conflict || !!errors.write_key;
+        if (axios.isAxiosError(failure) && failure.response?.status === 422 && !conflict.value) pending = null;
+        return false;
+    } finally { saving.value = false; }
+});
 watch(()=>context.data(),data=>{ payload.context = creationContext(data); },{deep:true});
 watch(()=>representation(),()=>{ if (!actionBusy.value && !conflict.value) { clearTimeout(timer); timer = setTimeout(()=>void autosave(),800); } });
-onBeforeUnmount(()=>clearTimeout(timer));
+onBeforeUnmount(()=>{mounted = false; clearTimeout(timer);});
 watch(()=>props.draft,value=>{
     if (!value || value.id !== clientId.value) return;
     if (!draft.value?.trip_id && value.trip_id) {
@@ -80,24 +79,24 @@ watch(()=>props.draft?.id,id=>{
 });
 const launch = async (mode: 'guided' | 'quick') => {
     if (actionBusy.value) return;
-    if (!await autosave() || !draft.value) return;
-    actionBusy.value = true; context.clearErrors();
+    if (!await autosave(true) || !draft.value) return;
+    actionBusy.value = true; actionError.value = ''; context.clearErrors();
     router.post(route('import-drafts.launch',draft.value.id),{...context.data(),draft_revision:draft.value.revision,mode},{preserveScroll:true,
-        onError:errors=>{ Object.assign(context.errors,validationErrors(errors)); error.value = Object.values(validationErrors(errors)).flat().join(' '); nextTick(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); },
-        onFinish:()=>{ actionBusy.value = false; } });
+        onError:errors=>{ Object.assign(context.errors,validationErrors(errors)); actionError.value = Object.values(validationErrors(errors)).flat().join(' '); },
+        onFinish:()=>{ actionBusy.value = false; if (Object.keys(context.errors).length) void nextTick(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); } });
 };
 const finish = async (mode: 'active' | 'close') => {
     if (hasEditor.value || actionBusy.value || !props.trip || !await autosave() || !draft.value) return;
-    actionBusy.value = true;
+    actionBusy.value = true; actionError.value = '';
     router.post(route('import-drafts.finish',draft.value.id),{draft_revision:draft.value.revision,expected_revision:props.trip.revision,mode},{
-        onError:errors=>{ error.value = Object.values(validationErrors(errors)).flat().join(' '); },onFinish:()=>{ actionBusy.value = false; confirmation.value = null; } });
+        onError:errors=>{ actionError.value = Object.values(validationErrors(errors)).flat().join(' '); },onFinish:()=>{ actionBusy.value = false; confirmation.value = null; } });
 };
 const askClose = () => { confirmation.value = {title:'Crear y cerrar importación',message:'Se conservará una revisión inmutable con tasas y costos, y se bloqueará la edición. El cierre no representa una venta. Podrás reabrirla y consultar este reporte después.',action:()=>{void finish('close');}}; };
 const askDelete = (kind: 'products' | 'expenses', item: ProductData | ExpenseData) => {
     confirmation.value = {title:kind === 'products' ? 'Eliminar producto' : 'Eliminar gasto',message:'Se retirará de esta revisión y se recalcularán los costos. Sus valores anteriores se conservan en el historial.',action:()=>{
         if (!props.trip) return; actionBusy.value = true;
         axios.delete(route(`trips.${kind}.destroy`,[props.trip.id,item.id]),{data:{expected_revision:props.trip.revision},headers:{Accept:'application/json'}})
-            .then(()=>router.reload()).catch(failure=>{error.value = Object.values(requestErrors(failure,'delete','No se pudo retirar el registro.')).flat().join(' ');})
+            .then(()=>router.reload()).catch(failure=>{actionError.value = Object.values(requestErrors(failure,'delete','No se pudo retirar el registro.')).flat().join(' ');})
             .finally(()=>{actionBusy.value = false; confirmation.value = null;});
     }};
 };
@@ -112,8 +111,8 @@ const setExpenseDraft = (state: ExpenseEditorDraft | null) => { payload.expense 
         <div class="f-heading"><div><div class="f-eyebrow">DEL CONTEXTO AL COSTO FINAL</div><h1>Nueva importación</h1><p>Una compra organizada, con cada conversión y gasto explicados.</p></div><div class="f-actions"><button class="f-button" :disabled="saving || actionBusy" @click="leave">Guardar y salir</button></div></div>
         <section v-if="!draft && drafts.data.length" class="f-panel"><div class="f-panel-heading"><h2>Altas que puedes retomar</h2><span class="f-hint">{{ drafts.total }} borradores guardados</span></div><div class="f-panel-body"><div v-for="item in drafts.data" :key="item.id" class="creation-resume"><div><strong>{{ item.name || 'Sin nombre todavía' }}</strong><p class="f-hint">{{ steps.find(s=>s.id === item.step)?.label }} · {{ new Date(item.updated_at).toLocaleString('es-CL') }}</p></div><Link :href="route('trips.create',{draft:item.id})" class="f-button">Retomar {{ item.name || 'borrador' }}</Link></div></div><div v-if="drafts.last_page > 1" class="f-pagination"><span>{{ drafts.current_page }} / {{ drafts.last_page }}</span><div class="f-actions"><Link v-if="drafts.prev_page_url" :href="drafts.prev_page_url" class="f-button">Anteriores</Link><Link v-if="drafts.next_page_url" :href="drafts.next_page_url" class="f-button">Siguientes</Link></div></div></section>
         <nav class="creation-steps" aria-label="Pasos para crear la importación"><button v-for="(item,index) in steps" :key="item.id" :aria-current="step === item.id ? 'step' : undefined" :disabled="actionBusy || (!trip && item.id !== 'contexto')" @click="jump(item.id)"><span class="creation-step-number">{{ index+1 }}</span><span><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span></button></nav>
-        <div class="creation-state"><p role="status" aria-live="polite">{{ status }}</p><span v-if="trip" class="f-hint">Importación #{{ trip.id }} · costeo revisión {{ trip.revision }}</span><button v-if="error && !conflict" class="f-button" @click="autosave" :disabled="saving">Reintentar guardado</button></div>
-        <div v-if="error" class="f-notice f-notice-error" role="alert">{{ error }}<button v-if="conflict" class="f-button" style="margin-top:10px" @click="savedVersion">Abrir versión guardada</button></div>
+        <div class="creation-state"><p role="status" aria-live="polite">{{ status }}</p><span v-if="trip" class="f-hint">Importación #{{ trip.id }} · costeo revisión {{ trip.revision }}</span><button v-if="error && !conflict" class="f-button" @click="autosave()" :disabled="saving">Reintentar guardado</button></div>
+        <div v-if="error || actionError" class="f-notice f-notice-error" role="alert">{{ error || actionError }}<button v-if="conflict" class="f-button" style="margin-top:10px" @click="savedVersion">Abrir versión guardada</button></div>
         <p v-if="draft && !props.draft" class="f-hint" style="margin-bottom:16px">El borrador ya está guardado en tu cuenta. Si sales, podrás retomarlo desde Nueva importación.</p>
         <h2 ref="stepHeading" tabindex="-1" class="creation-heading">{{ steps.find(s=>s.id === step)?.label }}</h2>
         <template v-if="step === 'contexto'">

@@ -144,8 +144,10 @@ class ImportCreationDraftTest extends TestCase
         $this->assertSame('activo', Trip::first()->estado);
         $this->assertSame(1, Trip::first()->revision);
         [$quick] = $this->createDraft([...$this->context(), 'nombre' => 'Operador frecuente']);
-        $this->launch($quick, 'quick')->assertRedirect('/trips/2#productos');
+        $this->launch($quick, 'quick')->assertRedirect('/trips/2?section=productos#productos');
         $this->assertNotNull(ImportDraft::find($quick['id'])->completed_at);
+        $this->get('/trips/2?section=productos')->assertInertia(fn (Assert $page) => $page->where('initialTab', 'productos'));
+        $this->getJson('/trips/2?section=invalid')->assertUnprocessable()->assertJsonValidationErrors('section');
         $this->assertSame(2, Trip::count());
     }
 

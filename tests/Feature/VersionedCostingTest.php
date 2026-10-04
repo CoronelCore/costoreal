@@ -73,7 +73,7 @@ class VersionedCostingTest extends TestCase
         $this->patch("/trips/{$trip->id}/close", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $run = $trip->costRuns()->where('reason', 'close')->firstOrFail();
         $original = $run->snapshot;
-        $this->patch("/trips/{$trip->id}/reopen", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
+        $this->patch("/trips/{$trip->id}/reopen", ['reason' => 'Corregir una nueva operación documentada', 'expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $this->put("/trips/{$trip->id}/products/{$p->id}", ['expected_revision' => $trip->fresh()->revision, 'nombre' => 'Actualizado', 'moneda' => 'USD', 'cantidad' => 3, 'costo_unitario' => '200'])->assertSessionHasNoErrors();
         $this->assertSame($original, $run->fresh()->snapshot);
         $historical = app(ReportTrip::class)->resolve($trip->fresh(), $run->id);

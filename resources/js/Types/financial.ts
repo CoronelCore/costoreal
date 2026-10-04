@@ -186,9 +186,10 @@ export interface Actor { id: number; name: string }
 export interface CostRunSummary { id: number; revision: number; reason: string; algorithm: string; created_at: string }
 export interface AuditState { state: ImportState | null; reference_rate: Decimal | null; cost: Decimal | null; products: number; expenses: number; documents: number; deleted_at: string | null }
 export interface AuditSummary { version: number; before: AuditState; after: AuditState }
-export interface AuditEventSummary { id: number; revision: number; action: string; summary: AuditSummary | null; actor: Actor | null; created_at: string }
+export interface AuditEventSummary { id: number; revision: number; action: string; reason: string | null; summary: AuditSummary | null; actor: Actor | null; created_at: string }
 export interface ScenarioSummary { id: number; name: string; base_revision: number; applied_revision: number | null; applied_at: string | null; actor: Actor | null; created_at: string }
 export interface ImportShowProps {
+    initialTab?: string | null;
     trip: ImportDetail;
     estadisticas: FinancialStatistics;
     projection: SalesProjection;
@@ -217,3 +218,5 @@ export interface ExpenseMutation extends RevisionMutation {
     eliminar_comprobante: boolean;
 }
 export interface DocumentMutation extends RevisionMutation { file: File | null }
+
+export interface ImportReview { revision: number; state: ImportState; can_close: boolean; blocks: string[]; warnings: string[]; stored_total: Decimal | null; calculated_total: Decimal | null; differences_count: number; document_policy: 'optional' }

@@ -112,7 +112,7 @@ class FinancialDataContractTest extends TestCase
         $this->patch("/trips/{$trip->id}/products/{$id}/precio-venta", ['precio_venta' => '60000', 'expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $this->patch("/trips/{$trip->id}/close", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $run = $trip->costRuns()->where('reason', 'close')->firstOrFail();
-        $this->patch("/trips/{$trip->id}/reopen", ['expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
+        $this->patch("/trips/{$trip->id}/reopen", ['reason' => 'Corregir una nueva operación documentada', 'expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $this->put("/trips/{$trip->id}/products/{$id}", ['nombre' => 'Costo nuevo', 'moneda' => 'USD', 'cantidad' => 3,
             'costo_unitario' => '200', 'expected_revision' => $trip->fresh()->revision])->assertSessionHasNoErrors();
         $historical = app(ReportTrip::class)->resolve($trip->fresh(), $run->id);

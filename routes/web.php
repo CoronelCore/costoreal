@@ -10,6 +10,7 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ImportDraftController;
+use App\Http\Controllers\ImportReviewController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -43,6 +44,7 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('trips/trash', [TripRecoveryController::class, 'index'])->name('trips.trash');
     Route::post('trips/{trip}/restore', [TripRecoveryController::class, 'restore'])->withTrashed()->name('trips.restore');
     Route::resource('trips', TripController::class);
+    Route::get('trips/{trip}/review', [ImportReviewController::class, 'show'])->name('trips.review');
     Route::patch('trips/{trip}/close', [TripController::class, 'close'])->name('trips.close');
     Route::patch('trips/{trip}/reopen', [TripController::class, 'reopen'])->name('trips.reopen');
 

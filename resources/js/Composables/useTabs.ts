@@ -1,7 +1,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 
-export function useTabs(storageKey: string, defaultTab: string, allowedTabs: readonly string[] = [defaultTab]) {
+export function useTabs(storageKey: string, defaultTab: string, allowedTabs: readonly string[] = [defaultTab], preferredTab?: string) {
     const activeTab = ref(defaultTab);
     const valid = (id: string | null | undefined): id is string => typeof id === 'string' && allowedTabs.includes(id);
     let removeNavigateListener: (() => void) | undefined;
@@ -22,7 +22,7 @@ export function useTabs(storageKey: string, defaultTab: string, allowedTabs: rea
         let stored: string | null = null;
         try { stored = window.localStorage.getItem(storageKey); } catch { /* Use default. */ }
         const hash = readHash();
-        activeTab.value = valid(hash) ? hash : valid(stored) ? stored : defaultTab;
+        activeTab.value = valid(hash) ? hash : valid(preferredTab) ? preferredTab : valid(stored) ? stored : defaultTab;
         window.addEventListener('hashchange', handleHashChange);
         initialPath = window.location.pathname;
         removeNavigateListener = router.on('finish', () => {
