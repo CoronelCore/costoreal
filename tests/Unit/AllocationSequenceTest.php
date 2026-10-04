@@ -10,6 +10,43 @@ use Tests\Support\ReferenceCostEngine;
 
 class AllocationSequenceTest extends TestCase
 {
+    public function test_json_batches_preserve_complete_values_boundaries_and_repeated_iteration(): void
+    {
+        $buffer = new AllocationBuffer;
+        $expected = [];
+        for ($i = 0; $i < 10001; $i++) {
+            $expected[] = $row = ['expense_id' => $i, 'product_id' => 1, 'amount' => '90000000000000000000',
+                'method' => 'weight', 'trace' => ['basis' => '1.25000000', 'name' => 'Ámbito "literal" \\ original']];
+            $buffer->add($row);
+        }
+        $sequence = $buffer->finish();
+        for ($iteration = 0; $iteration < 2; $iteration++) {
+            $actual = [];
+            $sizes = [];
+            foreach ($sequence->jsonBatches() as $json) {
+                $rows = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+                $sizes[] = count($rows);
+                array_push($actual, ...$rows);
+            }
+            $this->assertSame([5120, 4881], $sizes);
+            $this->assertSame($expected, $actual);
+        }
+        $this->assertSame([], iterator_to_array((new AllocationBuffer)->finish()->jsonBatches()));
+    }
+
+    public function test_repeated_and_evicted_allocation_plans_keep_every_expense_identity_and_trace(): void
+    {
+        $lines = [['id' => 10, 'quantity' => 3, 'unit_amount' => '12.34', 'rate' => '900.12345678', 'weight' => '1.2500', 'volume' => '0.12500000'],
+            ['id' => 2, 'quantity' => 1, 'unit_amount' => '55.01', 'rate' => '900.12345678', 'weight' => '2.5000', 'volume' => '0.50000000']];
+        $expenses = [];
+        foreach (range(1, 30) as $i) {
+            $expenses[] = ['id' => $i, 'amount_clp' => $i % 2 ? '101' : '9000000000000000000000',
+                'method' => ['value', 'units', 'weight', 'volume', 'direct'][$i % 5], 'target_id' => $i % 2 ? 10 : 2];
+        }
+        $this->assertSame((new ReferenceCostEngine)->calculate($lines, $expenses)->toArray(),
+            (new CostEngine)->calculate($lines, $expenses)->toArray());
+    }
+
     public function test_chunk_boundaries_repeatable_iteration_indexing_and_immutability(): void
     {
         $buffer = new AllocationBuffer;

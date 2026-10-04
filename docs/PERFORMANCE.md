@@ -39,3 +39,12 @@ Ante una alerta: repetir el mismo volumen con el profiler, identificar si cambi�
 ## Trabajo pendiente
 
 CR-021 satisface el criterio de consultas constantes y perfiles conocidos de control/analítica. El bloqueo de memoria del motor en 1000 productos/500 gastos se corrigió mediante secuencias comprimidas completas y persistencia por lotes: se preservan todas las asignaciones, residuos y trace; nuevos cost_runs referencian las filas atómicas de cost_allocations sin duplicarlas en result JSON. Ver docs/COST_ENGINE_PERFORMANCE.md para representación, compatibilidad, pruebas y perfiles propios. CR-040 sigue en curso: guardar/cerrar el caso máximo todavía excede 2500 ms y revisión/escenarios exceden el presupuesto inicial de lectura. El ensayo CLI no certifica p95 HTTP de estas rutas. QA visual global, release/restauración integral y aceptación siguen en sus tareas respectivas.
+
+
+## Escrituras acotadas y scopes de cálculo · 4 de octubre de 2026
+
+El runtime SQLite 3.53.4 recibe lotes JSONB transitorios de hasta 5.120 asignaciones mediante la API de Laravel. Se conservan todas las filas, trace textual, eventos de consultas y transacción. Fallback portable y upserts respetan parámetros del driver. Cálculos idénticos se reutilizan únicamente dentro del scope, con un solo resultado puro inmutable y clave de entradas completas; autorización, snapshots y auditoría siguen reconsultando el contexto.
+
+En tres fixtures CLI nuevas de 1000/500, mediana de guardar 3.772 ms y cerrar 4.115 ms, frente a 6.809/8.401 de la línea base previa. No son p95 HTTP. Consultas 142/133 frente a 156/147; coste de escritura por lotes, sin una consulta por asignación. Cada fixture conserva/hash-verifica un millón de trazas en dos versiones y revierte el fallo de segunda tanda.
+
+Caso alterno con trece importes diferentes: guardar/cerrar ~4.625 ms y escenario ~3.297 ms; sigue excediendo 2.500. Presupuestos/alertas vigentes no se aumentan. El contador process_peak_mb representa heap PHP rastreado; no certifica RSS o memoria nativa SQLite. Detalles/método en docs/COST_ENGINE_PERFORMANCE.md. CR-040 continúa para HTTP y optimización restante.

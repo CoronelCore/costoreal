@@ -18,6 +18,7 @@ final class CostEngine
         $assigned = new DecimalSum;
         $lineAssigned = [];
         $basisCache = [];
+        $allocationCache = [];
         $computed = [];
         $allocations = new AllocationBuffer;
         $expenseIds = [];
@@ -66,7 +67,19 @@ final class CostEngine
                 }
                 $basisCache[$basisKey] = new AllocationBasis($weights);
             }
-            foreach ($this->allocate($amount, $basisCache[$basisKey]) as $id => $allocation) {
+            $cacheKey = json_encode([$basisKey, (string) $amount], JSON_THROW_ON_ERROR);
+            if (count($lines) <= 1000) {
+                if (! isset($allocationCache[$cacheKey])) {
+                    if (count($allocationCache) === 4) {
+                        array_shift($allocationCache);
+                    }
+                    $allocationCache[$cacheKey] = iterator_to_array($this->allocate($amount, $basisCache[$basisKey]));
+                }
+                $shares = $allocationCache[$cacheKey];
+            } else {
+                $shares = $this->allocate($amount, $basisCache[$basisKey]);
+            }
+            foreach ($shares as $id => $allocation) {
                 $value = $allocation['amount'];
                 $lineAssigned[$id]->add((string) $value);
                 $assigned->add((string) $value);

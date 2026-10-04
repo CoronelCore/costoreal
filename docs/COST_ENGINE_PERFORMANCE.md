@@ -6,13 +6,13 @@ El algoritmo sigue siendo `largest-remainder-clp-v1`. Los resultados, orden natu
 
 AllocationBuffer comprime bloques de 256 asignaciones JSON con zlib y entrega una AllocationSequence inmutable, iterable, contable y con acceso por índice. La iteración expande un solo bloque; puede repetirse. No usa archivos, DB ni I/O en el dominio. Conserva también repartos de cero. La representación total crece con el número de asignaciones comprimidas; no promete memoria constante para cualquier volumen ilimitado.
 
-AllocationBasis comparte bases de reparto entre gastos, con una caché limitada a cuatro bases. La división usa enteros escalados solo cuando pesos, suma y cada multiplicación caben en PHP_INT_MAX. Los casos restantes usan Brick\Math con precisión arbitraria. Las escalas decimales de las trazas permanecen idénticas. DecimalSum acumula valores exactos y evita crear un objeto decimal por cada suma común; no incorpora floats.
+AllocationBasis comparte bases de reparto entre gastos, con una caché limitada a cuatro bases. CostEngine reutiliza hasta cuatro planes idénticos de base/importe dentro de un cálculo de hasta 1.000 líneas, conservando la identidad y traza de cada gasto. Por encima de ese tamaño usa el recorrido anterior. La división usa enteros escalados solo cuando pesos, suma y cada multiplicación caben en PHP_INT_MAX. Los casos restantes usan Brick\Math con precisión arbitraria. Las escalas decimales de las trazas permanecen idénticas. DecimalSum acumula valores exactos y evita crear un objeto decimal por cada suma común; no incorpora floats.
 
 CostResult::summary() expone únicamente cifras. `storageData()` añade líneas y `storage_version=2`, `allocation_source=cost_allocations`, `allocation_count`. `toArray()` conserva el contrato completo anterior para consumidores explícitos y pruebas pequeñas: materializa todas las asignaciones y no debe usarse en rutas de gran volumen. Importación de productos y comparación de costos usan summary().
 
 ## Escritura e históricos
 
-RecordCostRun recorre la secuencia y guarda lotes de hasta 5.000 filas, limitados por los parámetros admitidos por el driver. El helper consulta MAX_VARIABLE_NUMBER de SQLite, aplica margen y limita el payload transitorio. Los upserts de productos/gastos se acotan a 100 filas según columnas. Solo SQLite se ensayó realmente; los límites de otros drivers no certifican su compatibilidad integral.
+RecordCostRun delega la escritura a WriteAllocations. Con SQLite/JSONB disponible, consume JSON de hasta veinte bloques (5.120 filas), materializa el parseo nativo solo una vez por fila y conserva trace como texto JSON. Se envían dos parámetros por lote, sin rehidratar todas las trazas en PHP. Arrays anteriores y drivers sin JSONB utilizan los inserts portables de hasta 5.000 filas, acotados al límite real del driver. El helper consulta MAX_VARIABLE_NUMBER, aplica margen y limita el payload transitorio. Los upserts de productos/gastos se acotan a 500 filas según columnas. Solo SQLite se ensayó realmente; los límites de otros drivers no certifican su compatibilidad integral.
 
 La misma transacción guarda cost_run, todas sus asignaciones y proyecciones. Un fallo después de guardar el segundo lote revierte datos, revisión, versión, trazas, auditoría y proyecciones. No aparece una versión parcial. Los cost_runs anteriores con allocations dentro del JSON se leen sin reescribirlos. No hay migración de datos ni schema nuevo; `.env`, credenciales, DB en uso y documentos se preservan. Composer declara ext-zlib; no cambian las versiones de paquetes.
 
@@ -50,3 +50,29 @@ Guardar y cerrar el máximo todavía tardan varios segundos, y revisión/escenar
 | importation_review | 1664.73 | 74.5 |
 | scenario_simulation | 3262.51 | 78.5 |
 | atomic_close_and_trace_recording | 8492.64 | 82.5 |
+
+
+## Optimización de escritura y reutilización acotada · 4 de octubre de 2026
+
+CalculationMemo retiene un solo CostResult inmutable en el scope de una solicitud/job. La clave incorpora todas las entradas del motor; convertir/validar tasas sigue ocurriendo antes de consultar el memo. No guarda modelos, nombres, actores, permisos ni snapshots. El cierre puede reutilizar su cálculo de revisión dentro de la misma transacción, pero sigue comparando los importes originales antes de escribir. Cada scope nuevo obtiene otro memo. Un cálculo inválido no publica una nueva clave/result.
+
+SQLite 3.53.4 del runtime actual soporta la ruta JSONB. Se utiliza solo como representación transitoria: no cambia schema, archivos, algoritmo, trace persistida ni resultados antiguos. [La documentación de SQLite](https://www.sqlite.org/json1.html) describe JSONB y las funciones de extracción; versiones sin jsonb conservan el escritor portable. La comprobación de capacidad solo absorbe la ausencia de esa función, no otros errores de DB. Todos los inserts utilizan la API normal de Laravel, por lo que eventos, alertas, errores y rollback de segunda tanda permanecen activos. No se incorpora un acceso PDO alternativo.
+
+El profiler ahora inicia un scope nuevo por operación para evitar medir un memo calentado por operaciones CLI anteriores. Añade el modo varied, con trece importes alternos que superan la capacidad del caché de planes. El pico registrado es heap rastreado por PHP con memory_limit=128M, no RSS total ni memoria nativa del driver. No se certifica memoria residente del proceso mediante ese contador.
+
+Tres fixtures máximas nuevas, seriales; comparación con una línea base anterior del mismo runtime. Cada fixture conserva las 500.000 trazas por versión y ambas versiones al cerrar. Hash completo contra ReferenceCostEngine y DB, rollback después del segundo lote, integridad/FK e inmutabilidad pasan.
+
+| Operación | Antes ms | Mediana actual ms | Pico heap PHP MiB | Consultas actuales |
+|---|---:|---:|---:|---:|
+| complete_engine_preview | 1518.66 | 900.94 | 48 | 2 |
+| atomic_mutation_and_trace_recording | 6808.56 | 3772.25 | 68.5 | 142 |
+| stored_cost_comparison | 1651.76 | 990.18 | 70.5 | 3 |
+| importation_review | 1670.57 | 1020.31 | 70.5 | 4 |
+| scenario_simulation | 3234.15 | 1943.17 | 74.5 | 3 |
+| atomic_close_and_trace_recording | 8400.50 | 4114.65 | 80.5 | 133 |
+
+El modo varied no obtiene la mejora del caché de planes: preview 1.550 ms, guardar 4.624 ms, revisión 1.686 ms, escenario 3.297 ms y cierre 4.625 ms en una fixture nueva. Estos son tiempos de servicios/acciones CLI, no p95 HTTP. Los casos 10/100 también concilian: guardar 17/85 ms y cerrar 10/85 ms en una muestra nueva por caso.
+
+CR-040 sigue abierto. No se eleva el presupuesto de 2.500 ms: el máximo sigue excediéndolo. Quedan perfil HTTP por ruta con scopes reales, optimización restante y estados visibles durante operaciones largas. Checkpoint privado work/backups/cost-write-checkpoint; sin migraciones ni cambios de dependencias.
+
+Validación final de esta entrega: 265 pruebas PHP / 5.093 aserciones; siete nuevas regresiones sobre batching JSON, planes repetidos, scopes/invalidez, codec exacto y pretend. Pint pasa. El test máximo HTTP conserva dos versiones y un millón de trazas a memory_limit=128M; no es un perfil de latencia HTTP.

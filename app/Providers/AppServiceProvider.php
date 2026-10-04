@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Modules\Costing\CalculationMemo;
 use App\Modules\Observability\RequestMetrics;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(RequestMetrics::class);
+        $this->app->scoped(CalculationMemo::class);
     }
 
     /**

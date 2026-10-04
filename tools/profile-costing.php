@@ -18,8 +18,9 @@ use Tests\Support\ReferenceCostEngine;
 
 require __DIR__.'/../vendor/autoload.php';
 $n = (int) ($argv[1] ?? 1000);
-if (! in_array($n, [10, 100, 1000], true) || file_exists(__DIR__.'/../bootstrap/cache/config.php')) {
-    fwrite(STDERR, "Usa 10, 100 o 1000 líneas y un checkout sin config cache.\n");
+$mode = $argv[2] ?? 'same';
+if (! in_array($n, [10, 100, 1000], true) || ! in_array($mode, ['same', 'varied'], true) || file_exists(__DIR__.'/../bootstrap/cache/config.php')) {
+    fwrite(STDERR, "Usa 10, 100 o 1000 líneas; modo same/varied y un checkout sin config cache.\n");
     exit(1);
 }
 $directory = sys_get_temp_dir().'/costoreal-cost-profile-'.bin2hex(random_bytes(8));
@@ -34,7 +35,7 @@ putenv('BCRYPT_ROUNDS=4');
 putenv('COSTOREAL_PRIVATE_STORAGE_ROOT='.$directory.'/private');
 putenv('COSTOREAL_PUBLIC_STORAGE_ROOT='.$directory.'/public');
 $report = ['scope' => 'Services and atomic actions in fresh private SQLite; PHP 128 MiB. Not HTTP/p95. Each operation resets the PHP peak counter, retaining its process baseline.',
-    'lines' => $n, 'expenses' => intdiv($n, 2), 'memory_limit' => ini_get('memory_limit'), 'rows' => []];
+    'lines' => $n, 'expenses' => intdiv($n, 2), 'expense_mode' => $mode, 'memory_limit' => ini_get('memory_limit'), 'rows' => []];
 function expect(bool $condition, string $label): void
 {
     if (! $condition) {
@@ -56,11 +57,13 @@ try {
             'cantidad' => 1, 'moneda' => 'CLP', 'costo_unitario' => '10', 'subtotal_clp' => '10',
             'costo_final_total_clp' => '10', 'costo_final_unitario_clp' => '10', 'rate_mode' => 'estimated', 'rate_source' => 'trip-reference'], $numbers));
     }
+    $amounts = array_map(fn ($i) => $mode === 'varied' ? ($i % 13) + 1 : 1, range(1, intdiv($n, 2)));
     DB::table('expenses')->insert(array_map(fn ($i) => ['trip_id' => $trip->id, 'concepto' => 'Gasto '.$i,
-        'moneda' => 'CLP', 'monto' => '1', 'monto_clp' => '1', 'rate_mode' => 'estimated', 'rate_source' => 'trip-reference'], range(1, intdiv($n, 2))));
+        'moneda' => 'CLP', 'monto' => (string) $amounts[$i - 1], 'monto_clp' => (string) $amounts[$i - 1], 'rate_mode' => 'estimated', 'rate_source' => 'trip-reference'], range(1, intdiv($n, 2))));
     $trip = $trip->fresh();
-    $costing = app(ProrrateoService::class);
     $measure = function (string $name, callable $operation) use (&$report) {
+        // Each measured operation represents its own request/job scope, not a warmed CLI memo.
+        app()->forgetScopedInstances();
         gc_collect_cycles();
         memory_reset_peak_usage();
         $metrics = app(RequestMetrics::class);
@@ -72,9 +75,9 @@ try {
 
         return $value;
     };
-    $preview = $measure('complete_engine_preview', fn () => $costing->preview($trip));
+    $preview = $measure('complete_engine_preview', fn () => app(ProrrateoService::class)->preview($trip));
     expect(count($preview->allocations) === $n * intdiv($n, 2), 'Every allocation must be retained.');
-    $expectedTotal = (string) ($n * 10 + intdiv($n, 2));
+    $expectedTotal = (string) ($n * 10 + array_sum($amounts));
     expect($preview->total === $expectedTotal && $preview->unassigned === '0', 'Preview totals must reconcile.');
     $actualHash = hash_init('sha256');
     foreach ($preview->allocations as $row) {
@@ -85,7 +88,7 @@ try {
     $lines = $trip->products->map(fn ($p) => ['id' => $p->id, 'quantity' => $p->cantidad, 'unit_amount' => $p->costo_unitario, 'rate' => '1'])->all();
     $referenceHash = hash_init('sha256');
     foreach ($trip->expenses as $expense) {
-        $reference = (new ReferenceCostEngine)->calculate($lines, [['id' => $expense->id, 'amount_clp' => '1', 'method' => 'value']]);
+        $reference = (new ReferenceCostEngine)->calculate($lines, [['id' => $expense->id, 'amount_clp' => (string) $expense->monto_clp, 'method' => 'value']]);
         foreach ($reference->allocations as $row) {
             hash_update($referenceHash, json_encode($row, JSON_THROW_ON_ERROR)."\n");
         }
@@ -111,7 +114,7 @@ try {
     $review = $measure('importation_review', fn () => app(ReviewImportation::class)->execute($trip->fresh()));
     expect($review['can_close'] && $review['calculated_total'] === $expectedTotal, 'Review must allow the reconciled close.');
     $scenario = $measure('scenario_simulation', fn () => app(SimulateCost::class)->execute($trip->fresh(), ['expense_variation_percent' => '100']));
-    expect($scenario['result']['after']['cost'] === (string) ($n * 10 + $n), 'Scenario total must reconcile.');
+    expect($scenario['result']['after']['cost'] === (string) ($n * 10 + 2 * array_sum($amounts)), 'Scenario total must reconcile.');
     expect($trip->fresh()->revision === 2 && $trip->costRuns()->count() === 1, 'Simulation must not write a real run.');
     unset($scenario, $comparison, $review);
     $measure('atomic_close_and_trace_recording', fn () => app(CloseImportation::class)->execute($trip->fresh(), 2));

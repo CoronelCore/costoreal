@@ -30,6 +30,22 @@ final readonly class AllocationSequence implements ArrayAccess, Countable, Itera
         }
     }
 
+    /** Complete JSON arrays; bounded transport without rehydrating trace values. */
+    public function jsonBatches(): Traversable
+    {
+        $parts = [];
+        foreach ($this->chunks as $chunk) {
+            $parts[] = substr(gzuncompress($chunk), 1, -1);
+            if (count($parts) === 20) {
+                yield '['.implode(',', $parts).']';
+                $parts = [];
+            }
+        }
+        if ($parts) {
+            yield '['.implode(',', $parts).']';
+        }
+    }
+
     public function offsetExists(mixed $offset): bool
     {
         return is_int($offset) && $offset >= 0 && $offset < $this->size;
