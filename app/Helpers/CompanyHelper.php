@@ -3,69 +3,37 @@
 namespace App\Helpers;
 
 use App\Models\Company;
-use Illuminate\Support\Facades\Auth;
+use App\Modules\Access\AccessContext;
 
 class CompanyHelper
 {
-    /**
-     * Obtener la empresa activa de la sesión
-     */
     public static function getActiveCompany(): ?Company
     {
-        $companyId = session('active_company_id');
-
-        if ($companyId) {
-            return Company::find($companyId);
-        }
-
-        return null;
+        return AccessContext::forRequest(request())->activeCompany();
     }
 
-    /**
-     * Obtener ID de la empresa activa
-     */
     public static function getActiveCompanyId(): ?int
     {
-        return session('active_company_id');
+        return self::getActiveCompany()?->id;
     }
 
-    /**
-     * Verificar si hay una empresa seleccionada
-     */
     public static function hasActiveCompany(): bool
     {
-        return session()->has('active_company_id');
+        return self::getActiveCompany() !== null;
     }
 
-    /**
-     * Obtener todas las empresas del usuario autenticado
-     */
     public static function getUserCompanies()
     {
-        if (!Auth::check()) {
-            return collect();
-        }
-
-        return Auth::user()->companies()->where('activa', true)->get();
+        return AccessContext::forRequest(request())->companies();
     }
 
-    /**
-     * Obtener nombre de la empresa activa o "Todas las empresas"
-     */
     public static function getActiveCompanyName(): string
     {
-        $company = self::getActiveCompany();
-
-        return $company ? $company->nombre : 'Todas las empresas';
+        return self::getActiveCompany()?->nombre ?? 'Todas las empresas';
     }
 
-    /**
-     * Obtener ícono de la empresa activa
-     */
     public static function getActiveCompanyIcon(): string
     {
-        $company = self::getActiveCompany();
-
-        return $company && $company->icono ? $company->icono : '🏢';
+        return self::getActiveCompany()?->icono ?? '🏢';
     }
 }

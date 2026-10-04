@@ -28,6 +28,7 @@ const props = defineProps({
 });
 
 const form = useForm({
+    expected_revision: props.trip.revision,
     nombre: props.trip.nombre,
     descripcion: props.trip.descripcion || '',
     company_id: props.trip.company_id || '',
@@ -47,9 +48,9 @@ const submit = () => {
 const deleteTrip = () => {
     showConfirm({
         title: 'Eliminar Importación',
-        message: `¿Estás seguro de que deseas eliminar la importación "${props.trip.nombre}"? Esta acción no se puede deshacer y eliminará todos los gastos y productos asociados.`,
+        message: `¿Estás seguro de que deseas eliminar la importación "${props.trip.nombre}"? La importación pasará a la papelera y conservará sus productos, gastos e historial.`,
         onConfirm: () => {
-            router.delete(route('trips.destroy', props.trip.id));
+            router.delete(route('trips.destroy', props.trip.id), { data: { expected_revision: props.trip.revision } });
         }
     });
 };

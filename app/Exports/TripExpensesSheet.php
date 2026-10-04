@@ -3,57 +3,38 @@
 namespace App\Exports;
 
 use App\Models\Trip;
+use App\Services\ProrrateoService;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TripExpensesSheet implements FromArray, WithTitle, WithHeadings, WithStyles
+class TripExpensesSheet extends SafeValueBinder implements FromArray, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithStrictNullComparison, WithStyles, WithTitle
 {
-    protected $trip;
-
-    public function __construct(Trip $trip)
+    public function __construct(private Trip $trip)
     {
-        $this->trip = $trip;
+        $trip->loadMissing('expenses.category');
     }
 
     public function array(): array
     {
-        $data = [];
-
-        foreach ($this->trip->expenses as $expense) {
-            $data[] = [
-                $expense->category->nombre,
-                $expense->concepto,
-                $expense->moneda,
-                number_format($expense->monto, 2),
-                '$' . number_format($expense->monto_clp, 0, ',', '.'),
-            ];
+        $rows = [];
+        foreach ($this->trip->expenses as $e) {
+            $rows[] = [$e->category?->nombre ?? 'Sin categoría', $e->concepto, $e->moneda, (float) $e->monto, (float) $e->monto_clp];
         }
+        $rows[] = [];
+        $rows[] = [null, null, null, 'TOTAL CLP', (float) app(ProrrateoService::class)->obtenerEstadisticas($this->trip)['total_gastos_clp']];
 
-        // Agregar total
-        $data[] = [];
-        $data[] = [
-            '',
-            '',
-            '',
-            'TOTAL:',
-            '$' . number_format($this->trip->total_gastos, 0, ',', '.'),
-        ];
-
-        return $data;
+        return $rows;
     }
 
     public function headings(): array
     {
-        return [
-            'Categoría',
-            'Concepto',
-            'Moneda',
-            'Monto Original',
-            'Monto CLP'
-        ];
+        return ['Categoría', 'Concepto', 'Moneda original', 'Monto original', 'Monto CLP'];
     }
 
     public function title(): string
@@ -63,8 +44,11 @@ class TripExpensesSheet implements FromArray, WithTitle, WithHeadings, WithStyle
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            1 => ['font' => ['bold' => true]],
-        ];
+        return [1 => ['font' => ['bold' => true]]];
+    }
+
+    public function columnFormats(): array
+    {
+        return ['D' => '#,##0.00', 'E' => '#,##0'];
     }
 }

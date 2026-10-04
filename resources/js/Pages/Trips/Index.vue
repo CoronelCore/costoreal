@@ -1,190 +1,44 @@
 <script setup>
-import { inject } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { useConfirm } from '@/Composables/useConfirm';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Button from '@/Components/UI/Button.vue';
-import Badge from '@/Components/UI/Badge.vue';
-import Card from '@/Components/UI/Card.vue';
-import Modal from '@/Components/UI/Modal.vue';
-import CompanyIcon from '@/Components/Domain/CompanyIcon.vue';
-import {
-    PlusIcon,
-    TruckIcon,
-    EyeIcon,
-    PencilIcon,
-    TrashIcon,
-    CalendarIcon,
-    CurrencyDollarIcon,
-    ShoppingBagIcon,
-    ReceiptPercentIcon,
-} from '@heroicons/vue/24/outline';
-
-// Ziggy route helper
+import { inject, reactive } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import FinancialLayout from '@/Layouts/FinancialLayout.vue';
+import { formatMoney, formatDateOnly } from '@/Utils/format';
+import { PlusIcon, ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 const route = inject('route');
-
-const props = defineProps({
-    trips: {
-        type: Array,
-        required: true
-    }
-});
-
-const { show: showConfirm, isOpen, message, title, confirm, cancel } = useConfirm();
-
-const deleteTrip = (trip) => {
-    showConfirm({
-        title: 'Eliminar Importación',
-        message: `¿Estás seguro de que deseas eliminar la importación "${trip.nombre}"? Esta acción no se puede deshacer y eliminará todos los gastos y productos asociados.`,
-        onConfirm: () => {
-            router.delete(route('trips.destroy', trip.id), {
-                preserveScroll: true,
-            });
-        }
-    });
-};
-
-const getBadgeVariant = (estado) => {
-    return {
-        'activo': 'info',
-        'finalizado': 'success',
-        'archivado': 'gray'
-    }[estado] || 'gray';
-};
-
-const formatDate = (date) => {
-    if (!date) return 'No especificada';
-    return new Date(date).toLocaleDateString('es-CL', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-};
-
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-CL', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(value);
-};
+const props = defineProps({ trips: Object, metrics: Object, filters: Object });
+const filters = reactive({ q: props.filters?.q || '', state: props.filters?.state || '', sort: props.filters?.sort || 'latest', from: props.filters?.from || '', to: props.filters?.to || '' });
+const applyFilters = () => router.get(route('trips.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), { preserveState: true, preserveScroll: true, replace: true });
+const clearFilters = () => { Object.assign(filters, { q: '', state: '', sort: 'latest', from: '', to: '' }); applyFilters(); };
+const status = trip => ({ activo: 'En curso', finalizado: 'Cerrada', archivado: 'Archivada' })[trip.estado];
+const pending = trip => trip.products_count === 0 ? 'Agregar productos' : trip.priced_count < trip.products_count ? `${trip.products_count - trip.priced_count} precios pendientes` : 'Precios completos';
+const pendingTab = trip => trip.products_count === 0 ? 'productos' : 'precio-venta';
 </script>
-
 <template>
-    <AuthenticatedLayout>
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                    Importaciones
-                </h1>
-                <p class="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                    Gestiona tus viajes de compras y calcula costos
-                </p>
-            </div>
-            <Button
-                @click="router.visit(route('trips.create'))"
-                variant="primary"
-            >
-                <PlusIcon class="h-5 w-5 mr-2" />
-                Nueva Importación
-            </Button>
+    <Head title="Control de importaciones" />
+    <FinancialLayout>
+        <div class="f-heading"><div><div class="f-eyebrow">TU OPERACIÓN, EN CIFRAS</div><h1>Control de importaciones</h1><p>Del precio de compra al costo final. Cada peso, en su lugar.</p></div><div class="f-actions"><Link :href="route('trips.create')" class="f-button f-button-primary"><PlusIcon /> Nueva importación</Link></div></div>
+        <div class="f-metrics" aria-label="Totales de todas las importaciones del filtro">
+            <article class="f-metric f-metric-accent"><span class="f-metric-label">Inversión total · CLP</span><strong class="f-metric-value">${{ formatMoney(metrics.total) }}</strong><small>Compra + gastos del filtro completo</small></article>
+            <article class="f-metric"><span class="f-metric-label">Compra de productos · CLP</span><strong class="f-metric-value">${{ formatMoney(metrics.purchase) }}</strong><small>Conversión aplicada a cada línea</small></article>
+            <article class="f-metric"><span class="f-metric-label">Gastos de importación · CLP</span><strong class="f-metric-value">${{ formatMoney(metrics.expenses) }}</strong><small>Incluye gastos aún sin distribuir</small></article>
+            <article class="f-metric"><span class="f-metric-label">Importaciones en curso</span><strong class="f-metric-value">{{ metrics.active }} <span style="font-size:13px;font-weight:400;color:var(--f-muted)">de {{ metrics.count }}</span></strong><small>{{ metrics.priced }} / {{ metrics.products }} líneas con precio de venta</small></article>
         </div>
-
-        <!-- Grid de Trips -->
-        <div v-if="trips.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card
-                v-for="(trip, index) in trips"
-                :key="trip.id"
-                :hover="true"
-                class="group cursor-pointer"
-                @click="router.visit(route('trips.show', trip.id))"
-            >
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <div 
-                            class="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg"
-                            :style="{ backgroundColor: trip.company?.color || '#3b82f6' }"
-                        >
-                            <CompanyIcon :icon="trip.company?.icono" color="white" size="md" />
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                                {{ trip.nombre }}
-                            </h3>
-                            <p class="text-xs text-gray-500 dark:text-slate-400">
-                                {{ trip.company?.nombre || 'Sin Empresa' }}
-                            </p>
-                        </div>
-                    </div>
-                    <Badge :variant="getBadgeVariant(trip.estado)">
-                        {{ trip.estado }}
-                    </Badge>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-500 dark:text-slate-400">Fecha Inicio</span>
-                        <span class="font-medium text-gray-900 dark:text-white">
-                            {{ formatDate(trip.fecha_inicio) }}
-                        </span>
-                    </div>
-                    
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-500 dark:text-slate-400">Inversión Total</span>
-                        <span class="font-bold text-gray-900 dark:text-white">
-                            ${{ formatCurrency(trip.total_gastos_clp || 0) }}
-                        </span>
-                    </div>
-
-                    <div class="pt-3 border-t border-gray-100 dark:border-slate-700">
-                        <div class="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400">
-                            <div class="flex items-center gap-1">
-                                <ShoppingBagIcon class="h-3 w-3" />
-                                {{ trip.products_count || 0 }} productos
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <ReceiptPercentIcon class="h-3 w-3" />
-                                {{ trip.expenses_count || 0 }} gastos
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </Card>
-        </div>
-
-        <!-- Empty State -->
-        <Card v-else class="text-center py-12">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/20 mb-4">
-                <CurrencyDollarIcon class="h-8 w-8 text-primary-500" />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                No hay importaciones
-            </h3>
-            <p class="text-gray-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                Comienza creando tu primera importación para gestionar gastos y calcular costos.
-            </p>
-            <Button @click="router.visit(route('trips.create'))" variant="primary">
-                <PlusIcon class="h-5 w-5 mr-2" />
-                Crear Importación
-            </Button>
-        </Card>
-
-        <!-- Confirmation Modal -->
-        <Modal :show="isOpen" @close="cancel" :title="title">
-            <p class="text-gray-600 dark:text-slate-400">
-                {{ message }}
-            </p>
-
-            <template #footer>
-                <div class="flex items-center justify-end gap-3">
-                    <Button variant="secondary" @click="cancel">
-                        Cancelar
-                    </Button>
-                    <Button variant="danger" @click="confirm">
-                        Eliminar
-                    </Button>
-                </div>
+        <section class="f-panel" aria-labelledby="imports-heading">
+            <div class="f-panel-heading"><h2 id="imports-heading">Tus importaciones <span class="f-muted">· {{ trips.total }}</span></h2><span class="f-hint">{{ metrics.active }} en curso · moneda base CLP</span></div>
+            <form class="f-panel-body f-filters" @submit.prevent="applyFilters">
+                <div class="f-field f-search-field"><label for="search">Buscar importación</label><input class="f-input" id="search" v-model="filters.q" type="search" placeholder="Nombre de la importación" /></div>
+                <div class="f-field"><label for="state">Estado</label><select class="f-input" id="state" v-model="filters.state" @change="applyFilters"><option value="">Todos los estados</option><option value="activo">En curso</option><option value="finalizado">Cerradas</option><option value="archivado">Archivadas</option></select></div>
+                <div class="f-field"><label for="sort">Ordenar por</label><select class="f-input" id="sort" v-model="filters.sort" @change="applyFilters"><option value="latest">Más recientes</option><option value="cost">Mayor inversión</option><option value="name">Nombre</option></select></div>
+                <div class="f-field"><label for="from">Desde</label><input class="f-input" id="from" v-model="filters.from" type="date" /></div><div class="f-field"><label for="to">Hasta</label><input class="f-input" id="to" v-model="filters.to" type="date" /></div>
+                <button class="f-button" type="submit"><MagnifyingGlassIcon /> Filtrar</button><button v-if="filters.q || filters.state || filters.from || filters.to" class="f-button" type="button" @click="clearFilters">Limpiar</button>
+            </form>
+            <template v-if="trips.data.length">
+                <div class="f-table-scroll f-desktop-table"><table class="f-table"><caption class="sr-only">Importaciones autorizadas, costos y pendientes</caption><thead><tr><th scope="col">Importación</th><th scope="col">Estado</th><th scope="col">Productos</th><th scope="col" class="f-numeric">Compra · CLP</th><th scope="col" class="f-numeric">Gastos · CLP</th><th scope="col" class="f-numeric">Inversión · CLP</th><th scope="col">Pendiente</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody><tr v-for="trip in trips.data" :key="trip.id"><td><span class="f-table-title"><Link :href="route('trips.show', trip.id)">{{ trip.nombre }}</Link></span><span class="f-table-subtitle">{{ trip.company?.nombre || 'Sin empresa' }} · {{ formatDateOnly(trip.fecha_inicio, { month: 'short' }) }}</span></td><td><span class="f-status" :class="{ 'f-status-closed': trip.estado !== 'activo' }">{{ status(trip) }}</span></td><td>{{ trip.products_count }} líneas</td><td class="f-numeric">${{ formatMoney(trip.total_productos_clp ?? '0') }}</td><td class="f-numeric">${{ formatMoney(trip.total_gastos_clp ?? '0') }}</td><td class="f-numeric"><strong>${{ formatMoney(trip.costo_total) }}</strong></td><td><Link :href="`${route('trips.show', trip.id)}#${pendingTab(trip)}`" class="f-hint">{{ pending(trip) }}</Link></td><td><Link :href="route('trips.show', trip.id)" class="f-icon-button" :aria-label="`Abrir ${trip.nombre}`"><ArrowRightIcon /></Link></td></tr></tbody></table></div>
+                <div class="f-mobile-cards"><article v-for="trip in trips.data" :key="trip.id" class="f-mobile-card"><div class="f-mobile-card-top"><div><Link :href="route('trips.show', trip.id)" class="f-table-title">{{ trip.nombre }}</Link><span class="f-table-subtitle">{{ trip.company?.nombre || 'Sin empresa' }} · {{ trip.products_count }} líneas</span></div><span class="f-status" :class="{ 'f-status-closed': trip.estado !== 'activo' }">{{ status(trip) }}</span></div><div class="f-mobile-card-bottom"><div><span class="f-table-subtitle">INVERSIÓN · CLP</span><strong>${{ formatMoney(trip.costo_total) }}</strong></div><Link :href="`${route('trips.show', trip.id)}#${pendingTab(trip)}`" class="f-hint">{{ pending(trip) }} →</Link></div></article></div>
+                <div class="f-pagination"><span>{{ trips.from }}–{{ trips.to }} de {{ trips.total }} importaciones</span><nav class="f-pagination-links" aria-label="Páginas de importaciones"><Link v-if="trips.prev_page_url" :href="trips.prev_page_url" class="f-button" preserve-scroll>Anterior</Link><span class="f-hint" style="padding:8px">{{ trips.current_page }} / {{ trips.last_page }}</span><Link v-if="trips.next_page_url" :href="trips.next_page_url" class="f-button" preserve-scroll>Siguiente</Link></nav></div>
             </template>
-        </Modal>
-    </AuthenticatedLayout>
+            <div v-else class="f-empty"><h2>{{ filters.q || filters.state || filters.from || filters.to ? 'Sin resultados para este filtro' : 'Tu próxima importación empieza aquí' }}</h2><p>{{ filters.q || filters.state || filters.from || filters.to ? 'Prueba otro nombre, período o estado para encontrar tus importaciones.' : 'Registra la compra, incorpora sus gastos y conoce el costo final de cada producto.' }}</p><button v-if="filters.q || filters.state || filters.from || filters.to" class="f-button" @click="clearFilters">Limpiar filtros</button><Link v-else :href="route('trips.create')" class="f-button f-button-primary"><PlusIcon /> Crear primera importación</Link></div>
+        </section>
+        <p class="f-footer-note">Los indicadores abarcan todas las importaciones del filtro y de la empresa seleccionada. El precio de venta representa una proyección; la utilidad realizada requiere registrar ventas reales.</p>
+    </FinancialLayout>
 </template>

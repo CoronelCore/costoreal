@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\Company;
-use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Console\Command;
 
@@ -41,7 +40,7 @@ class SetupCompanies extends Command
 
             // Verificar si el usuario ya tiene empresas
             if ($user->companies()->count() > 0) {
-                $this->line("  ✓ Usuario ya tiene " . $user->companies()->count() . " empresa(s)");
+                $this->line('  ✓ Usuario ya tiene '.$user->companies()->count().' empresa(s)');
             } else {
                 // Crear empresa por defecto
                 $company = Company::create([
@@ -55,7 +54,7 @@ class SetupCompanies extends Command
                 ]);
 
                 $companiesCreated++;
-                $this->line("  ✓ Empresa por defecto creada: Mi Empresa");
+                $this->line('  ✓ Empresa por defecto creada: Mi Empresa');
             }
 
             // Asignar importaciones sin empresa
@@ -72,7 +71,7 @@ class SetupCompanies extends Command
 
                 $this->line("  ✓ {$tripsWithoutCompany->count()} importación(es) asignada(s) a {$defaultCompany->nombre}");
             } else {
-                $this->line("  · No hay importaciones sin asignar");
+                $this->line('  · No hay importaciones sin asignar');
             }
 
             $this->newLine();

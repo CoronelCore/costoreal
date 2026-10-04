@@ -2,45 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Trip;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TripExport;
+use App\Models\Trip;
+use App\Modules\Reporting\ReportTrip;
+use App\Services\ProrrateoService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExportController extends Controller
 {
-    public function exportPdf(Trip $trip)
+    public function exportPdf(Request $request, Trip $trip, ProrrateoService $costing)
     {
         $this->authorize('view', $trip);
+        $request->validate(['run' => 'nullable|integer|min:1']);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null);
 
-        $trip->load(['expenses.category', 'products']);
-
-        // Agrupar gastos por categoría
-        $expensesByCategory = $trip->expenses->groupBy('category.nombre')->map(function ($expenses) {
-            return [
-                'categoria' => $expenses->first()->category->nombre,
-                'icono' => $expenses->first()->category->icono,
-                'color' => $expenses->first()->category->color,
-                'gastos' => $expenses,
-                'total' => $expenses->sum('monto_clp')
-            ];
-        });
-
-        $pdf = Pdf::loadView('exports.trip-pdf', [
-            'trip' => $trip,
-            'expensesByCategory' => $expensesByCategory,
-        ]);
-
-        return $pdf->download('viaje-' . $trip->id . '-' . now()->format('Y-m-d') . '.pdf');
+        return Pdf::loadView('exports.trip-pdf', ['trip' => $trip, 'stats' => $costing->obtenerEstadisticas($trip)])
+            ->download('importacion-'.$trip->id.'-'.now()->format('Y-m-d').'.pdf');
     }
 
-    public function exportExcel(Trip $trip)
+    public function exportExcel(Request $request, Trip $trip)
     {
         $this->authorize('view', $trip);
+        $request->validate(['run' => 'nullable|integer|min:1']);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null);
 
-        return Excel::download(
-            new TripExport($trip),
-            'viaje-' . $trip->id . '-' . now()->format('Y-m-d') . '.xlsx'
-        );
+        return Excel::download(new TripExport($trip), 'importacion-'.$trip->id.'-'.now()->format('Y-m-d').'.xlsx');
     }
 }

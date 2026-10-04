@@ -17,8 +17,9 @@ class DemoDataSeeder extends Seeder
         // Obtener el usuario actual (ID 3 según los logs)
         $user = User::find(3);
 
-        if (!$user) {
+        if (! $user) {
             $this->command->error('Usuario con ID 3 no encontrado. Asegúrate de haber ejecutado el DatabaseSeeder primero.');
+
             return;
         }
 
@@ -45,12 +46,13 @@ class DemoDataSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('✓ Empresas creadas: ' . count($companies));
+        $this->command->info('✓ Empresas creadas: '.count($companies));
 
         // Obtener categorías existentes
         $categories = ExpenseCategory::all();
         if ($categories->isEmpty()) {
             $this->command->error('No hay categorías de gastos. Ejecuta ExpenseCategorySeeder primero.');
+
             return;
         }
 
@@ -165,8 +167,8 @@ class DemoDataSeeder extends Seeder
         $this->command->info('✅ Datos de prueba creados exitosamente!');
         $this->command->info('');
         $this->command->info('Resumen:');
-        $this->command->info('- ' . count($companies) . ' empresas');
-        $this->command->info('- ' . count($tripsData) . ' importaciones');
+        $this->command->info('- '.count($companies).' empresas');
+        $this->command->info('- '.count($tripsData).' importaciones');
         $this->command->info('- Múltiples productos y gastos por importación');
     }
 
@@ -198,7 +200,7 @@ class DemoDataSeeder extends Seeder
         $numExpenses = rand(6, 12);
         $selectedExpenses = array_rand($expenseTemplates, min($numExpenses, count($expenseTemplates)));
 
-        if (!is_array($selectedExpenses)) {
+        if (! is_array($selectedExpenses)) {
             $selectedExpenses = [$selectedExpenses];
         }
 
@@ -206,7 +208,7 @@ class DemoDataSeeder extends Seeder
             $template = $expenseTemplates[$index];
             $category = $categories->firstWhere('nombre', $template['category']);
 
-            if (!$category) {
+            if (! $category) {
                 continue;
             }
 
@@ -272,7 +274,7 @@ class DemoDataSeeder extends Seeder
         $numProducts = rand(4, 7);
         $selectedProducts = array_rand($productTemplates, min($numProducts, count($productTemplates)));
 
-        if (!is_array($selectedProducts)) {
+        if (! is_array($selectedProducts)) {
             $selectedProducts = [$selectedProducts];
         }
 

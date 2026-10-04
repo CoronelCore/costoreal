@@ -1,5 +1,6 @@
 import './bootstrap';
 import '../css/app.css';
+import '../css/financial.css';
 
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
@@ -21,6 +22,6 @@ createInertiaApp({
             .mount(el);
     },
     progress: {
-        color: '#6366f1',
+        color: '#17615a',
     },
 });

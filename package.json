@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:frontend": "node --test tests/frontend/*.test.js"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
@@ -27,5 +28,9 @@
         "pinia": "^2.3.1",
         "vue": "^3.5.25",
         "vue-chartjs": "^5.3.3"
+    },
+    "engines": {
+        "node": ">=24 <25",
+        "npm": ">=11 <12"
     }
 }

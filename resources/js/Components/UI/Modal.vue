@@ -81,11 +81,12 @@ const maxWidthClass = computed(() => {
                                 <DialogTitle v-if="title" as="h3" class="text-lg font-semibold text-gray-900 dark:text-white">
                                     {{ title }}
                                 </DialogTitle>
-                                <slot v-else name="title" />
+                                <DialogTitle v-else as="h3" class="text-lg font-semibold text-gray-900 dark:text-white"><slot name="header"><slot name="title">Confirmar acción</slot></slot></DialogTitle>
 
                                 <button
                                     v-if="closeable"
                                     type="button"
+                                    aria-label="Cerrar diálogo"
                                     class="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:text-gray-200 transition-colors"
                                     @click="close"
                                 >

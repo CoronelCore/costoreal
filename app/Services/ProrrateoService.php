@@ -2,109 +2,110 @@
 
 namespace App\Services;
 
-use App\Models\Trip;
+use App\Models\Expense;
 use App\Models\Product;
+use App\Models\Trip;
+use App\Modules\Costing\Domain\CostEngine;
+use App\Modules\Costing\Domain\CostResult;
+use App\Modules\Costing\Domain\Currency;
+use App\Modules\Costing\Domain\Rate;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
+/** Compatibility boundary for the original controllers. */
 class ProrrateoService
 {
-    /**
-     * Calcula el prorrateo de gastos para todos los productos de un viaje
-     */
-    public function calcularProrrateo(Trip $trip): void
+    public function __construct(private CostEngine $engine) {}
+
+    public function calcularProrrateo(Trip $trip): CostResult
     {
-        $totalGastosCLP = $trip->expenses()->sum('monto_clp');
-        $products = $trip->products;
+        return DB::transaction(function () use ($trip) {
+            $products = $trip->products()->orderBy('id')->get();
+            $expenses = $trip->expenses()->orderBy('id')->get();
+            foreach ($expenses as $expense) {
+                $expense->monto_clp = $this->convertirACLP($expense->monto, $expense->moneda, $trip, $expense);
+            }
+            try {
+                $result = $this->engine->calculate(
+                    $products->map(fn ($p) => ['id' => $p->id, 'quantity' => $p->cantidad, 'unit_amount' => $p->costo_unitario, 'rate' => $this->getTipoCambio($p->moneda, $trip, $p), 'weight' => $p->weight, 'volume' => $p->volume])->all(),
+                    $expenses->map(fn ($e) => ['id' => $e->id, 'amount_clp' => $e->monto_clp, 'method' => $e->allocation_method, 'target_id' => $e->target_product_id])->all()
+                );
+            } catch (\DomainException $e) {
+                throw ValidationException::withMessages(['allocation_method' => $e->getMessage()]);
+            }
+            if (BigDecimal::of($result->purchase)->plus($result->expenses)->isGreaterThan('9000000000000000')) {
+                throw ValidationException::withMessages(['monto' => 'El total supera el límite certificado de 9.000.000.000.000.000 CLP.']);
+            }
+            $byId = $products->keyBy('id');
+            foreach ($result->lines as $line) {
+                $byId[$line['id']]->fill([
+                    'subtotal_clp' => $line['purchase'], 'gastos_prorrateados_clp' => $line['assigned'],
+                    'costo_final_total_clp' => $line['total'], 'costo_final_unitario_clp' => $line['unit_cost'],
+                ]);
+            }
+            foreach (array_chunk($expenses->map->getAttributes()->all(), 30) as $chunk) {
+                Expense::upsert($chunk, ['id'], ['monto_clp']);
+            }
+            foreach (array_chunk($products->map->getAttributes()->all(), 30) as $chunk) {
+                Product::upsert($chunk, ['id'], ['subtotal_clp', 'gastos_prorrateados_clp', 'costo_final_total_clp', 'costo_final_unitario_clp']);
+            }
+            $trip->unsetRelation('products')->unsetRelation('expenses');
 
-        if ($products->isEmpty()) {
-            return;
-        }
+            return $result;
+        });
+    }
 
-        // Calcular subtotales de productos en CLP
-        $totalProductosCLP = 0;
-        foreach ($products as $product) {
-            $tc = $this->getTipoCambio($product->moneda, $trip);
-            $subtotalCLP = $product->costo_unitario * $product->cantidad * $tc;
-            $product->subtotal_clp = $subtotalCLP;
-            $totalProductosCLP += $subtotalCLP;
-        }
+    public function convertirACLP(string|int|float $monto, string $moneda, Trip $trip, ?Model $record = null): string
+    {
+        return (string) BigDecimal::of((string) $monto)->multipliedBy($this->getTipoCambio($moneda, $trip, $record))->toScale(0, RoundingMode::HALF_UP);
+    }
 
-        // Calcular prorrateo para cada producto
-        foreach ($products as $product) {
-            $porcentaje = $totalProductosCLP > 0 ? $product->subtotal_clp / $totalProductosCLP : 0;
-            $gastosProrrateadosCLP = $totalGastosCLP * $porcentaje;
-            $costoFinalTotalCLP = $product->subtotal_clp + $gastosProrrateadosCLP;
-            $costoFinalUnitarioCLP = $costoFinalTotalCLP / $product->cantidad;
+    private function getTipoCambio(string $moneda, Trip $trip, ?Model $record = null): string
+    {
+        $field = $record?->rate_mode === 'paid' ? 'applied_rate' : 'tipo_cambio';
+        try {
+            $currency = Currency::supported($moneda);
+            if ($currency === Currency::CLP) {
+                return '1';
+            }
+            if ($record?->rate_mode === 'paid') {
+                if (! $record->applied_rate || ! $record->rate_source || ! $record->rate_date) {
+                    throw new \DomainException('Registra tasa, fuente y fecha del pago histórico.');
+                }
+                $value = (string) $record->applied_rate;
+            } else {
+                if ($moneda !== $trip->moneda_trabajo) {
+                    throw new \DomainException("No existe una tasa de referencia para {$moneda}.");
+                }
+                $value = (string) $trip->tipo_cambio;
+            }
 
-            $product->gastos_prorrateados_clp = $gastosProrrateadosCLP;
-            $product->costo_final_unitario_clp = $costoFinalUnitarioCLP;
-            $product->costo_final_total_clp = $costoFinalTotalCLP;
-            $product->save();
+            return (string) (new Rate($currency, $value))->value;
+        } catch (\DomainException $e) {
+            throw ValidationException::withMessages([$field => $e->getMessage()]);
         }
     }
 
-    /**
-     * Convierte un monto a CLP según la moneda
-     */
-    public function convertirACLP(float $monto, string $moneda, Trip $trip): float
-    {
-        $tc = $this->getTipoCambio($moneda, $trip);
-        return $monto * $tc;
-    }
-
-    /**
-     * Obtiene el tipo de cambio para una moneda específica
-     */
-    private function getTipoCambio(string $moneda, Trip $trip): float
-    {
-        if ($moneda === 'CLP') {
-            return 1;
-        }
-
-        if ($moneda === $trip->moneda_trabajo) {
-            return $trip->tipo_cambio;
-        }
-
-        return 1;
-    }
-
-    /**
-     * Calcula estadísticas del viaje
-     */
     public function obtenerEstadisticas(Trip $trip): array
     {
-        $totalGastosCLP = $trip->expenses()->sum('monto_clp');
-        $totalProductosCLP = $trip->products()->sum('subtotal_clp');
-        $totalGastosProrrateadosCLP = $trip->products()->sum('gastos_prorrateados_clp');
-        $costoTotalFinalCLP = $trip->products()->sum('costo_final_total_clp');
+        $trip->loadMissing(['products', 'expenses']);
+        $sum = fn ($rows, $field) => (string) $rows->reduce(fn (BigDecimal $s, $row) => $s->plus($row->{$field}), BigDecimal::zero());
+        $expenses = $sum($trip->expenses, 'monto_clp');
+        $purchase = $sum($trip->products, 'subtotal_clp');
+        $assigned = $sum($trip->products, 'gastos_prorrateados_clp');
 
-        return [
-            // Estadísticas de gastos
-            'total_gastos_clp' => $totalGastosCLP,
-
-            // Estadísticas de productos
-            'total_productos_clp' => $totalProductosCLP,
-            'total_gastos_prorrateados_clp' => $totalGastosProrrateadosCLP,
-            'costo_total_final_clp' => $costoTotalFinalCLP,
-
-            // Costo total (para compatibilidad)
-            'costo_total' => $totalGastosCLP + $totalProductosCLP,
-        ];
+        return ['total_gastos_clp' => $expenses, 'total_productos_clp' => $purchase, 'total_gastos_prorrateados_clp' => $assigned,
+            'gastos_sin_asignar_clp' => (string) BigDecimal::of($expenses)->minus($assigned),
+            'costo_total_final_clp' => $sum($trip->products, 'costo_final_total_clp'),
+            'costo_total' => (string) BigDecimal::of($expenses)->plus($purchase)];
     }
 
-    /**
-     * Obtiene estadísticas por categoría de gastos
-     */
     public function obtenerGastosPorCategoria(Trip $trip): array
     {
-        return $trip->expenses()
-            ->selectRaw('expense_category_id, SUM(monto_clp) as total')
-            ->groupBy('expense_category_id')
-            ->with('category')
-            ->get()
-            ->mapWithKeys(function ($expense) {
-                $categoryName = $expense->category ? $expense->category->nombre : 'Sin categoría';
-                return [$categoryName => $expense->total];
-            })
-            ->toArray();
+        return $trip->expenses()->with('category')->get()->groupBy(fn ($e) => $e->category?->nombre ?? 'Sin categoría')
+            ->map(fn ($rows) => (string) $rows->reduce(fn (BigDecimal $s, $e) => $s->plus($e->monto_clp), BigDecimal::zero()))->all();
     }
 }

@@ -2,114 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductRequest;
 use App\Models\Product;
 use App\Models\Trip;
-use App\Services\ProrrateoService;
+use App\Modules\Documents\StoreDocument;
+use App\Modules\Importations\Actions\MutateTrip;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    protected $prorrateoService;
+    public function __construct(private MutateTrip $mutation, private StoreDocument $storage) {}
 
-    public function __construct(ProrrateoService $prorrateoService)
+    public function store(ProductRequest $request, Trip $trip)
     {
-        $this->prorrateoService = $prorrateoService;
+        $data = $request->safe()->except(['expected_revision', 'imagen', 'eliminar_imagen']);
+        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen')) : null;
+        try {
+            $this->mutation->execute($trip, function ($current) use ($data, $stage) {
+                $product = $current->products()->create([...$data, 'subtotal_clp' => 0, 'costo_final_unitario_clp' => 0, 'costo_final_total_clp' => 0]);
+                if ($stage) {
+                    $document = $this->storage->attach($stage, $current, 'product_image', $product);
+                    $product->update(['document_id' => $document->id, 'imagen' => $stage['storage_path']]);
+                }
+            }, 'product_create');
+        } catch (\Throwable $e) {
+            $this->storage->discard($stage);
+            throw $e;
+        }
+
+        return to_route('trips.show', $trip)->with('success', 'Producto agregado');
     }
 
-    public function store(Request $request, Trip $trip)
+    public function update(ProductRequest $request, Trip $trip, Product $product)
     {
-        $this->authorize('update', $trip);
-
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'moneda' => 'required|in:CLP,' . $trip->moneda_trabajo,
-            'cantidad' => 'required|integer|min:1',
-            'costo_unitario' => 'required|numeric|min:0',
-            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-        ]);
-
-        $validated['trip_id'] = $trip->id;
-
-        // Calcular subtotal en CLP
-        $tc = $validated['moneda'] === 'CLP' ? 1 : $trip->tipo_cambio;
-        $validated['subtotal_clp'] = $validated['costo_unitario'] * $validated['cantidad'] * $tc;
-        $validated['costo_final_unitario_clp'] = 0;
-        $validated['costo_final_total_clp'] = 0;
-
-        // Manejar upload de imagen
-        if ($request->hasFile('imagen')) {
-            $validated['imagen'] = $request->file('imagen')->store('productos', 'public');
+        $data = $request->safe()->except(['expected_revision', 'imagen', 'eliminar_imagen']);
+        $stage = $request->hasFile('imagen') ? $this->storage->stage($request->file('imagen')) : null;
+        try {
+            $this->mutation->execute($trip, function ($current) use ($request, $data, $stage, $product) {
+                $record = $current->products()->findOrFail($product->id);
+                $record->update($data);
+                if ($stage) {
+                    $document = $this->storage->attach($stage, $current, 'product_image', $record);
+                    $record->update(['document_id' => $document->id, 'imagen' => $stage['storage_path']]);
+                } elseif ($request->boolean('eliminar_imagen')) {
+                    $record->update(['document_id' => null, 'imagen' => null]);
+                }
+            }, 'product_update');
+        } catch (\Throwable $e) {
+            $this->storage->discard($stage);
+            throw $e;
         }
 
-        Product::create($validated);
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Producto agregado exitosamente');
-    }
-
-    public function update(Request $request, Trip $trip, Product $product)
-    {
-        $this->authorize('update', $trip);
-
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'moneda' => 'required|in:CLP,' . $trip->moneda_trabajo,
-            'cantidad' => 'required|integer|min:1',
-            'costo_unitario' => 'required|numeric|min:0',
-            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'eliminar_imagen' => 'nullable|boolean',
-        ]);
-
-        // Calcular subtotal en CLP
-        $tc = $validated['moneda'] === 'CLP' ? 1 : $trip->tipo_cambio;
-        $validated['subtotal_clp'] = $validated['costo_unitario'] * $validated['cantidad'] * $tc;
-
-        // Manejar upload de nueva imagen
-        if ($request->hasFile('imagen')) {
-            // Eliminar imagen anterior si existe
-            if ($product->imagen) {
-                \Storage::disk('public')->delete($product->imagen);
-            }
-            $validated['imagen'] = $request->file('imagen')->store('productos', 'public');
-        }
-
-        // Manejar eliminación de imagen
-        if ($request->boolean('eliminar_imagen') && $product->imagen) {
-            \Storage::disk('public')->delete($product->imagen);
-            $validated['imagen'] = null;
-        }
-
-        $product->update($validated);
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Producto actualizado exitosamente');
+        return to_route('trips.show', $trip)->with('success', 'Producto actualizado');
     }
 
     public function updatePrecioVenta(Request $request, Trip $trip, Product $product)
     {
         $this->authorize('update', $trip);
+        $data = $request->validate(['precio_venta' => 'nullable|numeric|gt:0|max:9999999999.99|decimal:0,2', 'expected_revision' => 'nullable|integer|min:1']);
+        unset($data['expected_revision']);
+        $this->mutation->execute($trip, fn ($current) => $current->products()->findOrFail($product->id)->update($data), 'price_update');
 
-        $validated = $request->validate([
-            'precio_venta' => 'nullable|numeric|min:0',
-        ]);
-
-        $product->update($validated);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Precio de venta actualizado');
+        return to_route('trips.show', $trip)->with('success', 'Precio de venta guardado');
     }
 
     public function destroy(Trip $trip, Product $product)
     {
         $this->authorize('update', $trip);
+        $this->mutation->execute($trip, fn ($current) => $current->products()->findOrFail($product->id)->delete(), 'product_delete');
 
-        // Eliminar imagen si existe
-        if ($product->imagen) {
-            \Storage::disk('public')->delete($product->imagen);
-        }
-
-        $product->delete();
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Producto eliminado exitosamente');
+        return to_route('trips.show', $trip)->with('success', 'Producto eliminado; sus documentos se conservan');
     }
 }

@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
+    protected $hidden = ['comprobante'];
+
     protected $fillable = [
+        'document_id',
+        'rate_mode', 'applied_rate', 'rate_source', 'rate_date', 'allocation_method', 'target_product_id',
         'trip_id',
         'expense_category_id',
         'concepto',

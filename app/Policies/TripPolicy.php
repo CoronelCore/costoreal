@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Trip;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class TripPolicy
 {
@@ -37,7 +36,17 @@ class TripPolicy
      */
     public function update(User $user, Trip $trip): bool
     {
-        return $user->id === $trip->user_id;
+        return $this->view($user, $trip) && $trip->estado === 'activo';
+    }
+
+    public function close(User $user, Trip $trip): bool
+    {
+        return $this->update($user, $trip);
+    }
+
+    public function reopen(User $user, Trip $trip): bool
+    {
+        return $this->view($user, $trip) && $trip->estado === 'finalizado';
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,6 +17,7 @@ class DatabaseSeeder extends Seeder
         // Crear categorías de gastos
         $this->call(ExpenseCategorySeeder::class);
 
-        // Las cuentas se crean con credenciales propias; nunca se incluyen en las semillas.
+        // Accounts are created through registration; production seeding never
+        // installs a publicly known credential.
     }
 }

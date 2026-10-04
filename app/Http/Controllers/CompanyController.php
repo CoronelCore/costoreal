@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\Trip;
+use App\Modules\Importations\Actions\MutateTrip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CompanyController extends Controller
 {
+    public function __construct(private MutateTrip $mutation) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -64,8 +69,8 @@ class CompanyController extends Controller
     {
         $this->authorize('view', $company);
 
-        $company->load(['trips' => function($query) {
-            $query->orderBy('created_at', 'desc');
+        $company->load(['trips' => function ($query) {
+            $query->withFinancialTotals()->orderBy('created_at', 'desc');
         }]);
 
         return Inertia::render('Companies/Show', [
@@ -79,6 +84,7 @@ class CompanyController extends Controller
     public function edit(Company $company)
     {
         $this->authorize('update', $company);
+
         return Inertia::render('Companies/Edit', [
             'company' => $company,
         ]);
@@ -132,6 +138,7 @@ class CompanyController extends Controller
     {
         if ($companyId === 'all') {
             session()->forget('active_company_id');
+
             return redirect()->back()->with('success', 'Mostrando todas las empresas');
         }
 
@@ -140,10 +147,12 @@ class CompanyController extends Controller
             $this->authorize('view', $company);
 
             session(['active_company_id' => $companyId]);
+
             return redirect()->back()->with('success', "Empresa seleccionada: {$company->nombre}");
         }
 
         session()->forget('active_company_id');
+
         return redirect()->back();
     }
 
@@ -156,19 +165,21 @@ class CompanyController extends Controller
 
         $validated = $request->validate([
             'trip_ids' => 'required|array',
-            'trip_ids.*' => 'exists:trips,id',
+            'trip_ids.*' => 'required|integer|distinct|exists:trips,id',
         ]);
 
-        // Verificar que todas las trips pertenecen al usuario
-        foreach ($validated['trip_ids'] as $tripId) {
-            $trip = \App\Models\Trip::findOrFail($tripId);
-            if ($trip->user_id !== Auth::id()) {
-                abort(403);
+        DB::transaction(function () use ($validated, $company) {
+            $trips = Trip::whereIn('id', $validated['trip_ids'])->lockForUpdate()->get();
+            foreach ($trips as $trip) {
+                $this->authorize('update', $trip);
             }
-            $trip->update(['company_id' => $company->id]);
-        }
+            foreach ($trips as $trip) {
+                $trip->update(['company_id' => $company->id]);
+            }
+        });
 
         $count = count($validated['trip_ids']);
+
         return redirect()->route('companies.index')
             ->with('success', "{$count} importacion(es) asignada(s) exitosamente a {$company->nombre}");
     }

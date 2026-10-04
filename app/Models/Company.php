@@ -60,7 +60,7 @@ class Company extends Model
     public static function getTripsUnassigned($userId)
     {
         return Trip::where('user_id', $userId)
-            ->whereNull('company_id')
+            ->whereNull('company_id')->withFinancialTotals()
             ->orderBy('created_at', 'desc')
             ->get();
     }

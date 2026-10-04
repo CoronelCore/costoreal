@@ -4,87 +4,62 @@ namespace App\Http\Controllers;
 
 use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ExpenseCategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $categories = ExpenseCategory::withCount('expenses')->orderBy('nombre')->get();
-        return Inertia::render('Categories/Index', [
-            'categories' => $categories,
-        ]);
+        $categories = ExpenseCategory::visibleTo($request->user()->id)
+            ->withCount(['expenses' => fn ($q) => $q->whereHas('trip', fn ($t) => $t->where('user_id', $request->user()->id))])
+            ->orderBy('nombre')->get()->map(fn ($c) => [...$c->toArray(), 'editable' => $c->user_id === $request->user()->id]);
+
+        return Inertia::render('Categories/Index', ['categories' => $categories]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return Inertia::render('Categories/Create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    private function rules(Request $request, ?ExpenseCategory $category = null): array
+    {
+        return ['nombre' => ['required', 'string', 'max:255', Rule::unique('expense_categories')->where('user_id', $request->user()->id)->ignore($category?->id)],
+            'icono' => 'required|string|max:50', 'color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/']];
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255|unique:expense_categories,nombre',
-            'icono' => 'required|string|max:50',
-            'color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        ]);
+        ExpenseCategory::create([...$request->validate($this->rules($request)), 'user_id' => $request->user()->id]);
 
-        ExpenseCategory::create($validated);
-
-        return redirect()->route('categories.index')
-            ->with('success', 'Categoría creada exitosamente');
+        return to_route('categories.index')->with('success', 'Categoría personal creada');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(ExpenseCategory $category)
+    public function edit(Request $request, ExpenseCategory $category)
     {
-        return Inertia::render('Categories/Edit', [
-            'category' => $category->load('expenses')->loadCount('expenses'),
-        ]);
+        $this->authorize('update', $category);
+        $category->loadCount(['expenses' => fn ($q) => $q->whereHas('trip', fn ($t) => $t->where('user_id', $request->user()->id))]);
+
+        return Inertia::render('Categories/Edit', ['category' => $category]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, ExpenseCategory $category)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255|unique:expense_categories,nombre,' . $category->id,
-            'icono' => 'required|string|max:50',
-            'color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
-        ]);
+        $this->authorize('update', $category);
+        $category->update($request->validate($this->rules($request, $category)));
 
-        $category->update($validated);
-
-        return redirect()->route('categories.index')
-            ->with('success', 'Categoría actualizada exitosamente');
+        return to_route('categories.index')->with('success', 'Categoría actualizada');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(ExpenseCategory $category)
     {
-        // Verificar si hay gastos usando esta categoría
-        if ($category->expenses()->count() > 0) {
-            return redirect()->route('categories.index')
-                ->with('error', 'No se puede eliminar esta categoría porque tiene gastos asociados');
+        $this->authorize('delete', $category);
+        if ($category->expenses()->exists()) {
+            return to_route('categories.index')->with('error', 'Reasigna los gastos antes de eliminar su categoría.');
         }
-
         $category->delete();
 
-        return redirect()->route('categories.index')
-            ->with('success', 'Categoría eliminada exitosamente');
+        return to_route('categories.index')->with('success', 'Categoría eliminada');
     }
 }

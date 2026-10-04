@@ -1,9 +1,10 @@
 <script setup>
 import { computed } from 'vue';
+import { formatMoney } from '@/Utils/format';
 
 const props = defineProps({
     value: {
-        type: Number,
+        type: [Number, String],
         required: true
     },
     currency: {
@@ -31,7 +32,8 @@ const props = defineProps({
 });
 
 const formattedValue = computed(() => {
-    const formatted = props.value.toLocaleString('es-CL');
+    if (props.value === null || props.value === undefined || props.value === '') return 'Sin dato';
+    const formatted = formatMoney(props.value);
 
     let result = '';
 

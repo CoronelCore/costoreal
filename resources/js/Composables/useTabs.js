@@ -1,72 +1,38 @@
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 
-/**
- * Composable for managing tabs with URL hash and localStorage persistence
- *
- * @param {string} storageKey - Key for localStorage persistence
- * @param {string} defaultTab - Default tab ID
- * @returns {Object} - activeTab (ref) and setTab (function)
- */
-export function useTabs(storageKey, defaultTab) {
+export function useTabs(storageKey, defaultTab, allowedTabs = [defaultTab]) {
     const activeTab = ref(defaultTab);
-
-    // Initialize from URL hash, then localStorage, then default
-    const initializeTab = () => {
-        // Priority 1: URL hash
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-            activeTab.value = hash;
-            return;
-        }
-
-        // Priority 2: localStorage
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-            activeTab.value = stored;
-            return;
-        }
-
-        // Priority 3: default
-        activeTab.value = defaultTab;
-    };
-
-    // Set active tab
-    const setTab = (tabId) => {
-        activeTab.value = tabId;
-    };
-
-    // Watch activeTab and update URL hash + localStorage
-    watch(activeTab, (newValue) => {
-        // Update URL hash without page reload
-        window.location.hash = newValue;
-
-        // Persist to localStorage
-        localStorage.setItem(storageKey, newValue);
-    });
-
-    // Listen for hash changes (browser back/forward navigation)
+    const valid = (id) => allowedTabs.includes(id);
+    let removeNavigateListener;
+    let initialPath;
+    const persistHash = () => window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${activeTab.value}`);
+    const readHash = () => window.location.hash.slice(1);
     const handleHashChange = () => {
-        const hash = window.location.hash.substring(1);
-        if (hash && hash !== activeTab.value) {
-            activeTab.value = hash;
-        }
+        const hash = readHash();
+        activeTab.value = valid(hash) ? hash : defaultTab;
     };
-
-    // Setup on mounted
-    onMounted(() => {
-        initializeTab();
-        window.addEventListener('hashchange', handleHashChange);
+    const setTab = (id) => { if (valid(id)) activeTab.value = id; };
+    watch(activeTab, (id) => {
+        if (typeof window === 'undefined') return;
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${id}`);
+        try { window.localStorage.setItem(storageKey, id); } catch { /* Storage may be unavailable. */ }
     });
-
-    // Cleanup is handled automatically by Vue's onUnmounted if needed
-    // But we can also return a cleanup function if the user wants manual control
-    const cleanup = () => {
-        window.removeEventListener('hashchange', handleHashChange);
-    };
-
-    return {
-        activeTab,
-        setTab,
-        cleanup,
-    };
+    onMounted(() => {
+        let stored;
+        try { stored = window.localStorage.getItem(storageKey); } catch { /* Use default. */ }
+        const hash = readHash();
+        activeTab.value = valid(hash) ? hash : valid(stored) ? stored : defaultTab;
+        window.addEventListener('hashchange', handleHashChange);
+        initialPath = window.location.pathname;
+        removeNavigateListener = router.on('finish', () => {
+            if (window.location.pathname !== initialPath) return;
+            const hash = readHash();
+            if (valid(hash)) activeTab.value = hash;
+            else persistHash();
+        });
+    });
+    const cleanup = () => { window.removeEventListener('hashchange', handleHashChange); removeNavigateListener?.(); };
+    onUnmounted(cleanup);
+    return { activeTab, setTab, cleanup };
 }

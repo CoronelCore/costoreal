@@ -2,102 +2,65 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ExpenseRequest;
 use App\Models\Expense;
 use App\Models\Trip;
-use App\Services\ProrrateoService;
-use Illuminate\Http\Request;
+use App\Modules\Documents\StoreDocument;
+use App\Modules\Importations\Actions\MutateTrip;
 
 class ExpenseController extends Controller
 {
-    protected $prorrateoService;
+    public function __construct(private MutateTrip $mutation, private StoreDocument $storage) {}
 
-    public function __construct(ProrrateoService $prorrateoService)
+    public function store(ExpenseRequest $request, Trip $trip)
     {
-        $this->prorrateoService = $prorrateoService;
+        $data = $request->safe()->except(['expected_revision', 'comprobante', 'eliminar_comprobante']);
+        $stage = $request->hasFile('comprobante') ? $this->storage->stage($request->file('comprobante')) : null;
+        try {
+            $this->mutation->execute($trip, function ($current) use ($data, $stage) {
+                $expense = $current->expenses()->create([...$data, 'monto_clp' => 0]);
+                if ($stage) {
+                    $document = $this->storage->attach($stage, $current, 'receipt', $expense);
+                    $expense->update(['document_id' => $document->id, 'comprobante' => $stage['storage_path']]);
+                }
+            }, 'expense_create');
+        } catch (\Throwable $e) {
+            $this->storage->discard($stage);
+            throw $e;
+        }
+
+        return to_route('trips.show', $trip)->with('success', 'Gasto agregado');
     }
 
-    public function store(Request $request, Trip $trip)
+    public function update(ExpenseRequest $request, Trip $trip, Expense $expense)
     {
-        $this->authorize('update', $trip);
-
-        $validated = $request->validate([
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'concepto' => 'required|string|max:255',
-            'moneda' => 'required|in:CLP,' . $trip->moneda_trabajo,
-            'monto' => 'required|numeric|min:0',
-            'comprobante' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-        ]);
-
-        $validated['trip_id'] = $trip->id;
-        $validated['monto_clp'] = $this->prorrateoService->convertirACLP(
-            $validated['monto'],
-            $validated['moneda'],
-            $trip
-        );
-
-        // Manejar upload de comprobante
-        if ($request->hasFile('comprobante')) {
-            $validated['comprobante'] = $request->file('comprobante')->store('comprobantes', 'public');
+        $data = $request->safe()->except(['expected_revision', 'comprobante', 'eliminar_comprobante']);
+        $stage = $request->hasFile('comprobante') ? $this->storage->stage($request->file('comprobante')) : null;
+        try {
+            $this->mutation->execute($trip, function ($current) use ($request, $data, $stage, $expense) {
+                $record = $current->expenses()->findOrFail($expense->id);
+                $record->update($data);
+                if ($stage) {
+                    $document = $this->storage->attach($stage, $current, 'receipt', $record);
+                    $record->update(['document_id' => $document->id, 'comprobante' => $stage['storage_path']]);
+                } elseif ($request->boolean('eliminar_comprobante')) {
+                    $record->update(['document_id' => null, 'comprobante' => null]);
+                }
+            }, 'expense_update');
+        } catch (\Throwable $e) {
+            $this->storage->discard($stage);
+            throw $e;
         }
 
-        Expense::create($validated);
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Gasto agregado exitosamente');
-    }
-
-    public function update(Request $request, Trip $trip, Expense $expense)
-    {
-        $this->authorize('update', $trip);
-
-        $validated = $request->validate([
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'concepto' => 'required|string|max:255',
-            'moneda' => 'required|in:CLP,' . $trip->moneda_trabajo,
-            'monto' => 'required|numeric|min:0',
-            'comprobante' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'eliminar_comprobante' => 'nullable|boolean',
-        ]);
-
-        $validated['monto_clp'] = $this->prorrateoService->convertirACLP(
-            $validated['monto'],
-            $validated['moneda'],
-            $trip
-        );
-
-        // Manejar upload de nuevo comprobante
-        if ($request->hasFile('comprobante')) {
-            // Eliminar comprobante anterior si existe
-            if ($expense->comprobante) {
-                \Storage::disk('public')->delete($expense->comprobante);
-            }
-            $validated['comprobante'] = $request->file('comprobante')->store('comprobantes', 'public');
-        }
-
-        // Manejar eliminación de comprobante
-        if ($request->boolean('eliminar_comprobante') && $expense->comprobante) {
-            \Storage::disk('public')->delete($expense->comprobante);
-            $validated['comprobante'] = null;
-        }
-
-        $expense->update($validated);
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Gasto actualizado exitosamente');
+        return to_route('trips.show', $trip)->with('success', 'Gasto actualizado');
     }
 
     public function destroy(Trip $trip, Expense $expense)
     {
         $this->authorize('update', $trip);
+        $this->mutation->execute($trip, fn ($current) => $current->expenses()->findOrFail($expense->id)->delete(), 'expense_delete');
 
-        // Eliminar comprobante si existe
-        if ($expense->comprobante) {
-            \Storage::disk('public')->delete($expense->comprobante);
-        }
-
-        $expense->delete();
-        $this->prorrateoService->calcularProrrateo($trip);
-
-        return redirect()->route('trips.show', $trip)->with('success', 'Gasto eliminado exitosamente');
+        // Attachments remain recoverable in the trip's document library.
+        return to_route('trips.show', $trip)->with('success', 'Gasto eliminado; sus documentos se conservan');
     }
 }

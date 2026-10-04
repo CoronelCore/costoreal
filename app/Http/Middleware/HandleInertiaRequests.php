@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\CompanyHelper;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
@@ -44,13 +45,13 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                 ] : null,
-                'activeCompany' => \App\Helpers\CompanyHelper::getActiveCompany(),
+                'activeCompany' => CompanyHelper::getActiveCompany(),
             ],
             'company' => [
-                'active' => \App\Helpers\CompanyHelper::getActiveCompany(),
-                'activeId' => \App\Helpers\CompanyHelper::getActiveCompanyId(),
-                'activeName' => \App\Helpers\CompanyHelper::getActiveCompanyName(),
-                'userCompanies' => \App\Helpers\CompanyHelper::getUserCompanies(),
+                'active' => CompanyHelper::getActiveCompany(),
+                'activeId' => CompanyHelper::getActiveCompanyId(),
+                'activeName' => CompanyHelper::getActiveCompanyName(),
+                'userCompanies' => CompanyHelper::getUserCompanies(),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

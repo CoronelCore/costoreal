@@ -3,66 +3,44 @@
 namespace App\Exports;
 
 use App\Models\Trip;
+use App\Services\ProrrateoService;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TripProductsSheet implements FromArray, WithTitle, WithHeadings, WithStyles
+class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithStrictNullComparison, WithStyles, WithTitle
 {
-    protected $trip;
-
-    public function __construct(Trip $trip)
+    public function __construct(private Trip $trip)
     {
-        $this->trip = $trip;
+        $trip->loadMissing('products');
     }
 
     public function array(): array
     {
-        $data = [];
-
-        foreach ($this->trip->products as $product) {
-            $data[] = [
-                $product->nombre,
-                $product->cantidad,
-                '$' . number_format($product->precio_unitario, 0, ',', '.'),
-                '$' . number_format($product->subtotal, 0, ',', '.'),
-                number_format($product->porcentaje_prorrateo, 2) . '%',
-                '$' . number_format($product->gastos_prorrateados, 0, ',', '.'),
-                '$' . number_format($product->costo_final, 0, ',', '.'),
-                '$' . number_format($product->costo_unitario, 0, ',', '.'),
+        $rows = [];
+        foreach ($this->trip->products as $p) {
+            $rows[] = [
+                $p->nombre, (int) $p->cantidad, $p->moneda, (float) $p->costo_unitario, (float) $p->subtotal_clp,
+                (float) $p->gastos_prorrateados_clp, (float) $p->costo_final_total_clp, (float) $p->costo_final_unitario_clp,
+                $p->precio_venta === null ? null : (float) $p->precio_venta,
+                $p->precio_venta > 0 ? ((float) $p->precio_venta - (float) $p->costo_final_unitario_clp) / (float) $p->precio_venta : null,
             ];
         }
+        $s = app(ProrrateoService::class)->obtenerEstadisticas($this->trip);
+        $rows[] = [];
+        $rows[] = ['TOTAL', null, null, null, (float) $s['total_productos_clp'], (float) $s['total_gastos_prorrateados_clp'], (float) $s['costo_total_final_clp']];
 
-        // Agregar total
-        $data[] = [];
-        $data[] = [
-            'TOTAL:',
-            '',
-            '',
-            '$' . number_format($this->trip->products->sum('subtotal'), 0, ',', '.'),
-            '',
-            '$' . number_format($this->trip->products->sum('gastos_prorrateados'), 0, ',', '.'),
-            '$' . number_format($this->trip->products->sum('costo_final'), 0, ',', '.'),
-            '',
-        ];
-
-        return $data;
+        return $rows;
     }
 
     public function headings(): array
     {
-        return [
-            'Producto',
-            'Cantidad',
-            'Precio Unit.',
-            'Subtotal',
-            '% Prorrateo',
-            'Gastos Prorr.',
-            'Costo Final',
-            'Costo Unit. Final'
-        ];
+        return ['Producto', 'Cantidad', 'Moneda original', 'Costo unitario original', 'Compra CLP', 'Gastos asignados CLP', 'Costo total CLP', 'Costo unitario final CLP', 'Precio venta CLP', 'Margen proyectado'];
     }
 
     public function title(): string
@@ -72,8 +50,11 @@ class TripProductsSheet implements FromArray, WithTitle, WithHeadings, WithStyle
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            1 => ['font' => ['bold' => true]],
-        ];
+        return [1 => ['font' => ['bold' => true]]];
+    }
+
+    public function columnFormats(): array
+    {
+        return ['D' => '#,##0.00', 'E' => '#,##0', 'F' => '#,##0', 'G' => '#,##0', 'H' => '#,##0.00', 'I' => '#,##0.00', 'J' => '0.0%'];
     }
 }

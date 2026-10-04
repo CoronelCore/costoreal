@@ -121,7 +121,8 @@ const deleteCategory = (category) => {
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-slate-700">
+                    <p v-if="!category.editable" class="text-xs text-gray-600 dark:text-slate-300">Categoría base · solo lectura</p>
+                    <div v-if="category.editable" class="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-slate-700">
                         <Button
                             variant="ghost"
                             size="sm"

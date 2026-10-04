@@ -11,7 +11,7 @@ class TripExport implements WithMultipleSheets
 
     public function __construct(Trip $trip)
     {
-        $this->trip = $trip->load(['expenses.category', 'products']);
+        $this->trip = $trip->loadMissing(['expenses.category', 'products']);
     }
 
     public function sheets(): array

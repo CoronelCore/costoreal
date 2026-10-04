@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
@@ -9,13 +10,12 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->scopeBindings()->group(function () {
     // Redirigir dashboard a trips
     Route::get('/dashboard', function () {
         return redirect()->route('trips.index');
@@ -46,6 +46,11 @@ Route::middleware('auth')->group(function () {
     // Export routes
     Route::get('trips/{trip}/export/pdf', [ExportController::class, 'exportPdf'])->name('trips.export.pdf');
     Route::get('trips/{trip}/export/excel', [ExportController::class, 'exportExcel'])->name('trips.export.excel');
+
+    Route::post('trips/{trip}/documents', [DocumentController::class, 'store'])->name('trips.documents.store');
+    Route::get('trips/{trip}/documents/{document}', [DocumentController::class, 'show'])->name('trips.documents.show');
+    Route::delete('trips/{trip}/documents/{document}', [DocumentController::class, 'destroy'])->name('trips.documents.destroy');
+    Route::post('trips/{trip}/documents/{document}/restore', [DocumentController::class, 'restore'])->withTrashed()->name('trips.documents.restore');
 
     // Nested routes for expenses and products
     Route::post('trips/{trip}/expenses', [ExpenseController::class, 'store'])->name('trips.expenses.store');
