@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Product;
 use App\Modules\Access\AccessContext;
+use App\Modules\Costing\Domain\DecimalSum;
 use App\Modules\Pricing\Domain\ProjectionAccumulator;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -39,13 +40,13 @@ final class AnalyticsQuery
         foreach ((clone $base)->orderBy('id')->get(['id', 'nombre', 'fecha_inicio', 'estado', 'revision']) as $trip) {
             $revisions[$trip->id] = $trip->revision;
             $trips[$trip->id] = ['id' => $trip->id, 'name' => $trip->nombre, 'date' => $trip->fecha_inicio?->format('Y-m-d'), 'state' => $trip->estado,
-                'purchase' => BigDecimal::zero(), 'expenses' => BigDecimal::zero(), 'assigned' => BigDecimal::zero(), 'projection' => new ProjectionAccumulator];
+                'purchase' => new DecimalSum, 'expenses' => new DecimalSum, 'assigned' => new DecimalSum, 'projection' => new ProjectionAccumulator];
         }
         $overall = new ProjectionAccumulator;
         foreach (Product::whereIn('trip_id', (clone $ids))->select(['trip_id', 'cantidad', 'subtotal_clp', 'gastos_prorrateados_clp', 'costo_final_total_clp', 'precio_venta'])->toBase()->cursor() as $product) {
             foreach (['subtotal_clp', 'gastos_prorrateados_clp', 'costo_final_total_clp', 'precio_venta'] as $field) {
                 if ($product->{$field} !== null) {
-                    $product->{$field} = $this->money($product->{$field});
+                    $product->{$field} = DecimalSum::money($product->{$field});
                 }
             }
             if (! isset($trips[$product->trip_id])) {
@@ -53,8 +54,8 @@ final class AnalyticsQuery
             }
             $product->cantidad = (int) $product->cantidad;
             $row = &$trips[$product->trip_id];
-            $row['purchase'] = $row['purchase']->plus($product->subtotal_clp);
-            $row['assigned'] = $row['assigned']->plus($product->gastos_prorrateados_clp);
+            $row['purchase']->add($product->subtotal_clp);
+            $row['assigned']->add($product->gastos_prorrateados_clp);
             $row['projection']->add($product);
             unset($row);
         }
@@ -66,14 +67,14 @@ final class AnalyticsQuery
             if (! isset($trips[$expense->trip_id])) {
                 $this->changed();
             }
-            $expense->monto_clp = $this->money($expense->monto_clp);
+            $expense->monto_clp = DecimalSum::money($expense->monto_clp);
             $row = &$trips[$expense->trip_id];
-            $row['expenses'] = $row['expenses']->plus($expense->monto_clp);
+            $row['expenses']->add($expense->monto_clp);
             $category = $visible->get($expense->expense_category_id);
             $key = $category?->id ?? 0;
-            $categories[$key] ??= ['id' => $key, 'name' => $category?->nombre ?? 'Sin categoría', 'count' => 0, 'total' => BigDecimal::zero()];
+            $categories[$key] ??= ['id' => $key, 'name' => $category?->nombre ?? 'Sin categoría', 'count' => 0, 'total' => new DecimalSum];
             $categories[$key]['count']++;
-            $categories[$key]['total'] = $categories[$key]['total']->plus($expense->monto_clp);
+            $categories[$key]['total']->add($expense->monto_clp);
             if (count($latest) < 10) {
                 $latest[] = ['id' => (int) $expense->id, 'trip_id' => (int) $expense->trip_id, 'trip_name' => $row['name'], 'name' => $expense->concepto,
                     'category' => $categories[$key]['name'], 'date' => $expense->created_at ? substr($expense->created_at, 0, 10) : null, 'amount' => (string) $expense->monto_clp];
@@ -90,6 +91,9 @@ final class AnalyticsQuery
         $months = [];
         $active = 0;
         foreach ($trips as &$trip) {
+            foreach (['purchase', 'expenses', 'assigned'] as $field) {
+                $trip[$field] = $trip[$field]->value();
+            }
             $purchase = $purchase->plus($trip['purchase']);
             $expenses = $expenses->plus($trip['expenses']);
             $missing = $trip['expenses']->minus($trip['assigned']);
@@ -113,9 +117,9 @@ final class AnalyticsQuery
         $total = $purchase->plus($expenses);
         $count = count($trips);
         usort($trips, fn ($a, $b) => BigDecimal::of($b['total'])->compareTo($a['total']) ?: $a['id'] <=> $b['id']);
-        usort($categories, fn ($a, $b) => $b['total']->compareTo($a['total']) ?: $a['id'] <=> $b['id']);
+        usort($categories, fn ($a, $b) => $b['total']->value()->compareTo($a['total']->value()) ?: $a['id'] <=> $b['id']);
         foreach ($categories as &$category) {
-            $category['total'] = (string) $category['total'];
+            $category['total'] = (string) $category['total']->value();
         }
         unset($category);
         krsort($months);
@@ -145,12 +149,6 @@ final class AnalyticsQuery
     private function changed(): never
     {
         throw ValidationException::withMessages(['analytics' => 'Las importaciones cambiaron durante la lectura. Vuelve a aplicar los filtros.']);
-    }
-
-    /** Match the decimal:2 model cast used by FinancialSummaryData without hydrating each row. */
-    private function money(string|int|float $value): string
-    {
-        return (string) BigDecimal::of((string) $value)->toScale(2, RoundingMode::HALF_UP);
     }
 
     private function page(array $rows, int $size, string $name, Request $request, array $filters): array

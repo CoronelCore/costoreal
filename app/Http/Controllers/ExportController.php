@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\TripExport;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Reporting\FinancialSummaryData;
 use App\Modules\Reporting\ReportTrip;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,7 +17,7 @@ class ExportController extends Controller
     {
         $this->authorize('view', $trip);
         $request->validate(['run' => 'nullable|integer|min:1|prohibits:baseline', 'baseline' => 'nullable|integer|min:1|prohibits:run']);
-        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null, AccessContext::forRequest($request));
 
         $summary = FinancialSummaryData::fromTrip($trip);
 
@@ -28,7 +29,7 @@ class ExportController extends Controller
     {
         $this->authorize('view', $trip);
         $request->validate(['run' => 'nullable|integer|min:1|prohibits:baseline', 'baseline' => 'nullable|integer|min:1|prohibits:run']);
-        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null);
+        $trip = app(ReportTrip::class)->resolve($trip, $request->integer('run') ?: null, $request->integer('baseline') ?: null, AccessContext::forRequest($request));
 
         return Excel::download(new TripExport($trip), 'importacion-'.$trip->id.'-'.now()->format('Y-m-d').'.xlsx');
     }

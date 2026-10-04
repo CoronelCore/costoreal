@@ -7,7 +7,9 @@ use App\Models\CostScenario;
 use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Importations\Actions\MutateTrip;
+use App\Modules\Scenarios\ListScenarios;
 use App\Modules\Scenarios\ScenarioData;
 use App\Modules\Scenarios\SimulateCost;
 use App\Modules\Shared\TransactionRunner;
@@ -24,13 +26,7 @@ class ScenarioController extends Controller
         $this->authorize('view', $trip);
         $request->validate(['page' => 'nullable|integer|min:1']);
 
-        return response()->json($this->listing($trip));
-    }
-
-    public function listing(Trip $trip, string $pageName = 'page')
-    {
-        return $trip->scenarios()->select('id', 'trip_id', 'actor_id', 'name', 'base_revision', 'applied_revision', 'applied_at', 'created_at')
-            ->with('actor:id,name')->latest('id')->paginate(20, ['*'], $pageName)->through(fn ($scenario) => ScenarioData::summary($scenario));
+        return response()->json(app(ListScenarios::class)->read(AccessContext::forRequest($request), $trip));
     }
 
     public function preview(ScenarioRequest $request, Trip $trip)

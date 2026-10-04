@@ -3,6 +3,7 @@
 namespace App\Modules\Reporting;
 
 use App\Models\Trip;
+use App\Modules\Costing\Domain\DecimalSum;
 use App\Modules\Pricing\Domain\Projection;
 use Brick\Math\BigDecimal;
 
@@ -15,7 +16,14 @@ final readonly class FinancialSummaryData
     {
         // Loaded snapshot relations must never be replaced by current database rows.
         $trip->loadMissing(['products', 'expenses']);
-        $sum = fn ($rows, $field) => (string) $rows->reduce(fn (BigDecimal $s, $row) => $s->plus($row->{$field}), BigDecimal::zero());
+        $sum = function ($rows, $field): string {
+            $total = new DecimalSum;
+            foreach ($rows as $row) {
+                $total->add((string) $row->{$field});
+            }
+
+            return (string) $total->value();
+        };
         $expenses = $sum($trip->expenses, 'monto_clp');
         $purchase = $sum($trip->products, 'subtotal_clp');
         $assigned = $sum($trip->products, 'gastos_prorrateados_clp');

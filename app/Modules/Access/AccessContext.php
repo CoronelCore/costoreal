@@ -50,4 +50,27 @@ final class AccessContext
     {
         return Trip::query()->where('user_id', $this->user?->id ?? 0)->when($this->activeCompany(), fn ($q, $c) => $q->where('company_id', $c->id));
     }
+
+    /** Reading an owned inactive company is valid; selecting it for new work is separate. */
+    public function companyRelation(): array
+    {
+        return ['company' => fn ($query) => $query->where('user_id', $this->user?->id ?? 0)];
+    }
+
+    public function financialRelations(): array
+    {
+        return [...$this->companyRelation(), 'expenses.category' => fn ($query) => $query->visibleTo($this->user?->id ?? 0), 'products'];
+    }
+
+    /** Missing ownership evidence in older snapshots must not expose private metadata. */
+    public function ownsMetadata(?array $metadata): bool
+    {
+        return $this->user && isset($metadata['user_id']) && (int) $metadata['user_id'] === (int) $this->user->id;
+    }
+
+    public function seesCategoryMetadata(?array $metadata): bool
+    {
+        return $this->user && $metadata && array_key_exists('user_id', $metadata)
+            && ($metadata['user_id'] === null || $this->ownsMetadata($metadata));
+    }
 }

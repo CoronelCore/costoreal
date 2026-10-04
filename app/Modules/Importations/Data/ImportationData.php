@@ -17,7 +17,7 @@ final class ImportationData
             'fecha_inicio' => $trip->fecha_inicio?->format('Y-m-d'), 'fecha_fin' => $trip->fecha_fin?->format('Y-m-d'),
             'moneda_base' => $trip->moneda_base, 'moneda_trabajo' => $trip->moneda_trabajo,
             'tipo_cambio' => (string) $trip->tipo_cambio, 'estado' => $trip->estado,
-            'company_id' => $trip->company_id === null ? null : (int) $trip->company_id];
+            'company_id' => $trip->relationLoaded('company') && $trip->company === null ? null : ($trip->company_id === null ? null : (int) $trip->company_id)];
     }
 
     public static function listing(Trip $trip): array
@@ -51,7 +51,7 @@ final class ImportationData
     private static function expense(Expense $expense): array
     {
         return ['id' => (int) $expense->id, 'concepto' => $expense->concepto,
-            'expense_category_id' => $expense->expense_category_id === null ? null : (int) $expense->expense_category_id,
+            'expense_category_id' => $expense->category === null ? null : (int) $expense->category->id,
             'category' => $expense->category ? $expense->category->only(['id', 'nombre']) : null,
             'moneda' => $expense->moneda, 'monto' => (string) $expense->monto, 'monto_clp' => (string) $expense->monto_clp,
             'rate_mode' => $expense->rate_mode, 'applied_rate' => $expense->applied_rate === null ? null : (string) $expense->applied_rate,

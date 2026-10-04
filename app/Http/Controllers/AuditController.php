@@ -4,24 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditEvent;
 use App\Models\Trip;
+use App\Modules\Access\AccessContext;
 use App\Modules\Audit\AuditEventData;
 use App\Modules\Audit\CompareAudit;
+use App\Modules\Audit\ListAuditEvents;
 use Illuminate\Http\Request;
 
 class AuditController extends Controller
 {
-    public function listing(Trip $trip, string $pageName = 'page')
-    {
-        return $trip->auditEvents()->select('id', 'trip_id', 'actor_id', 'action', 'revision', 'summary', 'reason', 'created_at')
-            ->with('actor:id,name')->latest('id')->paginate(20, pageName: $pageName)->through(fn ($event) => AuditEventData::summary($event));
-    }
-
     public function index(Request $request, Trip $trip)
     {
         $this->authorize('view', $trip);
         $request->validate(['page' => 'nullable|integer|min:1']);
 
-        return response()->json($this->listing($trip));
+        return response()->json(app(ListAuditEvents::class)->read(AccessContext::forRequest($request), $trip));
     }
 
     public function show(Request $request, Trip $trip, AuditEvent $auditEvent, CompareAudit $compare)
