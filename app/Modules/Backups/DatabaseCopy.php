@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\DB;
 /** Consistent copies of the SQLite database, taken through SQLite itself instead of copying the open file. */
 final class DatabaseCopy
 {
-    public function usesSqlite(): bool
+    public function isSqlite(): bool
     {
-        return DB::connection()->getDriverName() === 'sqlite' && DB::connection()->getDatabaseName() !== ':memory:';
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 
     /** Copy taken before applying an update; returns where it was saved, relative to the costoreal folder. */
     public function beforeUpdate(): ?string
     {
-        if (! $this->usesSqlite()) {
+        if (! $this->isSqlite() || DB::connection()->getDatabaseName() === ':memory:') {
             return null;
         }
         $relative = 'storage/app/private/respaldos/antes-de-actualizar-'.now()->format('Y-m-d-His').'.sqlite';

@@ -48,6 +48,7 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/registration', [ProfileController::class, 'updateRegistration'])->name('profile.registration');
+    Route::get('/profile/respaldo', [ProfileController::class, 'backup'])->name('profile.backup');
 
     Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');
     Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');

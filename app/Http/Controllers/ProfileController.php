@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Modules\Accounts\DeleteAccount;
+use App\Modules\Backups\CreateBackup;
+use App\Modules\Backups\DatabaseCopy;
 use App\Support\Installation;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProfileController extends Controller
 {
@@ -25,8 +28,18 @@ class ProfileController extends Controller
             'emailVerified' => $request->user()->email_verified_at !== null,
             'status' => session('status'),
             'accountDeletion' => app(DeleteAccount::class)->readiness($request->user()),
-            'installation' => Installation::isOwner($request->user()) ? ['registration_open' => Installation::registrationOpen()] : null,
+            'installation' => Installation::isOwner($request->user()) ? ['registration_open' => Installation::registrationOpen(),
+                'backup_includes_database' => app(DatabaseCopy::class)->isSqlite(), 'last_backup_at' => Installation::setting('last_backup_at')] : null,
         ]);
+    }
+
+    /** The whole installation's data, so only its owner can download it. */
+    public function backup(Request $request, CreateBackup $backup): BinaryFileResponse
+    {
+        abort_unless(Installation::isOwner($request->user()), 403);
+        $file = $backup->execute();
+
+        return response()->download($file['path'], $file['name'], ['Content-Type' => 'application/zip'])->deleteFileAfterSend();
     }
 
     /** Only the owner decides whether other people may create accounts on this installation. */
