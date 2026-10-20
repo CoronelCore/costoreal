@@ -20,6 +20,14 @@ export function formatMoney(value: string | number | null | undefined, decimals 
     return (sign && scaled !== 0n ? '-' : '') + whole + part;
 }
 
+/** "1 producto", "3 productos". */
+export const count = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
+
+/** Same decimal text without padded zeros, for numeric inputs: "900.00000000" → "900", "950.12000000" → "950.12". */
+export function trimDecimal(value: string): string {
+    return value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
+}
+
 /** Preserve fractional precision while hiding padded zeros in an exchange rate. */
 export function formatRate(value: string | number | null | undefined) {
     const formatted = formatMoney(value, 8);

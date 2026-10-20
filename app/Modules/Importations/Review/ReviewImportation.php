@@ -35,7 +35,8 @@ final class ReviewImportation
             $blocks[] = 'Los costos guardados difieren del motor actual. Compara y concilia las diferencias en Historial antes de cerrar.';
         }
         $rows = $trip->products->concat($trip->expenses);
-        $estimated = $rows->where('rate_mode', 'estimated')->count();
+        // Operations in CLP never use the reference rate, whatever their conversion mode says.
+        $estimated = $rows->where('rate_mode', 'estimated')->where('moneda', '!==', 'CLP')->count();
         $legacy = $rows->where('rate_source', 'legacy-unverified')->count();
         $missingPaid = $rows->filter(fn ($row) => $row->rate_mode === 'paid' && (! $row->applied_rate || ! $row->rate_source || $row->rate_source === 'legacy-unverified' || ! $row->rate_date))->count();
         if ($missingPaid) {

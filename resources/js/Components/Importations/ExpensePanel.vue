@@ -7,7 +7,7 @@ import DecimalHint from "@/Components/UI/DecimalHint.vue";
 import { expenseMultipart } from "@/Utils/creationDraft";
 import { requestErrors, formFieldErrors } from "@/Utils/validation";
 import type { ExpenseEditorDraft } from "@/Types/creation";
-import { formatMoney, formatDateOnly, formatRate } from "@/Utils/format";
+import { formatMoney, formatPesos, formatDateOnly, formatRate } from "@/Utils/format";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import { useRoute } from "@/Composables/useRoute";
 import { inputFile } from "@/Utils/input";
@@ -651,7 +651,10 @@ watch(
                                     >Ver comprobante</a
                                 >
                             </td>
-                            <td>
+                            <td v-if="expense.moneda === 'CLP'">
+                                <span class="f-table-subtitle">En pesos</span>
+                            </td>
+                            <td v-else>
                                 <span
                                     class="f-status"
                                     :class="{
@@ -676,7 +679,7 @@ watch(
                             </td>
                             <td>{{ rules[expense.allocation_method] }}</td>
                             <td class="f-numeric">
-                                {{ formatMoney(expense.monto, 2) }}
+                                {{ formatPesos(expense.monto) }}
                                 {{ expense.moneda }}
                             </td>
                             <td class="f-numeric">
@@ -735,7 +738,7 @@ watch(
                                 · {{ rules[expense.allocation_method] }}</span
                             >
                         </div>
-                        <span class="f-status">{{
+                        <span v-if="expense.moneda !== 'CLP'" class="f-status">{{
                             expense.rate_mode === "paid" ? "Pagado" : "Estimado"
                         }}</span>
                     </div>
@@ -762,7 +765,7 @@ watch(
                     </p>
                     <div class="f-mobile-card-bottom">
                         <span class="f-hint"
-                            >{{ formatMoney(expense.monto, 2) }}
+                            >{{ formatPesos(expense.monto) }}
                             {{ expense.moneda }}</span
                         ><strong>${{ formatMoney(expense.monto_clp) }}</strong>
                     </div>

@@ -409,6 +409,12 @@
     font-size: 11px;
     color: var(--f-muted);
 }
+.f-back {
+    display: inline-flex;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--f-muted);
+}
 .f-table-scroll {
     overflow-x: auto;
     width: 100%;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
+import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import FinancialLayout from "@/Layouts/FinancialLayout.vue";
 import FinancialField from "@/Components/UI/FinancialField.vue";
 import CompanyIcon from "@/Components/Domain/CompanyIcon.vue";
