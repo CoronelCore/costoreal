@@ -26,5 +26,11 @@ export function formatRate(value: string | number | null | undefined) {
     return formatted.includes(',') ? formatted.replace(/0+$/, '').replace(/,$/, '') : formatted;
 }
 
+/** Per-unit pesos: cents only when the rounded amount has them ($31.500 but $40.347,70). */
+export function formatPesos(value: string | number | null | undefined) {
+    const formatted = formatMoney(value, 2);
+    return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+}
+
 /** Preserve legacy cents while keeping whole CLP compact. */
 export const analyticsMoney = (value: string) => formatMoney(value, /\.\d*[1-9]/.test(value) ? 2 : 0);

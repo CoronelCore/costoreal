@@ -34,6 +34,9 @@ class ExcelContractTest extends TestCase
                 $this->assertEquals($amount, $sheet->getCell($address)->getValue());
             }
             $this->assertEqualsWithDelta(0.2499166667, $sheet->getCell('J2')->getValue(), 0.000000001);
+            $this->assertSame('Pagado por unidad CLP', $sheet->getCell('K1')->getValue());
+            $this->assertEquals(90000, $sheet->getCell('K2')->getValue());
+            $this->assertEquals(29990, $sheet->getCell('L2')->getValue());
             $book->disconnectWorksheets();
         } finally {
             unlink($path);

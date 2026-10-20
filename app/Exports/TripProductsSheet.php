@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Trip;
 use App\Modules\Reporting\FinancialSummaryData;
+use App\Modules\Reporting\ProductResult;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Maatwebsite\Excel\Concerns\FromArray;
@@ -29,12 +30,15 @@ class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumn
     {
         $rows = [];
         foreach ($this->trip->products as $p) {
+            $result = ProductResult::of($p);
             $rows[] = [
                 $p->nombre, (int) $p->cantidad, $p->moneda, (float) $p->costo_unitario, (float) $p->subtotal_clp,
                 (float) $p->gastos_prorrateados_clp, (float) $p->costo_final_total_clp, (float) $p->costo_final_unitario_clp,
                 $p->precio_venta === null ? null : (float) $p->precio_venta,
                 $p->precio_venta !== null && BigDecimal::of($p->precio_venta)->isPositive()
                     ? (float) (string) BigDecimal::of($p->precio_venta)->minus($p->costo_final_unitario_clp)->dividedBy($p->precio_venta, 12, RoundingMode::HALF_UP) : null,
+                (float) $result['compra_unitaria_clp'],
+                $result['ganancia_unitaria_clp'] === null ? null : (float) $result['ganancia_unitaria_clp'],
             ];
         }
         $s = $this->summary->statistics;
@@ -46,7 +50,7 @@ class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumn
 
     public function headings(): array
     {
-        return ['Producto', 'Cantidad', 'Moneda original', 'Costo unitario original', 'Compra CLP', 'Gastos asignados CLP', 'Costo total CLP', 'Costo unitario final CLP', 'Precio venta CLP', 'Margen proyectado'];
+        return ['Producto', 'Cantidad', 'Moneda original', 'Costo unitario original', 'Compra CLP', 'Gastos asignados CLP', 'Costo total CLP', 'Costo unitario final CLP', 'Precio venta CLP', 'Margen proyectado', 'Pagado por unidad CLP', 'Ganancia por unidad CLP'];
     }
 
     public function title(): string
@@ -61,6 +65,6 @@ class TripProductsSheet extends SafeValueBinder implements FromArray, WithColumn
 
     public function columnFormats(): array
     {
-        return ['D' => '#,##0.00', 'E' => '#,##0', 'F' => '#,##0', 'G' => '#,##0', 'H' => '#,##0.00', 'I' => '#,##0.00', 'J' => '0.0%'];
+        return ['D' => '#,##0.00', 'E' => '#,##0', 'F' => '#,##0', 'G' => '#,##0', 'H' => '#,##0.00', 'I' => '#,##0.00', 'J' => '0.0%', 'K' => '#,##0.00', 'L' => '#,##0.00'];
     }
 }

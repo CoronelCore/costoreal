@@ -56,7 +56,7 @@ final class FinancialPdf
         $this->paragraph(($this->trip->company?->nombre ?? 'Sin empresa asignada').' / '.$state.' / Revisión '.$this->trip->revision, 9);
         $this->paragraph('Inicio: '.($this->trip->fecha_inicio?->format('d/m/Y') ?? 'Sin fecha').' / Fin: '.($this->trip->fecha_fin?->format('d/m/Y') ?? 'Sin fecha')
             .' / Generado: '.now()->format('d/m/Y H:i T'), 9);
-        $this->paragraph('Tasa de referencia: '.DecimalFormatter::format($this->trip->tipo_cambio, 8).' CLP / '.$this->trip->moneda_trabajo, 9);
+        $this->paragraph('Tasa de referencia: '.DecimalFormatter::rate($this->trip->tipo_cambio).' CLP / '.$this->trip->moneda_trabajo, 9);
         if ($this->trip->report_provenance) {
             $this->paragraph($this->trip->report_provenance, 9);
         }
@@ -77,6 +77,10 @@ final class FinancialPdf
             ['Margen sobre ventas', ! $p['complete'] || $p['margin'] === null ? 'Pendiente' : DecimalFormatter::format($p['margin'], 2).'%'],
             ...(! $p['complete'] ? [['Ingreso de líneas con precio', $this->money($p['covered_revenue'])], ['Utilidad de líneas con precio', $this->money($p['covered_profit'])]] : []),
         ], [1], 'Proyección de venta / CLP', false);
+        if ($this->trip->products->isNotEmpty()) {
+            $this->table(['Producto', 'Cant.', 'Pagado por unidad', 'Costo real por unidad', 'Precio de venta', 'Ganancia por unidad', 'Margen'],
+                [$this->width - 630, 55, 120, 135, 115, 130, 75], $this->results(), [1, 2, 3, 4, 5, 6], 'Resultado por producto / CLP por unidad');
+        }
         $this->table(['Producto', 'Cant.', 'Unitario original', 'Compra CLP', 'Gastos CLP', 'Total CLP', 'Unitario CLP'],
             [$this->width - 641, 55, 116, 127, 102, 137, 104], $this->products(), [1, 2, 3, 4, 5, 6], 'Productos y costeo / '.$this->trip->products->count().' '.($this->trip->products->count() === 1 ? 'línea' : 'líneas'));
         $this->table(['Categoría', 'Concepto', 'Monto original', 'Monto CLP'],
@@ -88,6 +92,18 @@ final class FinancialPdf
         $this->canvas->page_text($this->width - 84, $height - 33, 'Página {PAGE_NUM} / {PAGE_COUNT}', $this->font, 8, self::MUTED);
 
         return $this->canvas->output();
+    }
+
+    private function results(): iterable
+    {
+        foreach ($this->trip->products as $product) {
+            $r = ProductResult::of($product);
+            yield [$product->nombre, (string) $product->cantidad, DecimalFormatter::pesos($r['compra_unitaria_clp']),
+                DecimalFormatter::pesos($r['costo_unitario_clp']),
+                $r['precio_venta'] === null ? 'Sin precio' : DecimalFormatter::pesos($r['precio_venta']),
+                $r['ganancia_unitaria_clp'] === null ? 'Pendiente' : DecimalFormatter::pesos($r['ganancia_unitaria_clp']),
+                $r['margen'] === null ? 'Pendiente' : DecimalFormatter::format($r['margen'], 1).'%'];
+        }
     }
 
     private function products(): iterable

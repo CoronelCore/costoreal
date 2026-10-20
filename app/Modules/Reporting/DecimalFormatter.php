@@ -16,4 +16,18 @@ final class DecimalFormatter
 
         return ($negative ? '-' : '').$grouped.($scale ? ','.$fraction : '');
     }
+
+    /** Per-unit pesos: cents only when the rounded amount has them ($31.500 but $40.347,70). */
+    public static function pesos(string|int $value): string
+    {
+        $formatted = preg_replace('/,00$/', '', self::format($value, 2));
+
+        return str_starts_with($formatted, '-') ? '-$'.substr($formatted, 1) : '$'.$formatted;
+    }
+
+    /** Exchange rates keep up to eight decimals without padded zeros: 900 and 950,12. */
+    public static function rate(string|int $value): string
+    {
+        return self::format($value, max(0, BigDecimal::of($value)->toScale(8, RoundingMode::HALF_UP)->strippedOfTrailingZeros()->getScale()));
+    }
 }
