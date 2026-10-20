@@ -58,7 +58,7 @@ const submit = () => form.post(route('installer.store'), { onFinish: () => { for
                 </div></section>
 
                 <section class="f-panel"><div class="f-panel-body">
-                    <label class="f-check"><input type="checkbox" v-model="form.demo" /> Cargar datos de demostración: un viaje de compras a Brasil y una importación, ambos ficticios. Puedes borrarlos después.</label>
+                    <label class="f-check"><input type="checkbox" v-model="form.demo" /> Cargar datos de demostración: un viaje de compras a Brasil y una importación, ambos ficticios. Después puedes mandarlos a la papelera.</label>
                 </div></section>
 
                 <div v-if="installError" class="f-notice f-notice-error" role="alert">{{ installError }}</div>

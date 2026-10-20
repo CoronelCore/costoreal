@@ -4,7 +4,8 @@ return [
     // This application renders in Vue; no SSR service is configured.
     'ssr' => ['enabled' => false],
     'pages' => [
-        'ensure_pages_exist' => true,
+        // The upload-ready package ships compiled pages only, without resources/js.
+        'ensure_pages_exist' => env('APP_ENV', 'production') !== 'production',
         'paths' => [resource_path('js/Pages')],
         'extensions' => ['vue'],
     ],
