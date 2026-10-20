@@ -10,6 +10,10 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
     require $maintenance;
 }
 
+// Explain what the hosting is missing, and prepare the configuration on the first visit...
+require_once __DIR__.'/../bootstrap/first-run.php';
+CostoRealFirstRun::run(dirname(__DIR__));
+
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 

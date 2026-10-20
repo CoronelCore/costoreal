@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\GuardInstallation;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ObservePerformance;
 use Illuminate\Foundation\Application;
@@ -17,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);
+        // Global, before any sign-in check: a fresh or not yet updated copy must reach the installer.
+        $middleware->append(GuardInstallation::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

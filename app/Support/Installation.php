@@ -47,4 +47,61 @@ final class Installation
     {
         return $user !== null && $user->id === self::ownerId();
     }
+
+    /** Installed by the browser installer, or by the terminal (an account already exists). */
+    public static function installed(): bool
+    {
+        try {
+            return self::setting('installed_at') !== null || User::query()->exists();
+        } catch (QueryException) {
+            return false;
+        }
+    }
+
+    public static function markInstalled(User $owner): void
+    {
+        self::put('owner_user_id', (string) $owner->id);
+        self::put('installed_at', now()->toIso8601String());
+        self::setRegistrationOpen(false);
+        self::put('schema', self::latestMigration());
+    }
+
+    /** @return list<string> */
+    public static function migrationNames(): array
+    {
+        $names = array_map(fn ($file) => basename($file, '.php'), glob(database_path('migrations/*.php')) ?: []);
+        sort($names);
+
+        return $names;
+    }
+
+    public static function latestMigration(): ?string
+    {
+        $names = self::migrationNames();
+
+        return $names ? end($names) : null;
+    }
+
+    /**
+     * Uploading a newer version over an installation leaves migrations to apply. The cheap check compares the
+     * last migration applied through CostoReal; only when it differs is the migrations table read.
+     */
+    public static function pendingMigrations(): array
+    {
+        $latest = self::latestMigration();
+        if ($latest === null || self::setting('schema') === $latest) {
+            return [];
+        }
+        try {
+            $repository = app('migrator')->getRepository();
+            $pending = array_values(array_diff(self::migrationNames(), $repository->repositoryExists() ? $repository->getRan() : []));
+        } catch (QueryException) {
+            return [];
+        }
+        if (! $pending) {
+            self::put('schema', $latest);
+        }
+
+        return $pending;
+    }
 }

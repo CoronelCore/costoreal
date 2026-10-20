@@ -12,6 +12,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\ImportReviewController;
+use App\Http\Controllers\InstallerController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -25,6 +26,12 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+// Browser installation and updates; GuardInstallation decides when each one is reachable.
+Route::get('instalar', [InstallerController::class, 'show'])->name('installer.show');
+Route::post('instalar', [InstallerController::class, 'store'])->middleware('throttle:6,1')->name('installer.store');
+Route::get('instalar/actualizar', [InstallerController::class, 'update'])->name('installer.update');
+Route::post('instalar/actualizar', [InstallerController::class, 'apply'])->middleware('auth')->name('installer.apply');
 
 Route::middleware('auth')->scopeBindings()->group(function () {
     if (app()->environment('local', 'testing')) {
