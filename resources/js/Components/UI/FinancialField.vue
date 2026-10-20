@@ -65,6 +65,7 @@ const visible = ref(false);
             </button>
         </div>
         <p :id="`${id}-help`" class="f-hint" v-if="help">{{ help }}</p>
+        <slot />
         <p :id="`${id}-error`" class="f-field-error" role="alert" v-if="error">
             {{ error }}
         </p>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ChileanNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,6 +11,11 @@ class TripRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->route('trip') ? $this->user()->can('update', $this->route('trip')) : $this->user() !== null;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge(ChileanNumber::fields($this->all(), ['tipo_cambio']));
     }
 
     public function rules(): array
@@ -30,7 +36,7 @@ class TripRequest extends FormRequest
             'fecha_inicio.date_format' => 'Indica una fecha de inicio válida.', 'fecha_fin.date_format' => 'Indica una fecha de fin válida.',
             'fecha_fin.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
             'moneda_trabajo.required' => 'Selecciona la moneda de trabajo.', 'moneda_trabajo.in' => 'Selecciona una moneda admitida.',
-            'tipo_cambio.required' => 'Indica la tasa de referencia para convertir a CLP.', 'tipo_cambio.numeric' => 'La tasa debe ser un número decimal con punto.',
+            'tipo_cambio.required' => 'Indica la tasa de referencia para convertir a CLP.', 'tipo_cambio.numeric' => 'Escribe la tasa como un número, por ejemplo 950 o 950,5.',
             'tipo_cambio.gt' => 'La tasa debe ser mayor que cero.', 'tipo_cambio.max' => 'La tasa no puede superar 1.000.000 CLP.',
             'tipo_cambio.decimal' => 'La tasa admite hasta ocho decimales.', 'expected_revision.required' => 'Falta la revisión de origen. Recarga antes de guardar.'];
     }

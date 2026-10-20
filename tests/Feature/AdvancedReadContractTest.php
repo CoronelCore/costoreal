@@ -47,7 +47,7 @@ class AdvancedReadContractTest extends TestCase
         $this->assertIsObject($decoded->cost_errors);
         $this->assertNotEmpty(get_object_vars($decoded->rows[1]->errors));
         $this->assertSame('La cantidad debe ser al menos 1.', $decoded->rows[1]->errors->cantidad[0]);
-        $this->assertSame('El peso total debe ser un número; usa punto decimal.', $decoded->rows[1]->errors->weight[0]);
+        $this->assertSame('El peso total debe ser un número, por ejemplo 1.250,50.', $decoded->rows[1]->errors->weight[0]);
         $this->assertSame('El peso total admite 0-8 decimales.', $decoded->rows[1]->errors->weight[1]);
         $this->assertSame(1, $trip->fresh()->revision);
         $this->assertSame(0, $trip->products()->count());

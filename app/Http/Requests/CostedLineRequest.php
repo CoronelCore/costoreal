@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ChileanNumber;
 use Brick\Math\BigDecimal;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,10 +18,10 @@ abstract class CostedLineRequest extends FormRequest
             'cantidad.min' => 'La cantidad debe ser al menos 1.', 'cantidad.max' => 'La cantidad no puede superar 1.000.000 unidades.',
             'costo_unitario.required' => 'Indica el costo unitario original.', 'costo_unitario.numeric' => 'El costo unitario debe ser numérico.',
             'costo_unitario.min' => 'El costo unitario no puede ser negativo.', 'costo_unitario.max' => 'El costo unitario supera el límite admitido.',
-            'costo_unitario.decimal' => 'El costo original admite hasta dos decimales.',
+            'costo_unitario.decimal' => 'El costo original admite hasta dos decimales, por ejemplo 1.250,50.',
             'monto.required' => 'Indica el monto original del gasto.', 'monto.numeric' => 'El monto del gasto debe ser numérico.',
             'monto.min' => 'El monto no puede ser negativo.', 'monto.max' => 'El monto supera el límite admitido.',
-            'monto.decimal' => 'El monto original admite hasta dos decimales.',
+            'monto.decimal' => 'El monto original admite hasta dos decimales, por ejemplo 450.000 o 12,50.',
             'moneda.in' => 'Usa CLP o la moneda de trabajo de esta importación.',
             'rate_mode.in' => 'Elige una conversión estimada o pagada.',
             'applied_rate.required_if' => 'Indica la tasa histórica del pago.', 'applied_rate.numeric' => 'La tasa histórica debe ser numérica.',
@@ -36,6 +37,7 @@ abstract class CostedLineRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->merge(ChileanNumber::fields($this->all(), ['cantidad', 'costo_unitario', 'monto', 'applied_rate', 'weight', 'volume']));
         $record = $this->route('expense') ?? $this->route('product');
         $mode = $this->input('rate_mode', $record?->rate_mode ?? 'estimated');
         $this->merge(['rate_mode' => $mode]);

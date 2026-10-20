@@ -5,6 +5,7 @@ namespace App\Modules\Importations\Importing;
 use App\Models\Product;
 use App\Models\Trip;
 use App\Services\ProrrateoService;
+use App\Support\ChileanNumber;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -40,11 +41,12 @@ final class PrepareProductImport
             $data['moneda'] = $data['moneda'] ?: $settings['default_currency'];
             $data['weight'] = $data['weight'] === '' ? null : $data['weight'];
             $data['volume'] = $data['volume'] === '' ? null : $data['volume'];
+            $data = [...$data, ...ChileanNumber::fields($data, ['cantidad', 'costo_unitario', 'weight', 'volume'])];
             $validator = Validator::make($data, ['nombre' => 'required|string|max:255', 'cantidad' => 'required|integer|min:1|max:1000000',
                 'moneda' => 'required|in:CLP,'.$trip->moneda_trabajo, 'costo_unitario' => 'required|numeric|min:0|max:9999999999.99|decimal:0,2',
                 'weight' => 'nullable|numeric|min:0|max:999999999|decimal:0,8', 'volume' => 'nullable|numeric|min:0|max:999999999|decimal:0,8'],
                 ['required' => 'Completa :attribute.', 'string' => ':Attribute debe ser texto.', 'integer' => ':Attribute debe ser un número entero.',
-                    'numeric' => ':Attribute debe ser un número; usa punto decimal.', 'min' => ['numeric' => ':Attribute debe ser al menos :min.'],
+                    'numeric' => ':Attribute debe ser un número, por ejemplo 1.250,50.', 'min' => ['numeric' => ':Attribute debe ser al menos :min.'],
                     'max' => ['numeric' => ':Attribute no puede superar :max.', 'string' => ':Attribute no puede superar :max caracteres.'],
                     'in' => ':Attribute debe ser CLP o '.$trip->moneda_trabajo.'.', 'decimal' => ':Attribute admite :decimal decimales.'],
                 ['nombre' => 'el nombre del producto', 'cantidad' => 'la cantidad', 'moneda' => 'la moneda',
