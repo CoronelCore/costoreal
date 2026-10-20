@@ -17,7 +17,7 @@ const submit = () =>
 </script>
 <template>
     <Head title="Iniciar sesión" /><GuestLayout>
-        <p class="f-eyebrow">BIENVENIDO A COSTO REAL</p>
+        <p class="f-eyebrow">BIENVENIDO A COSTOREAL</p>
         <h1>Iniciar sesión</h1>
         <p class="f-auth-subtitle">
             Accede a tus importaciones y su historial.

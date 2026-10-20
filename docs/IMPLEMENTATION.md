@@ -1,4 +1,4 @@
-# Ejecución de la modernización de Costo Real
+# Ejecución de la modernización de CostoReal
 
 Objetivo: ejecutar el plan completo del 3 de octubre de 2026. Uso personal preparado para crecer; dirección financiera clara, elegante y compacta.
 

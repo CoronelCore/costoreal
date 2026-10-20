@@ -1,4 +1,4 @@
-# Navegación y tareas de Costo Real
+# Navegación y tareas de CostoReal
 
 Dirección vigente: uso personal preparado para crecer; interfaz financiera clara, elegante y compacta. Pantalla principal: Control de importaciones (`/trips`).
 

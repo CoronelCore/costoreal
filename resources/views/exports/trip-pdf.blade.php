@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><title>Costo Real · {{ $trip->nombre }}</title>
+<html lang="es"><head><meta charset="utf-8"><title>CostoReal · {{ $trip->nombre }}</title>
 <style>
 body{font-family:'DejaVu Sans',sans-serif;color:#17263b;font-size:11px;line-height:1.5;margin:24px}h1{font-size:22px;margin:8px 0}h2{font-size:15px;margin:24px 0 10px}.brand{color:#254eb5;font-size:18px;font-weight:bold}.sub{color:#52647b}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{padding:7px 5px;border-bottom:1px solid #d9e1ed;text-align:left;word-wrap:break-word}th{background:#edf2ff;font-size:10px}.num{text-align:right}thead{display:table-header-group}tr{page-break-inside:avoid}.totals td{font-weight:bold;background:#edf2ff}.footer{font-size:9px;color:#52647b;margin-top:24px}
 </style></head><body>
-<div class="brand">Costo Real</div><h1>{{ $trip->nombre }}</h1>
+<div class="brand">CostoReal</div><h1>{{ $trip->nombre }}</h1>
 <p class="sub">{{ $trip->company?->nombre ?? 'Sin empresa asignada' }} · {{ $trip->estado }} · Generado {{ now()->format('d/m/Y H:i') }}</p>
 @if($trip->report_provenance)<p class="sub">{{ $trip->report_provenance }}</p>@endif
 <p>{{ $trip->descripcion }}</p><p>Inicio: {{ $trip->fecha_inicio?->format('d/m/Y') ?? 'Sin fecha' }} · Fin: {{ $trip->fecha_fin?->format('d/m/Y') ?? 'Sin fecha' }}</p>
