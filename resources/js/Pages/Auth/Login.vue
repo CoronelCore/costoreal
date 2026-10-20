@@ -5,7 +5,7 @@ import FinancialField from "@/Components/UI/FinancialField.vue";
 import { useRoute } from "@/Composables/useRoute";
 import { focusInvalid } from "@/Composables/useFormFocus";
 const route = useRoute();
-defineProps<{ canResetPassword?: boolean; status?: string | null }>();
+defineProps<{ canResetPassword?: boolean; canRegister?: boolean; status?: string | null }>();
 const form = useForm({ email: "", password: "", remember: false });
 const submit = () =>
     form.post(route("login"), {
@@ -68,7 +68,7 @@ const submit = () =>
                 >¿Olvidaste tu contraseña?</Link
             >
         </form>
-        <p class="f-auth-bottom">
+        <p v-if="canRegister" class="f-auth-bottom">
             ¿Primera vez aquí?
             <Link class="f-text-link" :href="route('register')"
                 >Crear cuenta</Link

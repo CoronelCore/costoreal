@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Modules\Accounts\DeleteAccount;
+use App\Support\Installation;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,18 @@ class ProfileController extends Controller
             'emailVerified' => $request->user()->email_verified_at !== null,
             'status' => session('status'),
             'accountDeletion' => app(DeleteAccount::class)->readiness($request->user()),
+            'installation' => Installation::isOwner($request->user()) ? ['registration_open' => Installation::registrationOpen()] : null,
         ]);
+    }
+
+    /** Only the owner decides whether other people may create accounts on this installation. */
+    public function updateRegistration(Request $request): RedirectResponse
+    {
+        abort_unless(Installation::isOwner($request->user()), 403);
+        $data = $request->validate(['registration_open' => 'required|boolean']);
+        Installation::setRegistrationOpen($request->boolean('registration_open'));
+
+        return Redirect::route('profile.edit')->with('status', $data['registration_open'] ? 'registration-opened' : 'registration-closed');
     }
 
     /**

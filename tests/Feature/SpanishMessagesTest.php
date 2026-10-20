@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\Installation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +15,7 @@ class SpanishMessagesTest extends TestCase
     {
         $this->assertSame('es', app()->getLocale());
         User::factory()->create(['email' => 'ocupado@example.test']);
+        Installation::setRegistrationOpen(true);
         $this->post('/register', ['name' => 'Prueba', 'email' => 'ocupado@example.test', 'password' => 'corta', 'password_confirmation' => 'distinta'])
             ->assertSessionHasErrors([
                 'email' => 'Ese correo electrónico ya está registrado.',
