@@ -1,0 +1,42 @@
+name: Paquete para subir
+# A version tag (v1.0.0) builds the upload-ready ZIP and attaches it to the GitHub release.
+# Running it by hand from the Actions tab builds the same ZIP as a downloadable artifact.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, pdo_sqlite, sqlite3, gd, zip, bcmath
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: php deploy/package.php "$GITHUB_REF_NAME" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: costoreal-${{ github.ref_name }}
+          path: dist/*.zip
+      - name: Publicar en Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.zip --title "CostoReal $GITHUB_REF_NAME" \
+              --notes "Descarga costoreal-$GITHUB_REF_NAME.zip y sigue la guía «Instalar sin terminal» del README."
+          fi
