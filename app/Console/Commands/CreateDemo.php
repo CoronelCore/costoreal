@@ -11,7 +11,7 @@ class CreateDemo extends Command
 {
     protected $signature = 'costoreal:demo {email : Correo de la única cuenta de una instalación vacía}';
 
-    protected $description = 'Cargar una importación ficticia en una instalación vacía, sin crear contraseñas';
+    protected $description = 'Cargar una importación y un viaje de compras ficticios en una instalación vacía, sin crear contraseñas';
 
     public function handle(CreateDemoData $demo): int
     {
@@ -22,7 +22,7 @@ class CreateDemo extends Command
             return self::FAILURE;
         }
         try {
-            $trip = $demo->execute($user);
+            $created = $demo->execute($user);
         } catch (ValidationException $exception) {
             foreach ($exception->errors() as $messages) {
                 foreach ($messages as $message) {
@@ -32,9 +32,10 @@ class CreateDemo extends Command
 
             return self::FAILURE;
         }
-        $this->info('Demostración ficticia creada: 1 empresa, 3 productos y 6 gastos.');
-        $this->line('Compra: 1.485.000 CLP · gastos: 385.000 CLP · costo: 1.870.000 CLP.');
-        $this->line('Abre /trips/'.$trip->id.' con tu cuenta. Puedes revisar y cerrar la importación.');
+        $this->info('Demostración ficticia creada: 1 empresa y 2 compras.');
+        $this->line('Viaje de compras a Brasil: compra 1.386.000 CLP · gastos 677.000 CLP · costo 2.063.000 CLP. Abre /trips/'.$created['trip']->id);
+        $this->line('Importación de accesorios: compra 1.485.000 CLP · gastos 385.000 CLP · costo 1.870.000 CLP. Abre /trips/'.$created['importation']->id);
+        $this->line('Ambas quedan en curso: puedes revisarlas y cerrarlas desde la app.');
 
         return self::SUCCESS;
     }
