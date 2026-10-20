@@ -27,6 +27,17 @@ export interface ProductData extends EditableProduct {
     costo_final_unitario_clp: Decimal;
     precio_venta: Decimal | null;
     document_id: number | null;
+    resultado: ProductResult;
+}
+/** Per-unit CLP view computed by the server; profit fields stay null while the price is pending. */
+export interface ProductResult {
+    compra_unitaria_clp: Decimal;
+    gastos_unitarios_clp: Decimal;
+    costo_unitario_clp: Decimal;
+    precio_venta: Decimal | null;
+    ganancia_unitaria_clp: Decimal | null;
+    ganancia_total_clp: Decimal | null;
+    margen: Decimal | null;
 }
 export interface ExpenseData extends ConversionData {
     id: number;

@@ -9,6 +9,7 @@ use App\Modules\Access\AccessContext;
 use App\Modules\Documents\StoreDocument;
 use App\Modules\Importations\Actions\MutateTrip;
 use App\Modules\Importations\Data\ProductData;
+use App\Support\ChileanNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -79,7 +80,11 @@ class ProductController extends Controller
     public function updatePrecioVenta(Request $request, Trip $trip, Product $product)
     {
         $this->authorize('update', $trip);
-        $data = $request->validate(['precio_venta' => 'nullable|numeric|gt:0|max:9999999999.99|decimal:0,2', 'expected_revision' => 'required|integer|min:1']);
+        $request->merge(ChileanNumber::fields($request->all(), ['precio_venta']));
+        $data = $request->validate(['precio_venta' => 'nullable|numeric|gt:0|max:9999999999.99|decimal:0,2', 'expected_revision' => 'required|integer|min:1'], [
+            'precio_venta.numeric' => 'Escribe el precio como un número, por ejemplo 12.990.', 'precio_venta.gt' => 'El precio debe ser mayor que cero.',
+            'precio_venta.max' => 'El precio supera el límite admitido.', 'precio_venta.decimal' => 'El precio admite hasta dos decimales.',
+            'expected_revision.required' => 'Falta la revisión de origen. Recarga antes de guardar.']);
         unset($data['expected_revision']);
         $this->mutation->execute($trip, fn ($current) => $current->products()->findOrFail($product->id)->update($data), 'price_update');
 

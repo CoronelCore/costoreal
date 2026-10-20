@@ -46,7 +46,8 @@ class PaginatedFinancialPdfTest extends TestCase
             $this->assertStringStartsWith('%PDF-', $pdf);
             $pages = preg_match_all('~/Type\s*/Page\b~', $pdf);
             $this->assertGreaterThan(50, $pages);
-            $this->assertLessThan(150, $pages);
+            // Products appear twice: per-unit results and the costing table (about 169 pages).
+            $this->assertLessThan(220, $pages);
             $this->assertLessThan(500000, strlen($pdf));
             $this->assertSame($before, $trip->toArray());
         } finally {

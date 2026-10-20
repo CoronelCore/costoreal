@@ -3,10 +3,11 @@ import { computed, ref, watch, nextTick } from "vue";
 import { useForm, router } from "@inertiajs/vue3";
 import axios from "axios";
 import FinancialField from "@/Components/UI/FinancialField.vue";
+import DecimalHint from "@/Components/UI/DecimalHint.vue";
 import { expenseMultipart } from "@/Utils/creationDraft";
 import { requestErrors, formFieldErrors } from "@/Utils/validation";
 import type { ExpenseEditorDraft } from "@/Types/creation";
-import { formatMoney, formatDateOnly, formatRate } from "@/Utils/format";
+import { formatMoney, formatPesos, formatDateOnly, formatRate } from "@/Utils/format";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import { useRoute } from "@/Composables/useRoute";
 import { inputFile } from "@/Utils/input";
@@ -363,8 +364,9 @@ watch(
                     inputmode="decimal"
                     required
                     :error="form.errors.monto"
-                    help="Hasta dos decimales, con punto. El monto puede ser cero."
-                />
+                    help="Por ejemplo 450.000 o 12,50."
+                    ><DecimalHint :value="form.monto" :suffix="form.moneda"
+                /></FinancialField>
                 <div class="f-field">
                     <label for="expense-rate-mode">Conversión *</label
                     ><select
@@ -462,9 +464,14 @@ watch(
                         :help="
                             form.moneda === 'CLP'
                                 ? 'Una operación en CLP usa tasa 1.'
-                                : 'Mayor que cero · hasta ocho decimales, con punto.'
+                                : `Cuántos pesos te costó 1 ${form.moneda} en ese pago, por ejemplo 950,5.`
                         "
-                    />
+                        ><DecimalHint
+                            v-if="form.moneda !== 'CLP'"
+                            :value="form.applied_rate"
+                            :suffix="`pesos por 1 ${form.moneda}`"
+                            :rate-currency="form.moneda"
+                    /></FinancialField>
                     <FinancialField
                         id="expense-rate-source"
                         label="Fuente de la tasa *"
@@ -644,7 +651,10 @@ watch(
                                     >Ver comprobante</a
                                 >
                             </td>
-                            <td>
+                            <td v-if="expense.moneda === 'CLP'">
+                                <span class="f-table-subtitle">En pesos</span>
+                            </td>
+                            <td v-else>
                                 <span
                                     class="f-status"
                                     :class="{
@@ -669,7 +679,7 @@ watch(
                             </td>
                             <td>{{ rules[expense.allocation_method] }}</td>
                             <td class="f-numeric">
-                                {{ formatMoney(expense.monto, 2) }}
+                                {{ formatPesos(expense.monto) }}
                                 {{ expense.moneda }}
                             </td>
                             <td class="f-numeric">
@@ -728,7 +738,7 @@ watch(
                                 · {{ rules[expense.allocation_method] }}</span
                             >
                         </div>
-                        <span class="f-status">{{
+                        <span v-if="expense.moneda !== 'CLP'" class="f-status">{{
                             expense.rate_mode === "paid" ? "Pagado" : "Estimado"
                         }}</span>
                     </div>
@@ -755,7 +765,7 @@ watch(
                     </p>
                     <div class="f-mobile-card-bottom">
                         <span class="f-hint"
-                            >{{ formatMoney(expense.monto, 2) }}
+                            >{{ formatPesos(expense.monto) }}
                             {{ expense.moneda }}</span
                         ><strong>${{ formatMoney(expense.monto_clp) }}</strong>
                     </div>

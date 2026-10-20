@@ -3,7 +3,9 @@ import { ref } from "vue";
 import { Head, Link, useForm, router } from "@inertiajs/vue3";
 import FinancialLayout from "@/Layouts/FinancialLayout.vue";
 import FinancialField from "@/Components/UI/FinancialField.vue";
+import DecimalHint from "@/Components/UI/DecimalHint.vue";
 import Modal from "@/Components/UI/Modal.vue";
+import { toInputDecimal } from "@/Utils/format";
 import { useRoute } from "@/Composables/useRoute";
 import { focusInvalid } from "@/Composables/useFormFocus";
 import type { ImportConfiguration, NamedRecord } from "@/Types/financial";
@@ -21,7 +23,7 @@ const form = useForm({
     fecha_inicio: props.trip.fecha_inicio || "",
     fecha_fin: props.trip.fecha_fin || "",
     moneda_trabajo: props.trip.moneda_trabajo,
-    tipo_cambio: props.trip.tipo_cambio,
+    tipo_cambio: toInputDecimal(props.trip.tipo_cambio),
 });
 const submit = () =>
     form.put(route("trips.update", props.trip.id), {
@@ -191,8 +193,13 @@ const trash = () => {
                             inputmode="decimal"
                             required
                             :error="form.errors.tipo_cambio"
-                            :help="`CLP por 1 ${form.moneda_trabajo} · hasta ocho decimales, con punto`"
-                        />
+                            placeholder="Ej. 950"
+                            :help="`Cuántos pesos vale 1 ${form.moneda_trabajo}. Usa coma para decimales, por ejemplo 950,5.`"
+                            ><DecimalHint
+                                :value="form.tipo_cambio"
+                                :suffix="`pesos por 1 ${form.moneda_trabajo}`"
+                                :rate-currency="form.moneda_trabajo"
+                        /></FinancialField>
                     </div>
                 </fieldset>
             </section>

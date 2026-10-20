@@ -96,7 +96,7 @@ const apply = () => {
     <section class="f-panel">
         <div class="f-panel-heading"><div><h2>Importar productos por lote</h2><p class="f-hint">Pega desde una hoja de cálculo o carga un CSV. Hasta 1.000 filas.</p></div><button class="f-button" :aria-expanded="open" @click="open = !open" :disabled="applyForm.processing">{{ open ? 'Ocultar importador' : 'Pegar / importar CSV' }}</button></div>
         <div v-if="open" class="f-panel-body">
-            <div class="f-notice">El lote se agrega completo o se rechaza completo. Usa punto decimal (100.25), cantidades enteras y la moneda original de esta importación o CLP. No se reemplazan productos existentes.</div>
+            <div class="f-notice">El lote se agrega completo o se rechaza completo. Los números pueden ir como en Chile (1.250,50) o con punto decimal (1250.50), con cantidades enteras y la moneda original de esta importación o CLP. No se reemplazan productos existentes.</div>
             <form @submit.prevent="generate">
                 <fieldset :disabled="pending || applyForm.processing">
                     <legend class="sr-only">Datos de la carga por lote</legend>

@@ -58,7 +58,7 @@ class ProductImportTest extends TestCase
         $this->postJson("/trips/{$trip->id}/products/import/preview", [...$data, 'mapping' => [...$data['mapping'], 'cantidad' => 0]])->assertUnprocessable()->assertJsonValidationErrors('mapping');
     }
 
-    public function test_uploaded_csv_mapping_and_decimal_comma_are_explicit(): void
+    public function test_uploaded_csv_mapping_is_explicit_and_chilean_decimals_are_read(): void
     {
         [$trip, $data] = $this->fixture('');
         unset($data['source_text']);
@@ -69,7 +69,11 @@ class ProductImportTest extends TestCase
         $this->post("/trips/{$trip->id}/products/import/apply", $data)->assertSessionHasNoErrors();
         $this->assertSame('Nombre; literal', $trip->products()->firstOrFail()->nombre);
         [$other, $comma] = $this->fixture("nombre,cantidad,moneda,costo_unitario\nSensor,1,USD,\"10,25\"");
-        $this->postJson("/trips/{$other->id}/products/import/preview", $comma)->assertOk()->assertJsonPath('can_apply', false);
+        $this->postJson("/trips/{$other->id}/products/import/preview", $comma)->assertOk()->assertJsonPath('can_apply', true)->assertJsonPath('rows.0.data.costo_unitario', '10.25');
+        [$third, $chilean] = $this->fixture("nombre;cantidad;moneda;costo_unitario\nPantalla;1.000;USD;1.250,50");
+        $chilean['delimiter'] = ';';
+        $this->postJson("/trips/{$third->id}/products/import/preview", $chilean)->assertOk()->assertJsonPath('can_apply', true)
+            ->assertJsonPath('rows.0.data.cantidad', 1000)->assertJsonPath('rows.0.data.costo_unitario', '1250.50');
     }
 
     public function test_conflict_foreign_closed_and_reused_key_with_different_source_do_not_write(): void

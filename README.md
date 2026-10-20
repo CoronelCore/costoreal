@@ -212,17 +212,17 @@ Usa **otra instalación y otra base de datos**, sin empresas ni importaciones, y
 php artisan costoreal:demo tu-correo@example.com
 ```
 
-La demo no crea cuentas ni contraseñas. Crea una empresa marcada como ficticia, sin RUT, y una importación con tres productos y seis gastos inventados. Usa el motor de costeo actual, registra el historial y deja la importación en curso para que puedas revisarla y cerrarla desde la app.
+La demo no crea cuentas ni contraseñas. Crea una empresa marcada como ficticia, sin RUT, y dos compras inventadas: un **viaje de compras a Brasil** (shampoo, crema y vestidos, con pasaje, hotel, comida y traslados repartidos por valor de compra) y una **importación de accesorios tecnológicos** (con flete, seguro, aduana, transporte, comisión y almacenaje, repartidos por peso, valor, unidades y volumen). Usa el motor de costeo actual, registra el historial y deja ambas en curso para que puedas revisarlas y cerrarlas desde la app. Ejecuta antes `php artisan db:seed` para que los gastos usen las categorías de base.
 
-| Resultado de la demo | CLP |
-| --- | ---: |
-| Compra de productos | 1.485.000 |
-| Gastos de importación | 385.000 |
-| Costo total | 1.870.000 |
-| Venta proyectada | 2.730.000 |
-| Utilidad proyectada | 860.000 |
+| Resultado de la demo · CLP | Viaje a Brasil | Accesorios |
+| --- | ---: | ---: |
+| Compra de productos | 1.386.000 | 1.485.000 |
+| Gastos | 677.000 | 385.000 |
+| Costo total | 2.063.000 | 1.870.000 |
+| Venta proyectada | 2.658.700 | 2.730.000 |
+| Utilidad proyectada | 595.700 | 860.000 |
 
-La referencia es **900 CLP/USD**, una cifra inventada. No son tarifas aduaneras ni cotizaciones vigentes. No se importan archivos ni documentos personales. Si ya hay empresas/importaciones, o más de una cuenta, el comando se detiene sin cambiar datos; repetirlo tampoco duplica la demo. El seeder normal nunca carga esta demostración.
+Las referencias son **180 CLP/BRL** y **900 CLP/USD**, cifras inventadas. No son tarifas aduaneras ni cotizaciones vigentes. No se importan archivos ni documentos personales. Si ya hay empresas/importaciones, o más de una cuenta, el comando se detiene sin cambiar datos; repetirlo tampoco duplica la demo. El seeder normal nunca carga esta demostración.
 
 ## Correo, respaldo y actualizaciones
 

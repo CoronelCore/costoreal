@@ -40,7 +40,8 @@ class ImportReviewTest extends TestCase
         $events = AuditEvent::count();
         $data = $this->getJson("/trips/{$trip->id}/review?expected_revision=3")->assertOk()->assertJsonPath('revision', 3)->assertJsonPath('can_close', true)->assertJsonPath('stored_total', '300770.00')->assertJsonPath('calculated_total', '300770')->assertJsonPath('blocks', [])->assertJsonPath('document_policy', 'optional')->assertJsonCount(3, 'warnings')->json();
         $this->assertStringContainsString('precios pendientes', $data['warnings'][0]);
-        $this->assertStringContainsString('operaciones estimadas', $data['warnings'][1]);
+        // The CLP expense uses rate 1, so only the USD purchase depends on the reference rate.
+        $this->assertSame('Hay una operación estimada que usa la tasa de referencia.', $data['warnings'][1]);
         $this->assertStringContainsString('comprobante', $data['warnings'][2]);
         $this->assertSame($before, $trip->products()->first()->getAttributes());
         $this->assertSame($runs, CostRun::count());

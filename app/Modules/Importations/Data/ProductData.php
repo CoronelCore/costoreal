@@ -3,6 +3,7 @@
 namespace App\Modules\Importations\Data;
 
 use App\Models\Product;
+use App\Modules\Reporting\ProductResult;
 
 final class ProductData
 {
@@ -29,6 +30,7 @@ final class ProductData
             'costo_final_unitario_clp' => (string) $product->costo_final_unitario_clp,
             'precio_venta' => $product->precio_venta === null ? null : (string) $product->precio_venta,
             'document_id' => $product->document_id === null ? null : (int) $product->document_id,
+            'resultado' => ProductResult::of($product),
         ];
     }
 }

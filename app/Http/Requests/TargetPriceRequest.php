@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\ChileanNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TargetPriceRequest extends FormRequest
@@ -14,6 +15,17 @@ class TargetPriceRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge(['commission' => $this->input('commission', '0'), 'quantum' => $this->input('quantum', 1)]);
+        $this->merge(ChileanNumber::fields($this->all(), ['target', 'commission']));
+    }
+
+    public function messages(): array
+    {
+        return ['product_ids.required' => 'Elige al menos un producto.', 'product_ids.min' => 'Elige al menos un producto.',
+            'method.in' => 'Elige margen sobre venta o recargo sobre costo.',
+            'target.required' => 'Indica el porcentaje objetivo.', 'target.numeric' => 'Escribe el porcentaje como un número, por ejemplo 20 o 12,5.',
+            'target.max' => 'El porcentaje no puede superar 1.000 %.', 'target.decimal' => 'El porcentaje admite hasta dos decimales.',
+            'commission.numeric' => 'Escribe la comisión como un número, por ejemplo 3 o 3,5.', 'commission.lt' => 'La comisión debe ser menor que 100 %.',
+            'commission.decimal' => 'La comisión admite hasta dos decimales.', 'quantum.in' => 'Elige un redondeo de 1, 10, 100 o 1.000 pesos.'];
     }
 
     public function rules(): array
