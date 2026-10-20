@@ -33,7 +33,7 @@ const colors = [
 <template>
     <Head title="Guía visual" />
     <FinancialLayout>
-        <div class="f-heading"><div><div class="f-eyebrow">COSTO REAL · GUÍA VISUAL</div><h1>Claridad para decidir</h1><p>Tipografía, controles y estados de la interfaz financiera.</p></div></div>
+        <div class="f-heading"><div><div class="f-eyebrow">COSTOREAL · GUÍA VISUAL</div><h1>Claridad para decidir</h1><p>Tipografía, controles y estados de la interfaz financiera.</p></div></div>
         <p class="f-notice">Cambia el tema y la densidad desde la barra superior. Estos ejemplos permiten revisar la interfaz sin modificar tus importaciones.</p>
         <div class="f-metrics">
             <article class="f-metric f-metric-accent"><span class="f-metric-label">Inversión · CLP</span><strong class="f-metric-value">${{ formatMoney('1250500') }}</strong><small>Totales en pesos completos</small></article>

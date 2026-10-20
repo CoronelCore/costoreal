@@ -9,8 +9,8 @@ const { isDark, toggleTheme } = useDarkMode();
     <div class="financial-shell f-auth-shell">
         <a class="f-skip" href="#main-content">Saltar al contenido</a>
         <header class="f-auth-header">
-            <Link href="/" class="f-brand" aria-label="Costo Real"
-                ><BrandMark /><span>Costo Real<small>Control financiero</small></span></Link
+            <Link href="/" class="f-brand" aria-label="CostoReal"
+                ><BrandMark /><span>CostoReal<small>Control financiero</small></span></Link
             ><button
                 class="f-icon-button"
                 @click="toggleTheme"
@@ -40,7 +40,7 @@ const { isDark, toggleTheme } = useDarkMode();
             </main>
         </div>
         <footer class="f-auth-footer">
-            © {{ new Date().getFullYear() }} Costo Real · Control personal de
+            © {{ new Date().getFullYear() }} CostoReal · Control personal de
             importaciones
         </footer>
     </div>

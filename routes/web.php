@@ -12,6 +12,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\ImportReviewController;
+use App\Http\Controllers\InstallerController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -25,6 +26,12 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+// Browser installation and updates; GuardInstallation decides when each one is reachable.
+Route::get('instalar', [InstallerController::class, 'show'])->name('installer.show');
+Route::post('instalar', [InstallerController::class, 'store'])->middleware('throttle:6,1')->name('installer.store');
+Route::get('instalar/actualizar', [InstallerController::class, 'update'])->name('installer.update');
+Route::post('instalar/actualizar', [InstallerController::class, 'apply'])->middleware('auth')->name('installer.apply');
 
 Route::middleware('auth')->scopeBindings()->group(function () {
     if (app()->environment('local', 'testing')) {
@@ -40,6 +47,8 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile/registration', [ProfileController::class, 'updateRegistration'])->name('profile.registration');
+    Route::get('/profile/respaldo', [ProfileController::class, 'backup'])->name('profile.backup');
 
     Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');
     Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');

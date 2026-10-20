@@ -132,8 +132,8 @@ const flash = computed(() => page.flash || {});
             <Link
                 :href="route('trips.index')"
                 class="f-brand"
-                aria-label="Costo Real, control de importaciones"
-                ><BrandMark /><span>Costo Real<small>Control financiero</small></span></Link
+                aria-label="CostoReal, control de importaciones"
+                ><BrandMark /><span>CostoReal<small>Control financiero</small></span></Link
             >
             <button
                 class="f-icon-button f-mobile-only"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Installation;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,9 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
-        return Inertia::render('Auth/Register');
+        return Installation::registrationOpen() ? Inertia::render('Auth/Register') : $this->closed();
     }
 
     /**
@@ -31,6 +32,9 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! Installation::registrationOpen()) {
+            return $this->closed();
+        }
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
@@ -48,5 +52,10 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    private function closed(): RedirectResponse
+    {
+        return to_route('login')->with('status', 'Esta instalación no acepta cuentas nuevas. Pide acceso a quien la administra.');
     }
 }

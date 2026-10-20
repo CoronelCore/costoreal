@@ -47,7 +47,7 @@ final class FinancialPdf
 
     public function render(): string
     {
-        $this->text(28, $this->y, 'COSTO REAL / INFORME FINANCIERO', 10, true, self::GREEN);
+        $this->text(28, $this->y, 'COSTOREAL / INFORME FINANCIERO', 10, true, self::GREEN);
         $this->y += 24;
         $this->paragraph($this->trip->nombre, 18, true);
         $state = match ($this->trip->estado) {
@@ -145,7 +145,7 @@ final class FinancialPdf
     {
         $this->canvas->new_page();
         $this->y = 28;
-        $this->text(28, $this->y, 'COSTO REAL / CONTINUACIÓN', 9, true, self::GREEN);
+        $this->text(28, $this->y, 'COSTOREAL / CONTINUACIÓN', 9, true, self::GREEN);
         $this->y += 19;
         $this->paragraph($this->trip->nombre, 9);
         $this->y += 8;
