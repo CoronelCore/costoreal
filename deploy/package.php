@@ -3,7 +3,7 @@
 /**
  * Builds the upload-ready ZIP for hostings without a terminal.
  *
- *   npm ci && npm run build
+ *   composer install && npm ci && npm run build
  *   php deploy/package.php v1.2.0 [dist]
  *
  * The ZIP holds two folders meant to be extracted next to each other: costoreal/ (private: code, Composer

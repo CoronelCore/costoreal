@@ -22,6 +22,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # The design imports Ziggy from vendor/, so Composer has to run before the build.
+      - run: composer install --no-interaction --prefer-dist
       - run: npm ci
       - run: npm run build
       - run: php deploy/package.php "$GITHUB_REF_NAME" dist
