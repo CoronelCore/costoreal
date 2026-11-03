@@ -41,7 +41,17 @@ class PeopleController extends Controller
                     'status' => $invitation->status(),
                 ]),
             'registration_open' => Installation::registrationOpen(),
+            'beta_notice' => Installation::betaNotice(),
         ]);
+    }
+
+    public function betaNotice(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['beta_notice' => 'required|boolean']);
+        Installation::setBetaNotice($request->boolean('beta_notice'));
+
+        return to_route('people.index')->with('success', $data['beta_notice']
+            ? 'Las personas invitadas ven el aviso de versión de prueba.' : 'El aviso de versión de prueba quedó apagado.');
     }
 
     public function invite(Request $request): RedirectResponse

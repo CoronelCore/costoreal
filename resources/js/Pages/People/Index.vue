@@ -28,7 +28,14 @@ const props = defineProps<{
     people: Person[];
     invitations: PendingInvitation[];
     registration_open: boolean;
+    beta_notice: boolean;
 }>();
+const beta = useForm({ beta_notice: props.beta_notice });
+const saveBeta = () =>
+    beta.patch(route("people.beta-notice"), {
+        preserveScroll: true,
+        onSuccess: () => beta.defaults(),
+    });
 const route = useRoute();
 const page = usePage();
 const link = computed(() => page.flash?.link);
@@ -293,6 +300,47 @@ const state = (person: Person) =>
                         </tbody>
                     </table>
                 </div>
+            </section>
+            <section class="f-panel" aria-labelledby="beta-heading">
+                <div class="f-panel-heading">
+                    <h2 id="beta-heading">Aviso de versión de prueba</h2>
+                    <span
+                        class="f-status"
+                        :class="{ 'f-status-closed': !beta_notice }"
+                        >{{ beta_notice ? "Encendido" : "Apagado" }}</span
+                    >
+                </div>
+                <form
+                    class="f-panel-body"
+                    @submit.prevent="saveBeta"
+                    :aria-busy="beta.processing"
+                >
+                    <label class="f-check"
+                        ><input
+                            id="beta-notice"
+                            type="checkbox"
+                            v-model="beta.beta_notice"
+                            :disabled="beta.processing"
+                        />
+                        Mostrar a las personas invitadas que es una versión de
+                        prueba</label
+                    >
+                    <p class="f-hint" style="margin-top: 8px">
+                        Ven una franja arriba de cada pantalla y, al crear su
+                        cuenta, que puede tener errores. Apágalo si CostoReal ya
+                        es la herramienta de trabajo de tu equipo. El aviso de
+                        dónde quedan sus datos se muestra siempre.
+                    </p>
+                    <div class="f-actions" style="margin-top: 14px">
+                        <button
+                            class="f-button f-button-primary"
+                            type="submit"
+                            :disabled="beta.processing || !beta.isDirty"
+                        >
+                            Guardar
+                        </button>
+                    </div>
+                </form>
             </section>
             <section class="f-panel" aria-labelledby="registration-heading">
                 <div class="f-panel-heading">

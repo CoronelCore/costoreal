@@ -29,7 +29,7 @@ class InvitationController extends Controller
         return Inertia::render('Auth/Invitation', [
             'token' => $token,
             'invitation' => $invitation ? ['name' => $invitation->name, 'email' => $invitation->email,
-                'owner' => User::find(Installation::ownerId())?->name] : null,
+                'owner' => Installation::ownerName(), 'beta' => Installation::betaNotice()] : null,
         ]);
     }
 
@@ -40,7 +40,10 @@ class InvitationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Password::min(10)->letters()->numbers()],
-        ], ['email.unique' => 'Ya hay una cuenta con ese correo. Si es tuya, inicia sesión.']);
+            // The person confirms they read where their data lives and who administers the hosting.
+            'understood' => ['accepted'],
+        ], ['email.unique' => 'Ya hay una cuenta con ese correo. Si es tuya, inicia sesión.',
+            'understood.accepted' => 'Marca la casilla para confirmar que leíste cómo se guardan tus datos.']);
 
         $user = DB::transaction(function () use ($token, $data) {
             // Locked so two tabs cannot turn one invitation into two accounts.

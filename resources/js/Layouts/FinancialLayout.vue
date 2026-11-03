@@ -248,6 +248,14 @@ const flash = computed(() => page.flash || {});
                     </button>
                 </div>
             </header>
+            <div v-if="page.props.beta" class="beta-band" role="note">
+                <strong>Versión de prueba</strong>
+                <span
+                    >Lo que registras lo ves solo tú.
+                    {{ page.props.beta.owner || "Quien te invitó" }} administra
+                    el hosting.</span
+                >
+            </div>
             <main id="main-content" class="f-main" tabindex="-1">
                 <div
                     v-if="flash.success"
@@ -281,3 +289,20 @@ const flash = computed(() => page.flash || {});
         </div>
     </div>
 </template>
+<style scoped>
+.beta-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 8px var(--f-pad, 24px);
+    border-bottom: 1px solid var(--f-line);
+    background: var(--f-brand-soft);
+    color: var(--f-ink);
+    font-size: 13px;
+}
+.beta-band strong {
+    font-weight: 600;
+    color: var(--f-brand);
+}
+</style>

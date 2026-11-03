@@ -37,7 +37,34 @@ class InvitationTest extends TestCase
 
     private function account(array $extra = []): array
     {
-        return ['name' => 'Ana Pérez', 'email' => 'ana@example.test', 'password' => 'clave-segura-1', 'password_confirmation' => 'clave-segura-1', ...$extra];
+        return ['name' => 'Ana Pérez', 'email' => 'ana@example.test', 'password' => 'clave-segura-1', 'password_confirmation' => 'clave-segura-1',
+            'understood' => true, ...$extra];
+    }
+
+    public function test_the_account_is_created_only_after_reading_where_the_data_lives(): void
+    {
+        $token = $this->invite();
+        $this->get("/invitacion/{$token}")->assertInertia(fn (Assert $page) => $page->where('invitation.beta', true)->etc());
+        $this->post("/invitacion/{$token}", $this->account(['understood' => false]))
+            ->assertSessionHasErrors(['understood' => 'Marca la casilla para confirmar que leíste cómo se guardan tus datos.']);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertNull(Invitation::sole()->accepted_at);
+    }
+
+    public function test_invited_accounts_see_the_test_band_until_the_owner_turns_it_off(): void
+    {
+        $token = $this->invite();
+        $this->post("/invitacion/{$token}", $this->account());
+        $this->get('/trips')->assertInertia(fn (Assert $page) => $page->where('beta.owner', 'Manuel')->etc());
+        $this->patch('/personas/aviso-prueba', ['beta_notice' => false])->assertForbidden();
+
+        $this->actingAs($this->owner)->get('/trips')->assertInertia(fn (Assert $page) => $page->where('beta', null)->etc());
+        $this->get('/personas')->assertInertia(fn (Assert $page) => $page->where('beta_notice', true)->etc());
+        $this->patch('/personas/aviso-prueba', ['beta_notice' => false])->assertRedirect(route('people.index'));
+        $this->assertFalse(Installation::betaNotice());
+
+        $this->actingAs(User::where('email', 'ana@example.test')->sole())->get('/trips')
+            ->assertInertia(fn (Assert $page) => $page->where('beta', null)->etc());
     }
 
     public function test_an_invitation_opens_one_account_while_registration_stays_closed(): void

@@ -54,6 +54,7 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::middleware('can:manage-installation')->prefix('personas')->name('people.')->group(function () {
         Route::get('/', [PeopleController::class, 'index'])->name('index');
         Route::patch('registro', [PeopleController::class, 'registration'])->name('registration');
+        Route::patch('aviso-prueba', [PeopleController::class, 'betaNotice'])->name('beta-notice');
         Route::post('invitaciones', [PeopleController::class, 'invite'])->name('invite');
         Route::patch('invitaciones/{invitation}/anular', [PeopleController::class, 'revoke'])->name('revoke');
         Route::patch('{person}/suspender', [PeopleController::class, 'suspend'])->whereNumber('person')->name('suspend');

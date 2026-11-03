@@ -80,6 +80,9 @@ class HandleInertiaRequests extends Middleware
                 'activeName' => CompanyHelper::getActiveCompanyName(),
                 'userCompanies' => CompanyHelper::getUserCompanies(),
             ],
+            // Invited accounts are reminded whose hosting holds their data while the owner runs a test.
+            'beta' => fn () => $request->user() && ! Installation::isOwner($request->user()) && Installation::betaNotice()
+                ? ['owner' => Installation::ownerName()] : null,
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

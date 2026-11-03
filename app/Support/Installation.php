@@ -35,6 +35,24 @@ final class Installation
         self::put('registration_open', $open ? '1' : '0');
     }
 
+    /** Invited accounts see a "test version" band unless the owner turns it off (for example, a team in production). */
+    public static function betaNotice(): bool
+    {
+        return self::setting('beta_notice') !== '0';
+    }
+
+    public static function setBetaNotice(bool $on): void
+    {
+        self::put('beta_notice', $on ? '1' : '0');
+    }
+
+    public static function ownerName(): ?string
+    {
+        $owner = self::ownerId();
+
+        return $owner === null ? null : User::query()->whereKey($owner)->value('name');
+    }
+
     /** The account created when installing; older installs fall back to the first account. */
     public static function ownerId(): ?int
     {

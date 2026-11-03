@@ -6,20 +6,28 @@ import { useRoute } from "@/Composables/useRoute";
 import { focusInvalid } from "@/Composables/useFormFocus";
 const props = defineProps<{
     token: string;
-    invitation: { name: string; email: string; owner: string | null } | null;
+    invitation: {
+        name: string;
+        email: string;
+        owner: string | null;
+        beta: boolean;
+    } | null;
 }>();
 const route = useRoute();
+const owner = props.invitation?.owner || "Quien administra CostoReal";
 const form = useForm<{
     name: string;
     email: string;
     password: string;
     password_confirmation: string;
+    understood: boolean;
     invitation?: string;
 }>({
     name: props.invitation?.name ?? "",
     email: props.invitation?.email ?? "",
     password: "",
     password_confirmation: "",
+    understood: false,
 });
 const submit = () =>
     form.post(route("invitations.store", props.token), {
@@ -35,9 +43,8 @@ const submit = () =>
             <p class="f-eyebrow">TE INVITARON</p>
             <h1>Crea tu cuenta</h1>
             <p class="f-auth-subtitle">
-                {{ invitation.owner || "Quien administra CostoReal" }} te invitó
-                a probar CostoReal: calcula cuánto te costó de verdad cada
-                producto que traes de afuera.
+                {{ owner }} te invitó a probar CostoReal: calcula cuánto te costó
+                de verdad cada producto que traes de afuera.
             </p>
             <p
                 v-if="form.errors.invitation"
@@ -87,6 +94,49 @@ const submit = () =>
                     :error="form.errors.password_confirmation"
                     :disabled="form.processing"
                 />
+                <section class="invitation-notice" aria-labelledby="notice-heading">
+                    <h2 id="notice-heading">Antes de crear tu cuenta</h2>
+                    <ul>
+                        <li v-if="invitation.beta">
+                            Es una versión de prueba: puede tener errores y
+                            cambiar mientras {{ owner }} la mejora con lo que le
+                            cuentes.
+                        </li>
+                        <li>
+                            Lo que registres lo ves solo tú dentro de la app.
+                        </li>
+                        <li>
+                            Los datos quedan en el hosting de {{ owner }}. Como lo
+                            administra, puede llegar a la base de datos, y sus
+                            respaldos incluyen los datos de todas las cuentas.
+                        </li>
+                        <li>
+                            Si son datos delicados, prueba con montos de ejemplo.
+                        </li>
+                        <li>
+                            Si ya no quieres usarla, avísale a {{ owner }}: puede
+                            quitarte el acceso.
+                        </li>
+                    </ul>
+                    <label class="f-check"
+                        ><input
+                            id="understood"
+                            type="checkbox"
+                            v-model="form.understood"
+                            :disabled="form.processing"
+                            :aria-invalid="!!form.errors.understood"
+                            aria-describedby="understood-error"
+                        />
+                        Entendí cómo se guardan mis datos</label
+                    >
+                    <p
+                        id="understood-error"
+                        v-if="form.errors.understood"
+                        class="f-field-error"
+                    >
+                        {{ form.errors.understood }}
+                    </p>
+                </section>
                 <button
                     class="f-button f-button-primary f-full"
                     :disabled="form.processing"
@@ -109,3 +159,25 @@ const submit = () =>
         </p></GuestLayout
     >
 </template>
+<style scoped>
+.invitation-notice {
+    border: 1px solid var(--f-line);
+    border-radius: 10px;
+    background: var(--f-subtle);
+    padding: 14px 16px;
+}
+.invitation-notice h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+.invitation-notice ul {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    list-style: disc;
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--f-muted);
+}
+</style>
