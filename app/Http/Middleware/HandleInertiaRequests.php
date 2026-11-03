@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Helpers\CompanyHelper;
-use App\Models\Feedback;
 use App\Support\Installation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,14 +63,17 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        $user = $request->user();
+        $isOwner = Installation::isOwner($user);
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'is_owner' => Installation::isOwner($request->user()),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'is_owner' => $isOwner,
                 ] : null,
                 'activeCompany' => CompanyHelper::getActiveCompany(),
             ],
@@ -82,10 +84,10 @@ class HandleInertiaRequests extends Middleware
                 'userCompanies' => CompanyHelper::getUserCompanies(),
             ],
             // Comments waiting for the owner, shown as a badge on Personas.
-            'unreadFeedback' => fn () => Installation::isOwner($request->user()) ? Feedback::whereNull('read_at')->count() : 0,
+            // Lazy: Personas marks them as read during the request, after shared props are first collected.
+            'unreadFeedback' => fn () => $isOwner ? (int) Installation::setting(Installation::UNREAD_FEEDBACK, '0') : 0,
             // Invited accounts are reminded whose hosting holds their data while the owner runs a test.
-            'beta' => fn () => $request->user() && ! Installation::isOwner($request->user()) && Installation::betaNotice()
-                ? ['owner' => Installation::ownerName()] : null,
+            'beta' => fn () => $user && ! $isOwner && Installation::betaNotice() ? ['owner' => Installation::ownerName()] : null,
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

@@ -24,7 +24,10 @@ final class CreateDemoData
     /** Each account can load the examples once, into its own empty space; other accounts are never touched. */
     public function availableFor(User $user): bool
     {
-        return ! Company::where('user_id', $user->id)->exists() && ! Trip::withTrashed()->where('user_id', $user->id)->exists();
+        // One query: the empty imports screen asks this on every visit.
+        return ! Company::where('user_id', $user->id)
+            ->union(Trip::withTrashed()->where('user_id', $user->id)->select('id'))
+            ->select('id')->limit(1)->exists();
     }
 
     /** @return array{importation: Trip, trip: Trip} */

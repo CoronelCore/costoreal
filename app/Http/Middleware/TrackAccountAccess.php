@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -20,7 +21,11 @@ class TrackAccountAccess
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if ($user?->isSuspended()) {
+        // Right after a new version is uploaded these columns may not exist yet; the owner must still reach the update.
+        if (! $user || $request->attributes->get(GuardInstallation::PENDING)) {
+            return $next($request);
+        }
+        if ($user->isSuspended()) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -28,8 +33,10 @@ class TrackAccountAccess
 
             return to_route('login')->with('status', self::SUSPENDED);
         }
-        if ($user && ($user->last_seen_at === null || $user->last_seen_at->lt(now()->subMinutes(self::REFRESH_MINUTES)))) {
-            $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+        if ($user->last_seen_at === null || $user->last_seen_at->lt(now()->subMinutes(self::REFRESH_MINUTES))) {
+            // Straight to the table: activity is not an edit of the account and must not change updated_at.
+            DB::table('users')->where('id', $user->id)->update(['last_seen_at' => now()]);
+            $user->setRawAttributes([...$user->getAttributes(), 'last_seen_at' => now()], true);
         }
 
         return $next($request);

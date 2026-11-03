@@ -25,6 +25,7 @@ class PeopleController extends Controller
         $feedback = Feedback::query()->latest()->latest('id')->limit(self::FEEDBACK_SHOWN)->get();
         // Opening the panel is reading them: the menu badge counts only what arrived after.
         Feedback::query()->whereNull('read_at')->update(['read_at' => now()]);
+        Installation::put(Installation::UNREAD_FEEDBACK, '0');
 
         return Inertia::render('People/Index', [
             'feedback' => $feedback->map(fn (Feedback $comment) => [

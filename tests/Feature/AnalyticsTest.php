@@ -233,7 +233,8 @@ class AnalyticsTest extends TestCase
 
     public function test_streamed_read_has_fixed_query_count_at_200_imports_and_preserves_large_decimal_totals(): void
     {
-        $user = User::factory()->create();
+        // Recent activity: the at-most-every-5-minutes activity write would otherwise land only in the first request.
+        $user = User::factory()->create(['last_seen_at' => now()]);
         $this->actingAs($user);
         $trip = $this->trip($user);
         $this->product($trip, '9000000000000000');

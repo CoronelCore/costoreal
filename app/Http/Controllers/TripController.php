@@ -25,8 +25,11 @@ class TripController extends Controller
 
     public function index(ImportControlRequest $request, ControlImports $query)
     {
-        return Inertia::render('Trips/Index', [...$query->read(AccessContext::forRequest($request), $request->validated()),
-            'demoAvailable' => app(CreateDemoData::class)->availableFor($request->user())]);
+        $data = $query->read(AccessContext::forRequest($request), $request->validated());
+
+        // Only an empty list can offer the examples, so accounts with imports pay no extra query.
+        return Inertia::render('Trips/Index', [...$data,
+            'demoAvailable' => $data['trips']->total() === 0 && app(CreateDemoData::class)->availableFor($request->user())]);
     }
 
     public function create(Request $request)

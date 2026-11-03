@@ -57,7 +57,8 @@ class PerformanceObservationTest extends TestCase
 
     public function test_counters_reset_between_requests_and_do_not_capture_queries_outside_request(): void
     {
-        $user = User::factory()->create();
+        // Recent activity: the at-most-every-5-minutes activity write would otherwise land only in the first request.
+        $user = User::factory()->create(['last_seen_at' => now()]);
         $records = [];
         $this->observe($records);
         config(['performance.log_all' => true]);

@@ -31,6 +31,8 @@ class FeedbackTest extends TestCase
             ->where('feedback.0.author', 'Ana')
             ->where('feedback.0.screen', 'Trips/Show#gastos')
             ->where('feedback.0.new', true)
+            // The badge is already gone on the page that shows them.
+            ->where('unreadFeedback', 0)
             ->etc());
         // Opening Personas marks them as read.
         $this->get('/trips')->assertInertia(fn (Assert $page) => $page->where('unreadFeedback', 0)->etc());

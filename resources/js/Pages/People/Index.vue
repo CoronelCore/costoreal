@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { Head, router, useForm, usePage } from "@inertiajs/vue3";
 import FinancialLayout from "@/Layouts/FinancialLayout.vue";
 import Modal from "@/Components/UI/Modal.vue";
@@ -42,6 +42,15 @@ const props = defineProps<{
     feedback: Comment[];
     feedback_total: number;
 }>();
+const route = useRoute();
+const page = usePage();
+const link = computed(() => page.flash?.link);
+// A new link appears at the top of the page: bring it into view, selected and ready to copy.
+const revealLink = () =>
+    nextTick(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        document.getElementById("one-time-link")?.focus({ preventScroll: true });
+    });
 const when = (value: string | null) =>
     value
         ? new Date(value).toLocaleString("es-CL", {
@@ -55,16 +64,13 @@ const saveBeta = () =>
         preserveScroll: true,
         onSuccess: () => beta.defaults(),
     });
-const route = useRoute();
-const page = usePage();
-const link = computed(() => page.flash?.link);
 const invite = useForm({ name: "", email: "" });
 const sendInvite = () =>
     invite.post(route("people.invite"), {
         preserveScroll: true,
         onSuccess: () => {
             invite.reset();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            revealLink();
         },
     });
 const revoking = ref<number | null>(null);
@@ -91,6 +97,9 @@ const act = (person: Person, name: string, method: "patch" | "post") => {
         {},
         {
             preserveScroll: true,
+            onSuccess: () => {
+                if (name === "people.password-link") revealLink();
+            },
             onFinish: () => {
                 busy.value = null;
                 toSuspend.value = null;
@@ -236,7 +245,7 @@ const state = (person: Person) =>
                     </div>
                 </form>
                 <div v-if="invitations.length" class="f-table-scroll">
-                    <table class="f-table">
+                    <table class="f-table people-table">
                         <caption class="sr-only">
                             Invitaciones que aún no se usan
                         </caption>
@@ -289,7 +298,7 @@ const state = (person: Person) =>
                     <span class="f-hint">Cada cuenta ve solo sus datos</span>
                 </div>
                 <div class="f-table-scroll">
-                    <table class="f-table">
+                    <table class="f-table people-table">
                         <caption class="sr-only">
                             Cuentas de esta instalación, su actividad y su
                             acceso
@@ -480,6 +489,10 @@ const state = (person: Person) =>
 .people-actions {
     justify-content: flex-end;
     flex-wrap: nowrap;
+}
+.people-table td:not(:first-child),
+.people-table .f-button {
+    white-space: nowrap;
 }
 .feedback-list {
     list-style: none;

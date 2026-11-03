@@ -20,6 +20,8 @@ class FeedbackController extends Controller
         ], ['message.required' => 'Escribe tu comentario.', 'message.max' => 'El comentario puede tener hasta 2.000 caracteres.']);
 
         Feedback::create([...$data, 'user_id' => $request->user()->id, 'author_name' => $request->user()->name]);
+        // Kept as a setting so the owner's menu badge costs no query on every page.
+        Installation::put(Installation::UNREAD_FEEDBACK, (string) Feedback::whereNull('read_at')->count());
         $owner = Installation::ownerName();
 
         return back()->with('success', $owner ? "Gracias. Tu comentario le llegó a {$owner}." : 'Gracias. Tu comentario quedó guardado.');

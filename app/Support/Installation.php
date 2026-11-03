@@ -9,19 +9,47 @@ use Illuminate\Database\QueryException;
 /** Installation-wide state: who owns this copy of CostoReal and whether others may register. */
 final class Installation
 {
+    /** Container keys: settings are read once per request instead of once per question. */
+    private const SETTINGS = 'costoreal.installation.settings';
+
+    private const OWNER = 'costoreal.installation.owner';
+
+    /** Comments the owner has not opened yet, kept here so the menu badge needs no extra query. */
+    public const UNREAD_FEEDBACK = 'unread_feedback';
+
     public static function setting(string $key, ?string $default = null): ?string
     {
-        try {
-            return AppSetting::find($key)?->value ?? $default;
-        } catch (QueryException) {
-            // Before the first migration there is no settings table yet.
-            return $default;
-        }
+        return self::settings()[$key] ?? $default;
     }
 
     public static function put(string $key, ?string $value): void
     {
         AppSetting::updateOrCreate(['key' => $key], ['value' => $value]);
+        app()->instance(self::SETTINGS, [...self::settings(), $key => $value]);
+        app()->forgetInstance(self::OWNER);
+    }
+
+    /** Called at the start of every request (GuardInstallation), so a long-lived process never serves stale values. */
+    public static function flush(): void
+    {
+        app()->forgetInstance(self::SETTINGS);
+        app()->forgetInstance(self::OWNER);
+    }
+
+    /** @return array<string, string|null> */
+    private static function settings(): array
+    {
+        if (! app()->bound(self::SETTINGS)) {
+            try {
+                $settings = AppSetting::query()->pluck('value', 'key')->all();
+            } catch (QueryException) {
+                // Before the first migration there is no settings table yet.
+                return [];
+            }
+            app()->instance(self::SETTINGS, $settings);
+        }
+
+        return app(self::SETTINGS);
     }
 
     /** Closed unless the owner opens it: a public install must not let strangers use the hosting. */
@@ -56,9 +84,17 @@ final class Installation
     /** The account created when installing; older installs fall back to the first account. */
     public static function ownerId(): ?int
     {
+        if (app()->bound(self::OWNER)) {
+            return app(self::OWNER);
+        }
         $owner = self::setting('owner_user_id') ?? User::query()->min('id');
+        if ($owner === null) {
+            // Not remembered: the first account may be created later in this same request.
+            return null;
+        }
+        app()->instance(self::OWNER, (int) $owner);
 
-        return $owner === null ? null : (int) $owner;
+        return (int) $owner;
     }
 
     public static function isOwner(?User $user): bool
