@@ -5,6 +5,11 @@ import type { SharedLink } from "@/Types/context";
 const props = defineProps<{ link: SharedLink }>();
 const copied = ref(false);
 const firstName = computed(() => props.link.name.split(" ")[0]);
+const validity = computed(() =>
+    props.link.hours >= 48 && props.link.hours % 24 === 0
+        ? `${props.link.hours / 24} días`
+        : `${props.link.hours} horas`,
+);
 const title = computed(() =>
     props.link.kind === "invitation"
         ? `Invitación para ${props.link.name}`
@@ -12,8 +17,8 @@ const title = computed(() =>
 );
 const message = computed(() =>
     props.link.kind === "invitation"
-        ? `Hola ${firstName.value}, te invito a probar CostoReal, la app con la que calculo el costo real de lo que importo. Crea tu cuenta aquí (el enlace vence en ${props.link.hours} horas): ${props.link.url}`
-        : `Hola ${firstName.value}, con este enlace creas una contraseña nueva para CostoReal (vence en ${props.link.hours} horas): ${props.link.url}`,
+        ? `Hola ${firstName.value}, te invito a probar CostoReal, una app que calcula cuánto te costó de verdad cada producto que traes de afuera. Crea tu cuenta aquí (el enlace vence en ${validity.value}): ${props.link.url}`
+        : `Hola ${firstName.value}, con este enlace creas una contraseña nueva para CostoReal (vence en ${validity.value}): ${props.link.url}`,
 );
 const whatsapp = computed(
     () => `https://wa.me/?text=${encodeURIComponent(message.value)}`,
@@ -35,7 +40,7 @@ async function copy() {
     >
         <div class="f-panel-heading">
             <h2 id="one-time-link-heading">{{ title }}</h2>
-            <span class="f-status">Vence en {{ link.hours }} horas</span>
+            <span class="f-status">Vence en {{ validity }}</span>
         </div>
         <div class="f-panel-body">
             <p>

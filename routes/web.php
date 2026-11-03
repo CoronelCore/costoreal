@@ -54,9 +54,11 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::middleware('can:manage-installation')->prefix('personas')->name('people.')->group(function () {
         Route::get('/', [PeopleController::class, 'index'])->name('index');
         Route::patch('registro', [PeopleController::class, 'registration'])->name('registration');
-        Route::patch('{person}/suspender', [PeopleController::class, 'suspend'])->name('suspend');
-        Route::patch('{person}/reactivar', [PeopleController::class, 'restore'])->name('restore');
-        Route::post('{person}/enlace-contrasena', [PeopleController::class, 'passwordLink'])->name('password-link');
+        Route::post('invitaciones', [PeopleController::class, 'invite'])->name('invite');
+        Route::patch('invitaciones/{invitation}/anular', [PeopleController::class, 'revoke'])->name('revoke');
+        Route::patch('{person}/suspender', [PeopleController::class, 'suspend'])->whereNumber('person')->name('suspend');
+        Route::patch('{person}/reactivar', [PeopleController::class, 'restore'])->whereNumber('person')->name('restore');
+        Route::post('{person}/enlace-contrasena', [PeopleController::class, 'passwordLink'])->whereNumber('person')->name('password-link');
     });
 
     Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');

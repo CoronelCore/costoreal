@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Invitation;
 use App\Models\User;
 use App\Support\Installation;
 use Illuminate\Http\RedirectResponse;
@@ -31,8 +32,39 @@ class PeopleController extends Controller
                     'is_owner' => $person->id === $ownerId,
                     'trips_count' => $person->trips_count,
                 ]),
+            'invitations' => Invitation::query()->whereNull('accepted_at')->whereNull('revoked_at')->latest()->latest('id')->get()
+                ->map(fn (Invitation $invitation) => [
+                    'id' => $invitation->id,
+                    'name' => $invitation->name,
+                    'email' => $invitation->email,
+                    'expires_at' => $invitation->expires_at->toIso8601String(),
+                    'status' => $invitation->status(),
+                ]),
             'registration_open' => Installation::registrationOpen(),
         ]);
+    }
+
+    public function invite(Request $request): RedirectResponse
+    {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+        ], ['email.unique' => 'Ya hay una cuenta con ese correo en esta instalación.']);
+        [$invitation, $token] = Invitation::issue($data['name'], $data['email'], $request->user());
+        Inertia::flash('link', ['kind' => 'invitation', 'name' => $invitation->name,
+            'url' => route('invitations.show', $token), 'hours' => Invitation::DAYS * 24]);
+
+        return to_route('people.index');
+    }
+
+    public function revoke(Invitation $invitation): RedirectResponse
+    {
+        if ($invitation->accepted_at === null) {
+            $invitation->forceFill(['revoked_at' => now()])->save();
+        }
+
+        return to_route('people.index')->with('success', "La invitación de {$invitation->name} quedó anulada: su enlace ya no sirve.");
     }
 
     /** Open registration lets anyone with the address create an account; invitations are the safer way. */

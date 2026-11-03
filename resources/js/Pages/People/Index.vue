@@ -17,10 +17,39 @@ interface Person {
     is_owner: boolean;
     trips_count: number;
 }
-const props = defineProps<{ people: Person[]; registration_open: boolean }>();
+interface PendingInvitation {
+    id: number;
+    name: string;
+    email: string;
+    expires_at: string;
+    status: "pending" | "expired";
+}
+const props = defineProps<{
+    people: Person[];
+    invitations: PendingInvitation[];
+    registration_open: boolean;
+}>();
 const route = useRoute();
 const page = usePage();
 const link = computed(() => page.flash?.link);
+const invite = useForm({ name: "", email: "" });
+const sendInvite = () =>
+    invite.post(route("people.invite"), {
+        preserveScroll: true,
+        onSuccess: () => {
+            invite.reset();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+    });
+const revoking = ref<number | null>(null);
+const revoke = (invitation: PendingInvitation) => {
+    revoking.value = invitation.id;
+    router.patch(
+        route("people.revoke", invitation.id),
+        {},
+        { preserveScroll: true, onFinish: () => (revoking.value = null) },
+    );
+};
 const registration = useForm({ registration_open: props.registration_open });
 const saveRegistration = () =>
     registration.patch(route("people.registration"), {
@@ -75,6 +104,122 @@ const state = (person: Person) =>
         </div>
         <div class="people-content">
             <OneTimeLink v-if="link" :link="link" />
+            <section class="f-panel" aria-labelledby="invite-heading">
+                <div class="f-panel-heading">
+                    <h2 id="invite-heading">Invitar a alguien</h2>
+                    <span class="f-hint">El registro sigue cerrado para el resto</span>
+                </div>
+                <form
+                    class="f-panel-body"
+                    @submit.prevent="sendInvite"
+                    :aria-busy="invite.processing"
+                    novalidate
+                >
+                    <p>
+                        Escribe su nombre y su correo. Te damos un enlace de un
+                        solo uso, que vence en 7 días, para que se lo mandes.
+                    </p>
+                    <div class="f-form-grid" style="margin-top: 14px">
+                        <div class="f-field">
+                            <label for="invite-name">Nombre</label
+                            ><input
+                                id="invite-name"
+                                class="f-input"
+                                v-model="invite.name"
+                                autocomplete="off"
+                                maxlength="255"
+                                required
+                                :disabled="invite.processing"
+                                :aria-invalid="!!invite.errors.name"
+                                aria-describedby="invite-name-error"
+                            />
+                            <p
+                                id="invite-name-error"
+                                v-if="invite.errors.name"
+                                class="f-field-error"
+                            >
+                                {{ invite.errors.name }}
+                            </p>
+                        </div>
+                        <div class="f-field">
+                            <label for="invite-email">Correo electrónico</label
+                            ><input
+                                id="invite-email"
+                                class="f-input"
+                                v-model="invite.email"
+                                type="email"
+                                autocomplete="off"
+                                maxlength="255"
+                                required
+                                :disabled="invite.processing"
+                                :aria-invalid="!!invite.errors.email"
+                                aria-describedby="invite-email-error"
+                            />
+                            <p
+                                id="invite-email-error"
+                                v-if="invite.errors.email"
+                                class="f-field-error"
+                            >
+                                {{ invite.errors.email }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="f-actions" style="margin-top: 16px">
+                        <button
+                            class="f-button f-button-primary"
+                            type="submit"
+                            :disabled="invite.processing || !invite.name || !invite.email"
+                        >
+                            {{ invite.processing ? "Creando enlace…" : "Crear invitación" }}
+                        </button>
+                    </div>
+                </form>
+                <div v-if="invitations.length" class="f-table-scroll">
+                    <table class="f-table">
+                        <caption class="sr-only">
+                            Invitaciones que aún no se usan
+                        </caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Invitación sin usar</th>
+                                <th scope="col">Vence</th>
+                                <th scope="col">Estado</th>
+                                <th scope="col">
+                                    <span class="sr-only">Acciones</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="invitation in invitations" :key="invitation.id">
+                                <td>
+                                    <span class="f-table-title">{{ invitation.name }}</span
+                                    ><span class="f-table-subtitle">{{ invitation.email }}</span>
+                                </td>
+                                <td>{{ day(invitation.expires_at) }}</td>
+                                <td>
+                                    <span
+                                        class="f-status"
+                                        :class="{ 'f-status-closed': invitation.status === 'expired' }"
+                                        >{{ invitation.status === "expired" ? "Vencida" : "Esperando" }}</span
+                                    >
+                                </td>
+                                <td>
+                                    <div class="f-actions people-actions">
+                                        <button
+                                            class="f-button"
+                                            type="button"
+                                            :disabled="revoking === invitation.id"
+                                            @click="revoke(invitation)"
+                                        >
+                                            {{ invitation.status === "expired" ? "Quitar" : "Anular" }}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
             <section class="f-panel" aria-labelledby="people-heading">
                 <div class="f-panel-heading">
                     <h2 id="people-heading">

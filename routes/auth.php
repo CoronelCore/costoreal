@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -16,6 +17,13 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store']);
+
+    // An owner's invitation opens one account even while registration is closed.
+    Route::get('invitacion/{token}', [InvitationController::class, 'show'])
+        ->middleware('throttle:20,1')->name('invitations.show');
+
+    Route::post('invitacion/{token}', [InvitationController::class, 'store'])
+        ->middleware('throttle:10,1')->name('invitations.store');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
