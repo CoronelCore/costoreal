@@ -63,7 +63,7 @@ const submit = () => form.post(route('installer.store'), { onFinish: () => { for
 
                 <div v-if="installError" class="f-notice f-notice-error" role="alert">{{ installError }}</div>
                 <div class="f-actions"><button type="submit" class="f-button f-button-primary" :disabled="form.processing">{{ form.processing ? 'Instalando…' : 'Instalar CostoReal' }}</button></div>
-                <p class="f-hint" style="margin-top:12px">Después de instalar, nadie más puede crear cuentas. Si quieres invitar a alguien, lo activas en tu perfil.</p>
+                <p class="f-hint" style="margin-top:12px">Después de instalar, nadie más puede crear cuentas. Si quieres que alguien la use, lo invitas desde Personas.</p>
             </form>
         </main>
     </div>

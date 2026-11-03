@@ -71,8 +71,20 @@ Crea el subdominio en hPanel (Dominios → Subdominios). Hostinger le asigna una
 
 ### Después de instalar
 
-- **Nadie más puede crear cuentas.** Si quieres invitar a alguien, actívalo en **Perfil → Acceso de otras personas**. Cada cuenta ve solo sus datos.
-- **Respalda de vez en cuando:** **Perfil → Respaldo → Descargar respaldo** baja un ZIP con la base de datos, los documentos y los pasos para restaurarlo. Guárdalo fuera del hosting.
+- **Nadie más puede crear cuentas.** Para que alguien la use, invítalo (ver abajo). Cada cuenta ve solo sus datos.
+- **Respalda de vez en cuando:** **Perfil → Respaldo → Descargar respaldo** baja un ZIP con la base de datos, los documentos y los pasos para restaurarlo. Guárdalo fuera del hosting. Trae los datos de todas las cuentas.
+
+### Invitar a otras personas
+
+En el menú, **Personas** (solo la ve la cuenta dueña):
+
+- **Invitar a alguien:** escribe su nombre y su correo, y CostoReal te da un enlace de un solo uso que vence en 7 días. Mándaselo por WhatsApp; el registro sigue cerrado para el resto.
+- Antes de crear su cuenta, la persona lee dónde quedan sus datos: los ve solo ella dentro de la app, pero quedan en tu hosting y tus respaldos los incluyen. Si se trata de una prueba, ve además una franja **Versión de prueba**. Esa franja se apaga en Personas.
+- Cada cuenta nueva puede cargar los ejemplos ficticios en su propio espacio, con **Ver con un ejemplo**.
+- Las personas invitadas tienen un botón **Comentar** en cada pantalla. Sus comentarios te llegan a Personas con el tipo de pantalla en que estaban, sin sus datos.
+- Ves cada cuenta con su última actividad y cuántas importaciones tiene, nunca sus importaciones. Puedes **suspender** a alguien (no entra más, sus datos se conservan) y **reactivarlo**.
+- Si alguien olvidó su contraseña, **Enlace de contraseña** te da un enlace que vence en 24 horas para mandárselo. No necesita correo configurado.
+- **Registro abierto** deja que cualquiera con la dirección cree una cuenta. Úsalo solo un rato y ciérralo: las invitaciones son más seguras.
 
 ### Actualizar a una versión nueva
 
@@ -90,7 +102,7 @@ Crea el subdominio en hPanel (Dominios → Subdominios). Hostinger le asigna una
 | El código no coincide | Cópialo de nuevo desde `costoreal/CODIGO-INSTALACION.txt`. Puedes escribirlo con o sin guion, en mayúsculas o minúsculas. |
 | La página se ve sin diseño | Falta la carpeta `public_html/build`. Vuelve a extraer el ZIP. |
 | Error 500 | Revisa `costoreal/storage/logs/laravel.log` en el Administrador de archivos. No lo compartas: puede traer datos privados. |
-| Olvidé mi contraseña | La recuperación por correo necesita un correo configurado (ver «Correo» más abajo). |
+| Olvidé mi contraseña | Pídele a la cuenta dueña un enlace desde **Personas → Enlace de contraseña**. La recuperación por correo necesita un correo configurado (ver «Correo» más abajo). |
 
 ## Probar con datos ficticios
 
@@ -111,7 +123,7 @@ Las referencias son **180 CLP/BRL** y **900 CLP/USD**, cifras inventadas. No son
 
 ## Correo
 
-Sin configurar, CostoReal no envía correos y la recuperación de contraseña no llega. Para activarla, edita `costoreal/.env` con el Administrador de archivos y completa los datos SMTP de tu correo. En Hostinger: servidor `smtp.hostinger.com`, puerto `465`, cifrado `ssl` y la cuenta de correo que creaste en hPanel.
+Sin configurar, CostoReal no envía correos: «¿Olvidaste tu contraseña?» le pide a la persona que te solicite un enlace, y tú lo creas en **Personas**. Si prefieres que la recuperación llegue por correo, edita `costoreal/.env` con el Administrador de archivos y completa los datos SMTP de tu correo. En Hostinger: servidor `smtp.hostinger.com`, puerto `465`, cifrado `ssl` y la cuenta de correo que creaste en hPanel.
 
 ```dotenv
 MAIL_MAILER=smtp
