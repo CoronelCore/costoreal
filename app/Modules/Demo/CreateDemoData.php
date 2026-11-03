@@ -3,9 +3,7 @@
 namespace App\Modules\Demo;
 
 use App\Models\Company;
-use App\Models\Expense;
 use App\Models\ExpenseCategory;
-use App\Models\Product;
 use App\Models\Trip;
 use App\Models\User;
 use App\Modules\Access\AccessContext;
@@ -21,14 +19,22 @@ final class CreateDemoData
 
     public function __construct(private CreateImportation $create, private MutateTrip $mutate) {}
 
+    public const UNAVAILABLE = 'Los ejemplos solo se cargan en una cuenta sin empresas ni importaciones, también en la papelera. No se modificó ningún dato.';
+
+    /** Each account can load the examples once, into its own empty space; other accounts are never touched. */
+    public function availableFor(User $user): bool
+    {
+        return ! Company::where('user_id', $user->id)->exists() && ! Trip::withTrashed()->where('user_id', $user->id)->exists();
+    }
+
     /** @return array{importation: Trip, trip: Trip} */
     public function execute(User $user): array
     {
         return DB::transaction(function () use ($user) {
-            // A repeat run must never replace, merge with, or delete business data.
-            if (User::count() !== 1 || Company::exists() || Trip::withTrashed()->exists()
-                || Product::exists() || Expense::exists()) {
-                throw ValidationException::withMessages(['demo' => 'La demostración requiere una instalación sin empresas ni importaciones y con una sola cuenta. No se modificó ningún dato. Usa una instalación separada.']);
+            // Locked so a double click cannot load the examples twice. A repeat run never replaces, merges with or deletes data.
+            User::whereKey($user->id)->lockForUpdate()->first();
+            if (! $this->availableFor($user)) {
+                throw ValidationException::withMessages(['demo' => self::UNAVAILABLE]);
             }
 
             $company = Company::create(['user_id' => $user->id, 'nombre' => 'Empresa Ficticia · Demo',

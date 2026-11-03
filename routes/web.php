@@ -6,6 +6,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CostBreakdownController;
 use App\Http\Controllers\CostReconciliationController;
 use App\Http\Controllers\CostRunHistoryController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
@@ -66,6 +67,9 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');
     Route::post('import-drafts/{draft}/launch', [ImportDraftController::class, 'launch'])->whereUuid('draft')->name('import-drafts.launch');
     Route::post('import-drafts/{draft}/finish', [ImportDraftController::class, 'finish'])->whereUuid('draft')->name('import-drafts.finish');
+
+    // Fictional examples, loaded once into an empty account.
+    Route::post('ejemplos', [DemoController::class, 'store'])->middleware('throttle:6,1')->name('demo.store');
 
     // Trip routes
     Route::get('trips/trash', [TripRecoveryController::class, 'index'])->name('trips.trash');

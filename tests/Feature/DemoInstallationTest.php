@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Trip;
 use App\Models\User;
 use App\Modules\Access\AccessContext;
+use App\Modules\Demo\CreateDemoData;
 use App\Modules\Importations\Actions\CloseImportation;
 use App\Modules\Importations\Review\ReviewImportation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -75,5 +76,37 @@ class DemoInstallationTest extends TestCase
         $this->assertDatabaseCount('trips', 0);
         $this->assertSame(0, Product::count());
         $this->assertSame(0, Expense::count());
+    }
+
+    public function test_each_empty_account_can_load_its_own_examples_without_touching_others(): void
+    {
+        $this->seed();
+        $owner = User::factory()->create();
+        $this->actingAs($owner)->post('/ejemplos')->assertRedirect();
+        $ownerTrips = Trip::where('user_id', $owner->id)->pluck('id')->sort()->values()->all();
+        $this->assertCount(2, $ownerTrips);
+
+        $friend = User::factory()->create();
+        $this->actingAs($friend)->get('/trips')->assertInertia(fn (Assert $page) => $page->where('demoAvailable', true)->where('trips.total', 0)->etc());
+        $response = $this->post('/ejemplos');
+        $brazil = Trip::where('user_id', $friend->id)->where('moneda_trabajo', 'BRL')->sole();
+        $response->assertRedirect(route('trips.show', $brazil));
+        $this->assertEquals('2063000', $brazil->costo_total);
+        $this->assertSame(1, Company::where('user_id', $friend->id)->count());
+        $this->assertSame($ownerTrips, Trip::where('user_id', $owner->id)->pluck('id')->sort()->values()->all());
+        $this->get('/trips')->assertInertia(fn (Assert $page) => $page->where('demoAvailable', false)->where('trips.total', 2)->etc());
+
+        // A second load, or one into an account that sent its trips to the trash, changes nothing.
+        $this->post('/ejemplos')->assertSessionHasErrors(['demo' => CreateDemoData::UNAVAILABLE]);
+        $brazil->delete();
+        $this->post('/ejemplos')->assertSessionHasErrors('demo');
+        $this->assertSame(2, Trip::withTrashed()->where('user_id', $friend->id)->count());
+        $this->assertDatabaseCount('trips', 4);
+    }
+
+    public function test_examples_need_a_signed_in_account(): void
+    {
+        $this->post('/ejemplos')->assertRedirect(route('login'));
+        $this->assertDatabaseCount('trips', 0);
     }
 }
