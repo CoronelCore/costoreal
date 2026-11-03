@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Helpers\CompanyHelper;
+use App\Models\Feedback;
 use App\Support\Installation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,8 @@ class HandleInertiaRequests extends Middleware
                 'activeName' => CompanyHelper::getActiveCompanyName(),
                 'userCompanies' => CompanyHelper::getUserCompanies(),
             ],
+            // Comments waiting for the owner, shown as a badge on Personas.
+            'unreadFeedback' => fn () => Installation::isOwner($request->user()) ? Feedback::whereNull('read_at')->count() : 0,
             // Invited accounts are reminded whose hosting holds their data while the owner runs a test.
             'beta' => fn () => $request->user() && ! Installation::isOwner($request->user()) && Installation::betaNotice()
                 ? ['owner' => Installation::ownerName()] : null,

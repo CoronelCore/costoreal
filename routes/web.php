@@ -11,6 +11,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\ImportReviewController;
 use App\Http\Controllers\InstallerController;
@@ -50,6 +51,9 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/profile/respaldo', [ProfileController::class, 'backup'])->name('profile.backup');
+
+    // Comments for the owner, sent from any screen.
+    Route::post('comentarios', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback.store');
 
     // People who use this installation; only its owner manages them.
     Route::middleware('can:manage-installation')->prefix('personas')->name('people.')->group(function () {

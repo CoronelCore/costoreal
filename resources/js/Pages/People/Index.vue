@@ -6,6 +6,7 @@ import Modal from "@/Components/UI/Modal.vue";
 import OneTimeLink from "@/Components/People/OneTimeLink.vue";
 import { useRoute } from "@/Composables/useRoute";
 import { count } from "@/Utils/format";
+import { deviceLabel, screenLabel } from "@/Utils/screens";
 
 interface Person {
     id: number;
@@ -16,6 +17,15 @@ interface Person {
     suspended: boolean;
     is_owner: boolean;
     trips_count: number;
+}
+interface Comment {
+    id: number;
+    author: string;
+    message: string;
+    screen: string | null;
+    viewport_width: number | null;
+    created_at: string | null;
+    new: boolean;
 }
 interface PendingInvitation {
     id: number;
@@ -29,7 +39,16 @@ const props = defineProps<{
     invitations: PendingInvitation[];
     registration_open: boolean;
     beta_notice: boolean;
+    feedback: Comment[];
+    feedback_total: number;
 }>();
+const when = (value: string | null) =>
+    value
+        ? new Date(value).toLocaleString("es-CL", {
+              dateStyle: "medium",
+              timeStyle: "short",
+          })
+        : "";
 const beta = useForm({ beta_notice: props.beta_notice });
 const saveBeta = () =>
     beta.patch(route("people.beta-notice"), {
@@ -111,6 +130,41 @@ const state = (person: Person) =>
         </div>
         <div class="people-content">
             <OneTimeLink v-if="link" :link="link" />
+            <section class="f-panel" aria-labelledby="feedback-heading">
+                <div class="f-panel-heading">
+                    <h2 id="feedback-heading">
+                        Comentarios
+                        <span class="f-muted">· {{ feedback_total }}</span>
+                    </h2>
+                    <span class="f-hint"
+                        >Llegan desde el botón «Comentar» de cada pantalla</span
+                    >
+                </div>
+                <ol v-if="feedback.length" class="feedback-list">
+                    <li v-for="comment in feedback" :key="comment.id">
+                        <div class="feedback-meta">
+                            <strong>{{ comment.author }}</strong>
+                            <span>{{ when(comment.created_at) }}</span>
+                            <span>{{ screenLabel(comment.screen) }}</span>
+                            <span v-if="deviceLabel(comment.viewport_width)">{{
+                                deviceLabel(comment.viewport_width)
+                            }}</span>
+                            <span v-if="comment.new" class="f-status">Nuevo</span>
+                        </div>
+                        <p class="feedback-message">{{ comment.message }}</p>
+                    </li>
+                </ol>
+                <p v-else class="f-panel-body f-hint">
+                    Aún no hay comentarios. Cuando invites a alguien, verá un
+                    botón «Comentar» arriba de cada pantalla.
+                </p>
+                <p
+                    v-if="feedback_total > feedback.length"
+                    class="f-panel-body f-hint"
+                >
+                    Se muestran los {{ feedback.length }} más recientes.
+                </p>
+            </section>
             <section class="f-panel" aria-labelledby="invite-heading">
                 <div class="f-panel-heading">
                     <h2 id="invite-heading">Invitar a alguien</h2>
@@ -426,5 +480,31 @@ const state = (person: Person) =>
 .people-actions {
     justify-content: flex-end;
     flex-wrap: nowrap;
+}
+.feedback-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.feedback-list li {
+    padding: 14px var(--f-pad, 20px);
+    border-top: 1px solid var(--f-line);
+}
+.feedback-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    font-size: 12px;
+    color: var(--f-muted);
+}
+.feedback-meta strong {
+    color: var(--f-ink);
+    font-size: 13px;
+}
+.feedback-message {
+    margin-top: 6px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 }
 </style>

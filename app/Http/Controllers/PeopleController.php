@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Feedback;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Support\Installation;
@@ -16,11 +17,26 @@ use Inertia\Response;
 /** The owner's view of who uses this installation: never their data, only their access. */
 class PeopleController extends Controller
 {
+    private const FEEDBACK_SHOWN = 100;
+
     public function index(Request $request): Response
     {
         $ownerId = Installation::ownerId();
+        $feedback = Feedback::query()->latest()->latest('id')->limit(self::FEEDBACK_SHOWN)->get();
+        // Opening the panel is reading them: the menu badge counts only what arrived after.
+        Feedback::query()->whereNull('read_at')->update(['read_at' => now()]);
 
         return Inertia::render('People/Index', [
+            'feedback' => $feedback->map(fn (Feedback $comment) => [
+                'id' => $comment->id,
+                'author' => $comment->author_name,
+                'message' => $comment->message,
+                'screen' => $comment->screen,
+                'viewport_width' => $comment->viewport_width,
+                'created_at' => $comment->created_at?->toIso8601String(),
+                'new' => $comment->read_at === null,
+            ]),
+            'feedback_total' => Feedback::count(),
             'people' => User::query()->withCount('trips')->orderBy('created_at')->orderBy('id')->get()
                 ->map(fn (User $person) => [
                     'id' => $person->id,

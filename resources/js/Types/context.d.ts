@@ -9,6 +9,7 @@ export interface SharedPageProps {
     auth: { user: (Actor & { email: string; is_owner: boolean }) | null; activeCompany: CompanySummary | null };
     company: { active: CompanySummary | null; activeId: number | null; activeName: string; userCompanies: CompanySummary[] };
     beta: { owner: string | null } | null;
+    unreadFeedback: number;
     ziggy: Config & { location: string };
 }
 
