@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Helpers\CompanyHelper;
+use App\Support\Installation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -69,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
+                    'is_owner' => Installation::isOwner($request->user()),
                 ] : null,
                 'activeCompany' => CompanyHelper::getActiveCompany(),
             ],

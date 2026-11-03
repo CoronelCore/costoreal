@@ -19,7 +19,14 @@ class PasswordResetLinkController extends Controller
     {
         return Inertia::render('Auth/ForgotPassword', [
             'status' => session('status'),
+            'sendsEmail' => self::sendsEmail(),
         ]);
+    }
+
+    /** A fresh installation writes e-mails to its log; the owner hands out reset links from Personas instead. */
+    public static function sendsEmail(): bool
+    {
+        return config('mail.default') !== 'log';
     }
 
     /**
@@ -29,6 +36,9 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! self::sendsEmail()) {
+            return back();
+        }
         $request->validate([
             'email' => ['required', 'email'],
         ]);

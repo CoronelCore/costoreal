@@ -10,6 +10,7 @@ import {
     ChartBarIcon,
     BuildingOffice2Icon,
     TagIcon,
+    UsersIcon,
     SunIcon,
     MoonIcon,
     ArrowRightOnRectangleIcon,
@@ -93,6 +94,18 @@ const nav = [
         icon: TagIcon,
     },
 ];
+// Only the account that installed CostoReal manages who else uses it.
+const ownerNav = [
+    {
+        label: "Personas",
+        route: "people.index",
+        pattern: "people.*",
+        icon: UsersIcon,
+    },
+];
+const navItems = computed(() =>
+    page.props.auth?.user?.is_owner ? [...nav, ...ownerNav] : nav,
+);
 const company = computed(() => page.props.company);
 const switchCompany = (event: Event) =>
     router.post(
@@ -145,7 +158,7 @@ const flash = computed(() => page.flash || {});
             <p class="f-nav-label">ESPACIO DE TRABAJO</p>
             <nav aria-label="Navegación principal">
                 <Link
-                    v-for="item in nav"
+                    v-for="item in navItems"
                     :key="item.route"
                     :href="route(item.route)"
                     :aria-current="

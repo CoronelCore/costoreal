@@ -3,6 +3,7 @@
 use App\Http\Middleware\GuardInstallation;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ObservePerformance;
+use App\Http\Middleware\TrackAccountAccess;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(prepend: [ObservePerformance::class]);
         $middleware->web(append: [
+            TrackAccountAccess::class,
             HandleInertiaRequests::class,
         ]);
         // Global, before any sign-in check: a fresh or not yet updated copy must reach the installer.

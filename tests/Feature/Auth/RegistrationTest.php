@@ -42,13 +42,15 @@ class RegistrationTest extends TestCase
         $owner = User::factory()->create();
         $guest = User::factory()->create();
         $this->actingAs($guest)->get('/profile')->assertInertia(fn (Assert $page) => $page->where('installation', null)->etc());
-        $this->patch('/profile/registration', ['registration_open' => true])->assertForbidden();
+        $this->patch('/personas/registro', ['registration_open' => true])->assertForbidden();
         $this->assertFalse(Installation::registrationOpen());
 
-        $this->actingAs($owner)->get('/profile')->assertInertia(fn (Assert $page) => $page->where('installation.registration_open', false)->etc());
-        $this->patch('/profile/registration', ['registration_open' => true])->assertRedirect(route('profile.edit'))->assertSessionHas('status', 'registration-opened');
+        $this->actingAs($owner)->get('/profile')->assertInertia(fn (Assert $page) => $page->where('installation.people', 2)->etc());
+        $this->get('/personas')->assertInertia(fn (Assert $page) => $page->where('registration_open', false)->etc());
+        $this->patch('/personas/registro', ['registration_open' => true])->assertRedirect(route('people.index'))
+            ->assertSessionHas('success', 'Registro abierto: cualquiera con la dirección puede crear una cuenta.');
         $this->assertTrue(Installation::registrationOpen());
-        $this->patch('/profile/registration', ['registration_open' => false])->assertSessionHas('status', 'registration-closed');
+        $this->patch('/personas/registro', ['registration_open' => false])->assertSessionHas('success', 'Registro cerrado: solo entran las personas invitadas.');
         $this->assertFalse(Installation::registrationOpen());
     }
 }

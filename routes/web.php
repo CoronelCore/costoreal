@@ -13,6 +13,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\ImportReviewController;
 use App\Http\Controllers\InstallerController;
+use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -47,8 +48,16 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::patch('/profile/registration', [ProfileController::class, 'updateRegistration'])->name('profile.registration');
     Route::get('/profile/respaldo', [ProfileController::class, 'backup'])->name('profile.backup');
+
+    // People who use this installation; only its owner manages them.
+    Route::middleware('can:manage-installation')->prefix('personas')->name('people.')->group(function () {
+        Route::get('/', [PeopleController::class, 'index'])->name('index');
+        Route::patch('registro', [PeopleController::class, 'registration'])->name('registration');
+        Route::patch('{person}/suspender', [PeopleController::class, 'suspend'])->name('suspend');
+        Route::patch('{person}/reactivar', [PeopleController::class, 'restore'])->name('restore');
+        Route::post('{person}/enlace-contrasena', [PeopleController::class, 'passwordLink'])->name('password-link');
+    });
 
     Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');
     Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');
