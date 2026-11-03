@@ -7,6 +7,7 @@ use App\Http\Requests\ImportDetailRequest;
 use App\Http\Requests\TripRequest;
 use App\Models\Trip;
 use App\Modules\Access\AccessContext;
+use App\Modules\Demo\CreateDemoData;
 use App\Modules\Importations\Actions\CloseImportation;
 use App\Modules\Importations\Actions\CreateImportation;
 use App\Modules\Importations\Actions\MutateTrip;
@@ -24,7 +25,11 @@ class TripController extends Controller
 
     public function index(ImportControlRequest $request, ControlImports $query)
     {
-        return Inertia::render('Trips/Index', $query->read(AccessContext::forRequest($request), $request->validated()));
+        $data = $query->read(AccessContext::forRequest($request), $request->validated());
+
+        // Only an empty list can offer the examples, so accounts with imports pay no extra query.
+        return Inertia::render('Trips/Index', [...$data,
+            'demoAvailable' => $data['trips']->total() === 0 && app(CreateDemoData::class)->availableFor($request->user())]);
     }
 
     public function create(Request $request)

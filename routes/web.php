@@ -6,13 +6,16 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CostBreakdownController;
 use App\Http\Controllers\CostReconciliationController;
 use App\Http\Controllers\CostRunHistoryController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\ImportDraftController;
 use App\Http\Controllers\ImportReviewController;
 use App\Http\Controllers\InstallerController;
+use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImportController;
@@ -47,13 +50,30 @@ Route::middleware('auth')->scopeBindings()->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::patch('/profile/registration', [ProfileController::class, 'updateRegistration'])->name('profile.registration');
     Route::get('/profile/respaldo', [ProfileController::class, 'backup'])->name('profile.backup');
+
+    // Comments for the owner, sent from any screen.
+    Route::post('comentarios', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback.store');
+
+    // People who use this installation; only its owner manages them.
+    Route::middleware('can:manage-installation')->prefix('personas')->name('people.')->group(function () {
+        Route::get('/', [PeopleController::class, 'index'])->name('index');
+        Route::patch('registro', [PeopleController::class, 'registration'])->name('registration');
+        Route::patch('aviso-prueba', [PeopleController::class, 'betaNotice'])->name('beta-notice');
+        Route::post('invitaciones', [PeopleController::class, 'invite'])->name('invite');
+        Route::patch('invitaciones/{invitation}/anular', [PeopleController::class, 'revoke'])->name('revoke');
+        Route::patch('{person}/suspender', [PeopleController::class, 'suspend'])->whereNumber('person')->name('suspend');
+        Route::patch('{person}/reactivar', [PeopleController::class, 'restore'])->whereNumber('person')->name('restore');
+        Route::post('{person}/enlace-contrasena', [PeopleController::class, 'passwordLink'])->whereNumber('person')->name('password-link');
+    });
 
     Route::post('import-drafts', [ImportDraftController::class, 'store'])->name('import-drafts.store');
     Route::put('import-drafts/{draft}', [ImportDraftController::class, 'update'])->whereUuid('draft')->name('import-drafts.update');
     Route::post('import-drafts/{draft}/launch', [ImportDraftController::class, 'launch'])->whereUuid('draft')->name('import-drafts.launch');
     Route::post('import-drafts/{draft}/finish', [ImportDraftController::class, 'finish'])->whereUuid('draft')->name('import-drafts.finish');
+
+    // Fictional examples, loaded once into an empty account.
+    Route::post('ejemplos', [DemoController::class, 'store'])->middleware('throttle:6,1')->name('demo.store');
 
     // Trip routes
     Route::get('trips/trash', [TripRecoveryController::class, 'index'])->name('trips.trash');

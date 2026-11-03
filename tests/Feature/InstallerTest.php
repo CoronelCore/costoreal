@@ -97,4 +97,25 @@ class InstallerTest extends TestCase
         $this->get('/trips')->assertOk();
         $this->get('/instalar/actualizar')->assertRedirect(route('login'));
     }
+
+    public function test_an_upload_over_v1_0_0_reaches_the_update_page_before_the_new_columns_exist(): void
+    {
+        $owner = User::factory()->create();
+        Installation::markInstalled($owner);
+        // Back to v1.0.0: the beta stage adds the activity columns, invitations and comments.
+        $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
+        $this->assertFalse(Schema::hasColumn('users', 'last_seen_at'));
+        Installation::put('schema', '2026_10_20_000000_create_app_settings');
+
+        $this->post('/login', ['email' => $owner->email, 'password' => 'password'])->assertRedirect();
+        $this->get('/instalar/actualizar')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Install/Update')->where('pending', 3)->where('auth.user.is_owner', true)->where('unreadFeedback', 0));
+        $this->post('/instalar/actualizar')->assertRedirect(route('trips.index'));
+
+        $this->assertTrue(Schema::hasColumn('users', 'last_seen_at'));
+        $this->assertTrue(Schema::hasTable('invitations') && Schema::hasTable('feedback'));
+        $this->get('/trips')->assertOk();
+        $this->assertNotNull($owner->fresh()->last_seen_at);
+        $this->get('/personas')->assertOk();
+    }
 }

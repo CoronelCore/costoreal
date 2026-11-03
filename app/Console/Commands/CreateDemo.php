@@ -9,9 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 class CreateDemo extends Command
 {
-    protected $signature = 'costoreal:demo {email : Correo de la única cuenta de una instalación vacía}';
+    protected $signature = 'costoreal:demo {email : Correo de una cuenta sin empresas ni importaciones}';
 
-    protected $description = 'Cargar una importación y un viaje de compras ficticios en una instalación vacía, sin crear contraseñas';
+    protected $description = 'Cargar una importación y un viaje de compras ficticios en una cuenta vacía, sin crear contraseñas';
 
     public function handle(CreateDemoData $demo): int
     {

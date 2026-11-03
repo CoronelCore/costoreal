@@ -5,11 +5,14 @@ import { useRoute } from "@/Composables/useRoute";
 import { inputValue } from "@/Utils/input";
 import { useDarkMode } from "@/Composables/useDarkMode";
 import BrandMark from "@/Components/BrandMark.vue";
+import FeedbackDialog from "@/Components/People/FeedbackDialog.vue";
 import {
+    ChatBubbleLeftEllipsisIcon,
     Squares2X2Icon,
     ChartBarIcon,
     BuildingOffice2Icon,
     TagIcon,
+    UsersIcon,
     SunIcon,
     MoonIcon,
     ArrowRightOnRectangleIcon,
@@ -22,6 +25,11 @@ const props = withDefaults(defineProps<{ errorHeading?: string }>(), {
 const route = useRoute();
 const page = usePage();
 const { isDark, toggleTheme } = useDarkMode();
+// Invited accounts can send a comment from any screen; the owner reads them in Personas.
+const canComment = computed(
+    () => !!page.props.auth?.user && !page.props.auth.user.is_owner,
+);
+const commenting = ref(false);
 const menuOpen = ref(false);
 const navRef = ref<HTMLElement | null>(null);
 const menuButton = ref<HTMLButtonElement | null>(null);
@@ -93,6 +101,18 @@ const nav = [
         icon: TagIcon,
     },
 ];
+// Only the account that installed CostoReal manages who else uses it.
+const ownerNav = [
+    {
+        label: "Personas",
+        route: "people.index",
+        pattern: "people.*",
+        icon: UsersIcon,
+    },
+];
+const navItems = computed(() =>
+    page.props.auth?.user?.is_owner ? [...nav, ...ownerNav] : nav,
+);
 const company = computed(() => page.props.company);
 const switchCompany = (event: Event) =>
     router.post(
@@ -145,14 +165,20 @@ const flash = computed(() => page.flash || {});
             <p class="f-nav-label">ESPACIO DE TRABAJO</p>
             <nav aria-label="Navegación principal">
                 <Link
-                    v-for="item in nav"
+                    v-for="item in navItems"
                     :key="item.route"
                     :href="route(item.route)"
                     :aria-current="
                         route().current(item.pattern) ? 'page' : undefined
                     "
                     :class="{ active: route().current(item.pattern) }"
-                    ><component :is="item.icon" />{{ item.label }}</Link
+                    ><component :is="item.icon" />{{ item.label
+                    }}<span
+                        v-if="item.route === 'people.index' && page.props.unreadFeedback"
+                        class="nav-badge"
+                        :aria-label="`${page.props.unreadFeedback} comentarios sin leer`"
+                        >{{ page.props.unreadFeedback }}</span
+                    ></Link
                 >
             </nav>
             <div class="f-sidebar-bottom">
@@ -205,6 +231,14 @@ const flash = computed(() => page.flash || {});
                 </div>
                 <div class="f-topbar-actions">
                     <button
+                        v-if="canComment"
+                        class="f-button feedback-button"
+                        type="button"
+                        aria-label="Enviar comentario"
+                        @click="commenting = true"
+                    >
+                        <ChatBubbleLeftEllipsisIcon /><span>Comentar</span></button
+                    ><button
                         class="f-icon-button f-density-toggle"
                         @click="comfortable = !comfortable"
                         :aria-pressed="comfortable"
@@ -235,6 +269,20 @@ const flash = computed(() => page.flash || {});
                     </button>
                 </div>
             </header>
+            <div v-if="page.props.beta" class="beta-band" role="note">
+                <strong>Versión de prueba</strong>
+                <span
+                    >Lo que registras lo ves solo tú.
+                    {{ page.props.beta.owner || "Quien te invitó" }} administra
+                    el hosting.</span
+                ><button
+                    class="beta-band-link"
+                    type="button"
+                    @click="commenting = true"
+                >
+                    Enviar comentario
+                </button>
+            </div>
             <main id="main-content" class="f-main" tabindex="-1">
                 <div
                     v-if="flash.success"
@@ -266,5 +314,55 @@ const flash = computed(() => page.flash || {});
                 <slot name="header" /><slot />
             </main>
         </div>
+        <FeedbackDialog
+            v-if="canComment"
+            :show="commenting"
+            :owner="page.props.beta?.owner ?? null"
+            @close="commenting = false"
+        />
     </div>
 </template>
+<style scoped>
+.beta-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 8px var(--f-pad, 24px);
+    border-bottom: 1px solid var(--f-line);
+    background: var(--f-brand-soft);
+    color: var(--f-ink);
+    font-size: 13px;
+}
+.beta-band strong {
+    font-weight: 600;
+    color: var(--f-brand);
+}
+.beta-band-link {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--f-brand);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.feedback-button svg {
+    width: 16px;
+    height: 16px;
+}
+.nav-badge {
+    margin-left: auto;
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--f-brand);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
+@media (max-width: 760px) {
+    .feedback-button span {
+        display: none;
+    }
+}
+</style>

@@ -14,8 +14,12 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class GuardInstallation
 {
+    /** Set while a new version waits for its migrations: nothing may touch tables that do not exist yet. */
+    public const PENDING = 'costoreal.update-pending';
+
     public function handle(Request $request, Closure $next): Response
     {
+        Installation::flush();
         if (! config('costoreal.installer') || $request->is('up')) {
             return $next($request);
         }
@@ -28,6 +32,7 @@ class GuardInstallation
             return redirect('/login');
         }
         $pending = Installation::pendingMigrations() !== [];
+        $request->attributes->set(self::PENDING, $pending);
         if ($updatePage) {
             return $pending ? $next($request) : redirect('/login');
         }

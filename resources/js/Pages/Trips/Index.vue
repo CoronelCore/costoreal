@@ -10,7 +10,9 @@ const route = useRoute();
 const page = usePage();
 const fieldErrors = computed(() => page.props.errors);
 const filterForm = ref<HTMLFormElement | null>(null);
-const props = defineProps<{ trips: Pagination<ImportListItem>; metrics: ControlMetrics; filters: ControlFilters }>();
+const props = defineProps<{ trips: Pagination<ImportListItem>; metrics: ControlMetrics; filters: ControlFilters; demoAvailable?: boolean }>();
+const loadingDemo = ref(false);
+const loadDemo = () => router.post(route('demo.store'), {}, { onStart: () => { loadingDemo.value = true; }, onFinish: () => { loadingDemo.value = false; } });
 const filters = reactive({ q: props.filters?.q || '', state: props.filters?.state || '', sort: props.filters?.sort || 'latest', from: props.filters?.from || '', to: props.filters?.to || '' });
 const applyFilters = () => router.get(route('trips.index'), Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')), { preserveState: true, preserveScroll: true, replace: true, onError: () => { void nextTick(() => filterForm.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); } });
 const clearFilters = () => { Object.assign(filters, { q: '', state: '', sort: 'latest', from: '', to: '' }); applyFilters(); };
@@ -42,8 +44,12 @@ const pendingTab = (trip: ImportListItem) => trip.products_count === 0 ? 'produc
                 <div class="f-mobile-cards"><article v-for="trip in trips.data" :key="trip.id" class="f-mobile-card"><div class="f-mobile-card-top"><div><Link :href="route('trips.show', trip.id)" class="f-table-title">{{ trip.nombre }}</Link><span class="f-table-subtitle">{{ trip.company?.nombre || 'Sin empresa' }} · {{ count(trip.products_count, 'producto', 'productos') }}</span></div><span class="f-status" :class="{ 'f-status-closed': trip.estado !== 'activo' }">{{ status(trip) }}</span></div><div class="f-mobile-card-bottom"><div><span class="f-table-subtitle">INVERSIÓN · CLP</span><strong>${{ formatMoney(trip.costo_total) }}</strong></div><Link :href="`${route('trips.show', trip.id)}#${pendingTab(trip)}`" class="f-hint">{{ pending(trip) }} →</Link></div></article></div>
                 <div class="f-pagination"><span>{{ trips.from }}–{{ trips.to }} de {{ trips.total }} importaciones</span><nav class="f-pagination-links" aria-label="Páginas de importaciones"><Link v-if="trips.prev_page_url" :href="trips.prev_page_url" class="f-button" preserve-scroll>Anterior</Link><span class="f-hint" style="padding:8px">{{ trips.current_page }} / {{ trips.last_page }}</span><Link v-if="trips.next_page_url" :href="trips.next_page_url" class="f-button" preserve-scroll>Siguiente</Link></nav></div>
             </template>
-            <div v-else class="f-empty"><h2>{{ filters.q || filters.state || filters.from || filters.to ? 'Sin resultados para este filtro' : 'Tu próxima importación empieza aquí' }}</h2><p>{{ filters.q || filters.state || filters.from || filters.to ? 'Prueba otro nombre, período o estado para encontrar tus importaciones.' : 'Registra la compra, incorpora sus gastos y conoce el costo final de cada producto.' }}</p><button v-if="filters.q || filters.state || filters.from || filters.to" class="f-button" @click="clearFilters">Limpiar filtros</button><Link v-else :href="route('trips.create')" class="f-button f-button-primary"><PlusIcon /> Crear primera importación</Link></div>
+            <div v-else class="f-empty"><h2>{{ filters.q || filters.state || filters.from || filters.to ? 'Sin resultados para este filtro' : 'Tu próxima importación empieza aquí' }}</h2><p>{{ filters.q || filters.state || filters.from || filters.to ? 'Prueba otro nombre, período o estado para encontrar tus importaciones.' : 'Registra la compra, incorpora sus gastos y conoce el costo final de cada producto.' }}</p><button v-if="filters.q || filters.state || filters.from || filters.to" class="f-button" @click="clearFilters">Limpiar filtros</button><div v-else class="f-actions demo-actions"><Link :href="route('trips.create')" class="f-button f-button-primary"><PlusIcon /> Crear primera importación</Link><button v-if="demoAvailable" class="f-button" type="button" :disabled="loadingDemo" @click="loadDemo">{{ loadingDemo ? 'Cargando ejemplos…' : 'Ver con un ejemplo' }}</button></div><p v-if="demoAvailable && !(filters.q || filters.state || filters.from || filters.to)" class="f-hint demo-hint">El ejemplo carga un viaje de compras a Brasil y una importación de accesorios, con datos inventados. Solo los ves tú y puedes mandarlos a la papelera cuando quieras.</p></div>
         </section>
         <p class="f-footer-note">Los indicadores abarcan todas las importaciones del filtro y de la empresa seleccionada. El precio de venta representa una proyección; la utilidad realizada requiere registrar ventas reales.</p>
     </FinancialLayout>
 </template>
+<style scoped>
+.demo-actions { justify-content: center; flex-wrap: wrap; }
+.demo-hint { margin: 14px auto 0 !important; }
+</style>
