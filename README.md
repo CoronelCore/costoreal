@@ -84,7 +84,8 @@ En el menú, **Personas** (solo la ve la cuenta dueña):
 - Las personas invitadas tienen un botón **Comentar** en cada pantalla. Sus comentarios te llegan a Personas con el tipo de pantalla en que estaban, sin sus datos.
 - Ves cada cuenta con su última actividad y cuántas importaciones tiene, nunca sus importaciones. Puedes **suspender** a alguien (no entra más, sus datos se conservan) y **reactivarlo**.
 - Si alguien olvidó su contraseña, **Enlace de contraseña** te da un enlace que vence en 24 horas para mandárselo. No necesita correo configurado.
-- **Registro abierto** deja que cualquiera con la dirección cree una cuenta. Úsalo solo un rato y ciérralo: las invitaciones son más seguras.
+- **Registro abierto** deja que cualquiera con la dirección cree una cuenta: Personas te muestra cuál compartir (termina en `/register`). Quien se registra lee el mismo aviso de datos que en una invitación y ve la misma franja. Úsalo solo un rato y ciérralo: las invitaciones son más seguras.
+- Todas las contraseñas (instalación, invitación, registro, recuperación y perfil) piden al menos 10 caracteres, con letras y números. Las que ya existen siguen sirviendo.
 
 ### Actualizar a una versión nueva
 

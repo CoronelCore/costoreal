@@ -12,7 +12,8 @@ class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private array $newUser = ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'password', 'password_confirmation' => 'password'];
+    private array $newUser = ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'clave-segura-1', 'password_confirmation' => 'clave-segura-1',
+        'understood' => true];
 
     public function test_registration_is_closed_by_default_and_the_sign_in_page_hides_it(): void
     {
@@ -27,14 +28,29 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register_once_the_owner_opens_registration(): void
     {
-        User::factory()->create();
+        User::factory()->create(['name' => 'Manuel']);
         Installation::setRegistrationOpen(true);
-        $this->get('/register')->assertStatus(200);
+        $this->get('/register')->assertInertia(fn (Assert $page) => $page->component('Auth/Register')
+            ->where('owner', 'Manuel')->where('beta', true));
         $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('canRegister', true)->etc());
-        $response = $this->post('/register', $this->newUser);
+        $response = $this->post('/register', [...$this->newUser, 'email' => 'Test@Example.com']);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('trips.index'))->assertSessionHas('success', 'Tu cuenta quedó lista. Lo que registres aquí lo ves solo tú.');
+        $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
+        $this->get('/trips')->assertInertia(fn (Assert $page) => $page->where('beta.owner', 'Manuel')->etc());
+    }
+
+    public function test_open_registration_asks_the_same_as_an_invitation(): void
+    {
+        User::factory()->create();
+        Installation::setRegistrationOpen(true);
+        $this->post('/register', [...$this->newUser, 'understood' => false])
+            ->assertSessionHasErrors(['understood' => 'Marca la casilla para confirmar que leíste cómo se guardan tus datos.']);
+        $this->post('/register', [...$this->newUser, 'password' => 'clave-123', 'password_confirmation' => 'clave-123'])->assertSessionHasErrors('password');
+        $this->post('/register', [...$this->newUser, 'password' => 'solo-letras-largas', 'password_confirmation' => 'solo-letras-largas'])->assertSessionHasErrors('password');
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 1);
     }
 
     public function test_only_the_owner_can_open_or_close_registration(): void

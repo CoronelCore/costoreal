@@ -58,7 +58,7 @@ class InstallerController extends Controller
             'db_password' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255',
-            'password' => ['required', 'confirmed', Password::min(10)->letters()->numbers()],
+            'password' => ['required', 'confirmed', Password::defaults()],
             'demo' => 'boolean',
         ], [
             'database.in' => 'Elige SQLite o MySQL.',

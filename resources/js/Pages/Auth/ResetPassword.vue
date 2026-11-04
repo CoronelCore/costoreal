@@ -40,6 +40,7 @@ const submit = () =>
                 v-model="form.password"
                 type="password"
                 autocomplete="new-password"
+                help="Al menos 10 caracteres, con letras y números."
                 :error="form.errors.password"
                 :disabled="form.processing"
             /><FinancialField
