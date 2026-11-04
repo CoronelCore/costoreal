@@ -39,7 +39,7 @@ class InvitationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Password::min(10)->letters()->numbers()],
+            'password' => ['required', 'confirmed', Password::defaults()],
             // The person confirms they read where their data lives and who administers the hosting.
             'understood' => ['accepted'],
         ], ['email.unique' => 'Ya hay una cuenta con ese correo. Si es tuya, inicia sesión.',

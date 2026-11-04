@@ -2,14 +2,18 @@
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import FinancialField from "@/Components/UI/FinancialField.vue";
+import AccountNotice from "@/Components/People/AccountNotice.vue";
 import { useRoute } from "@/Composables/useRoute";
 import { focusInvalid } from "@/Composables/useFormFocus";
+const props = defineProps<{ owner: string | null; beta: boolean }>();
 const route = useRoute();
+const owner = props.owner || "Quien administra CostoReal";
 const form = useForm({
     name: "",
     email: "",
     password: "",
     password_confirmation: "",
+    understood: false,
 });
 const submit = () =>
     form.post(route("register"), {
@@ -50,6 +54,7 @@ const submit = () =>
                 v-model="form.password"
                 type="password"
                 autocomplete="new-password"
+                help="Al menos 10 caracteres, con letras y números."
                 required
                 :error="form.errors.password"
                 :disabled="form.processing"
@@ -62,6 +67,13 @@ const submit = () =>
                 autocomplete="new-password"
                 required
                 :error="form.errors.password_confirmation"
+                :disabled="form.processing"
+            />
+            <AccountNotice
+                v-model="form.understood"
+                :owner="owner"
+                :beta="beta"
+                :error="form.errors.understood"
                 :disabled="form.processing"
             />
             <button

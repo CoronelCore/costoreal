@@ -434,6 +434,18 @@ const state = (person: Person) =>
                         sitio puede registrarse y usar tu hosting. Déjalo
                         cerrado si CostoReal es solo para ti o para tu negocio.
                     </p>
+                    <p
+                        v-if="registration_open"
+                        class="f-hint registration-address"
+                        style="margin-top: 8px"
+                    >
+                        Para que creen su cuenta, comparte
+                        <a :href="route('register')" class="f-text-link">{{
+                            route("register")
+                        }}</a
+                        >. Antes de crearla verán el mismo aviso de datos que en
+                        una invitación.
+                    </p>
                     <p class="f-field-error" role="alert">
                         {{ registration.errors.registration_open }}
                     </p>
@@ -493,6 +505,9 @@ const state = (person: Person) =>
 .people-table td:not(:first-child),
 .people-table .f-button {
     white-space: nowrap;
+}
+.registration-address a {
+    overflow-wrap: anywhere;
 }
 .feedback-list {
     list-style: none;

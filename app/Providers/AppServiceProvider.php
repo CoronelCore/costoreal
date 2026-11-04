@@ -10,6 +10,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,5 +33,8 @@ class AppServiceProvider extends ServiceProvider
 
         // People, invitations and comments belong to whoever installed this copy, not to every account.
         Gate::define('manage-installation', fn (User $user) => Installation::isOwner($user));
+
+        // One rule for every password set on the web: installer, invitation, registration, reset and profile.
+        Password::defaults(fn () => Password::min(10)->letters()->numbers());
     }
 }

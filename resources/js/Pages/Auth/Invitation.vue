@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import GuestLayout from "@/Layouts/GuestLayout.vue";
 import FinancialField from "@/Components/UI/FinancialField.vue";
+import AccountNotice from "@/Components/People/AccountNotice.vue";
 import { useRoute } from "@/Composables/useRoute";
 import { focusInvalid } from "@/Composables/useFormFocus";
 const props = defineProps<{
@@ -94,49 +95,13 @@ const submit = () =>
                     :error="form.errors.password_confirmation"
                     :disabled="form.processing"
                 />
-                <section class="invitation-notice" aria-labelledby="notice-heading">
-                    <h2 id="notice-heading">Antes de crear tu cuenta</h2>
-                    <ul>
-                        <li v-if="invitation.beta">
-                            Es una versión de prueba: puede tener errores y
-                            cambiar mientras {{ owner }} la mejora con lo que le
-                            cuentes.
-                        </li>
-                        <li>
-                            Lo que registres lo ves solo tú dentro de la app.
-                        </li>
-                        <li>
-                            Los datos quedan en el hosting de {{ owner }}. Como lo
-                            administra, puede llegar a la base de datos, y sus
-                            respaldos incluyen los datos de todas las cuentas.
-                        </li>
-                        <li>
-                            Si son datos delicados, prueba con montos de ejemplo.
-                        </li>
-                        <li>
-                            Si ya no quieres usarla, avísale a {{ owner }}: puede
-                            quitarte el acceso.
-                        </li>
-                    </ul>
-                    <label class="f-check"
-                        ><input
-                            id="understood"
-                            type="checkbox"
-                            v-model="form.understood"
-                            :disabled="form.processing"
-                            :aria-invalid="!!form.errors.understood"
-                            aria-describedby="understood-error"
-                        />
-                        Entendí cómo se guardan mis datos</label
-                    >
-                    <p
-                        id="understood-error"
-                        v-if="form.errors.understood"
-                        class="f-field-error"
-                    >
-                        {{ form.errors.understood }}
-                    </p>
-                </section>
+                <AccountNotice
+                    v-model="form.understood"
+                    :owner="owner"
+                    :beta="invitation.beta"
+                    :error="form.errors.understood"
+                    :disabled="form.processing"
+                />
                 <button
                     class="f-button f-button-primary f-full"
                     :disabled="form.processing"
@@ -159,25 +124,3 @@ const submit = () =>
         </p></GuestLayout
     >
 </template>
-<style scoped>
-.invitation-notice {
-    border: 1px solid var(--f-line);
-    border-radius: 10px;
-    background: var(--f-subtle);
-    padding: 14px 16px;
-}
-.invitation-notice h2 {
-    font-size: 14px;
-    font-weight: 600;
-    margin: 0 0 8px;
-}
-.invitation-notice ul {
-    margin: 0 0 12px;
-    padding-left: 18px;
-    list-style: disc;
-    display: grid;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--f-muted);
-}
-</style>
